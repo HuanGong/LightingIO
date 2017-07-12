@@ -1,0 +1,3 @@
+#define HAVE_UCONTEXT_H
+#define HAVE_SETJMP_H
+#define HAVE_SIGALTSTACK
