@@ -1,0 +1,14 @@
+
+SET(BINARY_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin)
+SET(LIBRARY_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/lib)
+
+SET(CMAKE_C_COMPILER g++)
+#add_compile_options(-std=c++11)
+ADD_COMPILE_OPTIONS(-std=c++11)
+
+SET(CRC_SOURCES
+    crc/crc.cpp
+    crc/crc.h)
+
+ADD_LIBRARY(crc STATIC ${CRC_SOURCES})
+
