@@ -1,6 +1,6 @@
 
-SET(BINARY_OUTPUT_PATH ${LightingIO_SOURCE_DIR}/bin)
-SET(LIBRARY_OUTPUT_PATH ${LightingIO_SOURCE_DIR}/lib)
+#SET(BINARY_OUTPUT_PATH ${LightingIO_SOURCE_DIR}/bin)
+#SET(LIBRARY_OUTPUT_PATH ${LightingIO_SOURCE_DIR}/lib)
 
 SET(CMAKE_C_COMPILER g++)
 #add_compile_options(-std=c++11)

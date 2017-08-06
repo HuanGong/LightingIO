@@ -2,9 +2,19 @@ cmake_minimum_required(VERSION 2.6)
 
 project(LightingIO)
 
-LINK_DIRECTORIES(${LightingIO_SOURCE_DIR}/lib)
+
+# set default EXECUTABLE_OUTPUT_PATH to build/bin
+SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
+
+#
+# set default LIBRARY_OUTPUT_PATH to build/lib
+SET(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
+
+# add a default linked path to build/lib
+LINK_DIRECTORIES(${LIBRARY_OUTPUT_PATH}/lib)
 
 ADD_SUBDIRECTORY(base)
+ADD_SUBDIRECTORY(ev_io)
 ADD_SUBDIRECTORY(thirdparty)
 ADD_SUBDIRECTORY(thirdparty/libevent)
 
