@@ -3,6 +3,8 @@
 set(LIBEVENT_PATH ${LightingIO_SOURCE_DIR}/thirdparty/libevent)
 set(LIBEVENT_OUT_PATH ${CMAKE_BINARY_DIR}/thirdparty/libevent)
 
+include_directories(${LightingIO_SOURCE_DIR})
+
 include_directories(${LIBEVENT_PATH}/include)
 include_directories(${LIBEVENT_OUT_PATH}/include)
 
