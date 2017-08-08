@@ -8,6 +8,8 @@
 #include <iostream>
 #include <queue>
 
+#include <mutex>
+
 namespace IO {
 
 enum LoopState {
@@ -34,29 +36,34 @@ class EvIOLoop {
 
     void Init();
   private:
-    void OnReadFiFo() {
-      std::cout << "OnreadFifo" << std::endl;
-    }
+    static void OnWakeup(int socket, short flags, void* context);  // NOLINT
+    static void RunTask(int fd, short flags, void* context);       // NOLINT
+    static void RunTimer(int fd, short flags, void* context);      // NOLINT
 
-    void test() {
-      std::cout << "test run" << std::endl;
-    }
+    //class ReplyTaskOwner;
+    class PostAndReplyTask;
+    class SetTimerTask;
 
-    void test2(int i) {
-      std::cout << "test run" << std::endl;
-    }
+    //typedef RefCountedObject<ReplyTaskOwner> ReplyTaskOwnerRef;
 
-    void run_watch_dog(int sock, short event, void *arg);
+    //void PrepareReplyTask(scoped_refptr<ReplyTaskOwnerRef> reply_task);
 
-    event_base* ev_base_;
+    struct QueueContext;
+
+    int wakeup_pipe_in_ = -1;
+    int wakeup_pipe_out_ = -1;
+    event_base* event_base_;
+    std::unique_ptr<event> wakeup_event_;
+    PlatformThread thread_;
+
+    std::mutex pending_lock_;
+
+    std::list<std::unique_ptr<QueuedTask>> pending_;
+    //std::list<scoped_refptr<ReplyTaskOwnerRef>> pending_replies_
+
     std::atomic_int status_;
+
     std::thread::id tid_;
-    struct event watchdog_evt_;
-
-    int fd_fifo_;
-    std::string fifo_name_;
-
-    std::vector<TimerFunctor> timer_functor_;
 };
 
 } //endnamespace
