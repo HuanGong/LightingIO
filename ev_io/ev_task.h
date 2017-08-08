@@ -7,11 +7,20 @@
 #include <list>
 #include <memory>
 #include <queue>
+#include <assert.h>
 
 struct event_base;
 struct event;
 
 namespace IO {
+
+#define DCHECK(condition)                                                               \
+  do {                                                                                  \
+    if (!(condition)) {                                                                 \
+      std::cout << __FILE__ << __LINE__ << "DCHECK failed:" << #condition << std::endl; \
+      assert(condition);                                                                \
+    }                                                                                   \
+  } while (0)
 
 // Base interface for asynchronously executed tasks.
 // The interface basically consists of a single function, Run(), that executes
@@ -30,6 +39,29 @@ class QueuedTask {
 
  private:
   DISALLOW_COPY_AND_ASSIGN(QueuedTask);
+};
+
+class TaskQueue::SetTimerTask : public QueuedTask {
+ public:
+  SetTimerTask(std::unique_ptr<QueuedTask> task, uint32_t milliseconds)
+      : task_(std::move(task)),
+        milliseconds_(milliseconds),
+        posted_(Time32()) {}
+
+ private:
+  bool Run() override {
+    // Compensate for the time that has passed since construction
+    // and until we got here.
+    uint32_t post_time = Time32() - posted_;
+    TaskQueue::Current()->PostDelayedTask(
+        std::move(task_),
+        post_time > milliseconds_ ? 0 : milliseconds_ - post_time);
+    return true;
+  }
+
+  std::unique_ptr<QueuedTask> task_;
+  const uint32_t milliseconds_;
+  const uint32_t posted_;
 };
 
 // Simple implementation of QueuedTask for use with rtc::Bind and lambdas.

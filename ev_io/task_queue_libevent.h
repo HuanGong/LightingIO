@@ -197,7 +197,7 @@ TaskQueue::TaskQueue(const char* queue_name, Priority priority /*= NORMAL*/)
               TaskQueuePriorityToThreadPriority(priority)) {
   //RTC_DCHECK(queue_name);
   int fds[2];
-  //RTC_CHECK(pipe(fds) == 0);
+  RTC_CHECK(pipe(fds) == 0);
   SetNonBlocking(fds[0]);
   SetNonBlocking(fds[1]);
   wakeup_pipe_out_ = fds[0];

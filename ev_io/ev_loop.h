@@ -10,6 +10,8 @@
 
 #include <mutex>
 
+#include "ev_task.h"
+
 namespace IO {
 
 enum LoopState {
@@ -19,23 +21,16 @@ enum LoopState {
   ST_STARTED = 3
 };
 
-typedef std::function<void()> TimerFunctor;
-
-class EvIOLoop {
+class EventLoop {
   public:
-    EvIOLoop();
-    ~EvIOLoop();
+    EventLoop(std::string name);
+    ~EventLoop();
 
-    void start();
-    void stop();
-    int status();
-    void pause();
-    void resume();
-
-    int StartTimer(const TimerFunctor& funtor);
-
-    void Init();
+    void Start();
+    bool IsCurrent();
+    EventLoop& Current();
   private:
+    void LoopMain();
     static void OnWakeup(int socket, short flags, void* context);  // NOLINT
     static void RunTask(int fd, short flags, void* context);       // NOLINT
     static void RunTimer(int fd, short flags, void* context);      // NOLINT
@@ -50,20 +45,22 @@ class EvIOLoop {
 
     struct QueueContext;
 
+    event_base* event_base_;
+
     int wakeup_pipe_in_ = -1;
     int wakeup_pipe_out_ = -1;
-    event_base* event_base_;
-    std::unique_ptr<event> wakeup_event_;
-    PlatformThread thread_;
 
     std::mutex pending_lock_;
 
+    std::unique_ptr<event> wakeup_event_;
     std::list<std::unique_ptr<QueuedTask>> pending_;
     //std::list<scoped_refptr<ReplyTaskOwnerRef>> pending_replies_
 
     std::atomic_int status_;
 
     std::thread::id tid_;
+    std::string loop_name_;
+    std::unique_ptr<std::thread> thread_ptr_;
 };
 
 } //endnamespace

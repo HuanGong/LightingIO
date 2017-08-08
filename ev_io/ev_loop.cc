@@ -10,6 +10,7 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <csignal>
 
 #include <event2/util.h>
 
@@ -24,115 +25,138 @@
 
 namespace IO {
 
-typedef void (*libevent_callback_t)(evutil_socket_t, short, void*);
+static const char kQuit = 1;
+static const char kRunTask = 2;
+static const char kRunReplyTask = 3;
 
-void fifo_read(evutil_socket_t fd, short event, void *arg) {
-  std::cout << __FUNCTION__ << std::endl;
-  std::cout << "sockfd:" << fd << std::endl;
+typedef void (*ev_callback_t)(evutil_socket_t, short, void*);
+
+//   signal(SIGPIPE, SIG_IGN);
+void IgnoreSigPipeSignalOnCurrentThread() {
+  sigset_t sigpipe_mask;
+  sigemptyset(&sigpipe_mask);
+  sigaddset(&sigpipe_mask, SIGPIPE);
+  pthread_sigmask(SIG_BLOCK, &sigpipe_mask, nullptr);
 }
 
+struct TimerEvent {
+  explicit TimerEvent(std::unique_ptr<QueuedTask> task)
+      : task(std::move(task)) {}
+  ~TimerEvent() { event_del(&ev); }
+  event ev;
+  std::unique_ptr<QueuedTask> task;
+};
 
-EvIOLoop::EvIOLoop() :
-  ev_base_(NULL),
-  fd_fifo_(0) {
+bool SetNonBlocking(int fd) {
+  const int flags = fcntl(fd, F_GETFL);
+  DCHECK(flags != -1);
+  return (flags & O_NONBLOCK) || fcntl(fd, F_SETFL, flags | O_NONBLOCK) != -1;
 }
 
-EvIOLoop::~EvIOLoop() {
-
+void EventAssign(struct event* ev,
+                 struct event_base* base,
+                 int fd,
+                 short events,
+                 void (*callback)(int, short, void*),
+                 void* arg) {
+  if (0 != event_assign(ev, base, fd, events, callback, arg)) {
+    std::cout << "event_assign failed" << std::endl;
+  }
 }
 
-void EvIOLoop::Init() {
-  struct timeval tv;
+LoopContext& Current() {
+  static thread_local LoopContext loop_context;
+  return loop_context;
+}
 
-  ev_base_ = event_base_new();
-  tid_ = std::this_thread::get_id();
+EventLoop::EventLoop(std::string name)
+  : event_base_(NULL),
+    wakeup_pipe_in_(0),
+    wakeup_pipe_out_(0) {
+  loop_name_ = name;
+}
 
-  Callback<void(evutil_socket_t, short, void*)>::func = std::bind(&EvIOLoop::run_watch_dog,
-                                                                  this,
-                                                                  std::placeholders::_1,
-                                                                  std::placeholders::_2,
-                                                                  std::placeholders::_3);
+EventLoop::~EventLoop() {
 
-  libevent_callback_t callback_func = static_cast<libevent_callback_t>(Callback<void(evutil_socket_t, short, void*)>::callback);
+  DCHECK(!IsCurrent());
 
-  event_assign(&watchdog_evt_,
-               ev_base_,
-               -1,
-               EV_PERSIST,
-               callback_func,
-               (void*)& watchdog_evt_);
-
-  evutil_timerclear(&tv);
-  tv.tv_sec = 2;
-  event_add(&watchdog_evt_, &tv);
-
-  // init fifi using for manager task
-  mode_t mode = 0666;
-  std::stringstream ss;
-  ss << tid_;
-  fifo_name_ = "/tmp/lightingio_" + ss.str();
-
-  unlink(fifo_name_.c_str());
-  if (::mkfifo(fifo_name_.c_str(), mode ) < 0) {
-    perror ( "failed to mkfifo" );
-    exit (1);
+  struct timespec ts;
+  char message = kQuit;
+  while (write(wakeup_pipe_in_, &message, sizeof(message)) != sizeof(message)) {
+    // The queue is full, so we have no choice but to wait and retry.
+    if (EAGAIN == errno) {
+      std::cout << "EAGAIN == errno when write quit message" << std::endl;
+    }
+    ts.tv_sec = 0;
+    ts.tv_nsec = 1000000;
+    nanosleep(&ts, nullptr);
   }
 
-	fd_fifo_ = open(fifo_name_.c_str(), O_RDWR | O_NONBLOCK, 0);
+  if (thread_ptr_ && thread_ptr_->joinable()) {
+    thread_ptr_->join();
+  }
 
-	if (fd_fifo_ == -1) {
-		perror("open fifo error");
-		exit(1);
-	}
-  libevent_callback_t call_ = [=this](int fd, short fd, void*) {
-    this->OnReadFiFo();
-  };
+  event_del(wakeup_event_.get());
 
-  struct event* evfifo = event_new(ev_base_,
-                                   fd_fifo_,
-                                   EV_WRITE|EV_READ|EV_PERSIST,
-                                   call_,
-                                   event_self_cbarg());
+  IgnoreSigPipeSignalOnCurrentThread();
 
-	event_add(evfifo, NULL);
+  close(wakeup_pipe_in_);
+  close(wakeup_pipe_out_);
 
-  std::cout << "successfully create FIFO in path:" << fifo_name_ << std::endl;
+  wakeup_pipe_in_ = -1;
+  wakeup_pipe_out_ = -1;
 
-  StartTimer(std::bind(&EvIOLoop::test, this));
-  int i = 5;
-  StartTimer(std::bind(&EvIOLoop::test2, this, i));
+  event_base_free(event_base_);
 }
 
-void EvIOLoop::start() {
-  std::cout << "started" << tid_ << std::endl;
-
-
-  event_base_dispatch(ev_base_);
+bool EventLoop::IsCurrent() {
+  return tid_ == std::this_thread::get_id();
 }
 
-void EvIOLoop::stop() {
+void EventLoop::Start() {
+
+  int fds[2];
+  DCHECK(pipe(fds) == 0);
+
+  SetNonBlocking(fds[0]);
+  SetNonBlocking(fds[1]);
+
+  wakeup_pipe_out_ = fds[0];
+  wakeup_pipe_in_ = fds[1];
+
+  EventAssign(wakeup_event_.get(),
+              event_base_,
+              wakeup_pipe_out_,
+              EV_READ | EV_PERSIST, OnWakeup, this);
+  event_add(wakeup_event_.get(), 0);
+
+  thread_ptr_.reset(new std::thread(std::bind(&EventLoop::LoopMain, this)));
 }
 
-int EvIOLoop::status() {
-  return 0;
+void EventLoop::LoopMain() {
+  //TaskQueue* me = static_cast<TaskQueue*>(context);
+/*
+  QueueContext queue_context(me);
+  pthread_setspecific(GetQueuePtrTls(), &queue_context);
+
+  while (queue_context.is_active)
+    event_base_loop(me->event_base_, 0);
+
+  pthread_setspecific(GetQueuePtrTls(), nullptr);
+
+  for (TimerEvent* timer : queue_context.pending_timers_)
+    delete timer;
+*/
 }
 
-void EvIOLoop::pause() {
+//static
+void EventLoop::OnWakeup(int socket, short flags, void* context) {
+  std::cout << "EventLoop::OnWakeup ......" << std::endl;
+}
+
+
+EventLoop& EventLoop::Current() {
 
 }
 
-void EvIOLoop::resume() {
-
-}
-
-int EvIOLoop::StartTimer(const TimerFunctor& funtor) {
-  timer_functor_.push_back(funtor);
-  return 100;
-}
-
-void EvIOLoop::run_watch_dog(int sock, short event, void *arg) {
-  std::cout << __FUNCTION__ << " sock:"
-            << sock << "event:" <<  event << std::endl;
-}
-
-}
+}//namespace

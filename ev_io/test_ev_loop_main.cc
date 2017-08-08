@@ -10,15 +10,15 @@
 
 
 int main() {
-  IO::EvIOLoop ioloop;
+  //IO::EvIOLoop ioloop;
 /*
   std::thread tr([&]() {
     std::cout << "thread start" << std::endl;
     sleep(5);
   });
 */
-  ioloop.Init();
-  ioloop.start();
+  //ioloop.Init();
+  //ioloop.start();
 /*
   if (tr.joinable()) {
     tr.join();

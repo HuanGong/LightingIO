@@ -28,6 +28,8 @@ set(TEST_IO_SOURCE
     test_ev_loop_main.cc)
 
 ADD_EXECUTABLE(ioloop_test ${TEST_IO_SOURCE})
-TARGET_LINK_LIBRARIES(ioloop_test -levent)
+TARGET_LINK_LIBRARIES(ioloop_test
+  -levent
+  -lpthread)
 TARGET_LINK_LIBRARIES(ioloop_test base)
 
