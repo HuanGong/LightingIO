@@ -41,21 +41,21 @@ class QueuedTask {
   DISALLOW_COPY_AND_ASSIGN(QueuedTask);
 };
 
-class TaskQueue::SetTimerTask : public QueuedTask {
+class SetTimerTask : public QueuedTask {
  public:
   SetTimerTask(std::unique_ptr<QueuedTask> task, uint32_t milliseconds)
       : task_(std::move(task)),
         milliseconds_(milliseconds),
-        posted_(Time32()) {}
+        posted_(0/*Time32()*/) {}
 
  private:
   bool Run() override {
     // Compensate for the time that has passed since construction
     // and until we got here.
-    uint32_t post_time = Time32() - posted_;
-    TaskQueue::Current()->PostDelayedTask(
-        std::move(task_),
-        post_time > milliseconds_ ? 0 : milliseconds_ - post_time);
+    //uint32_t post_time = Time32() - posted_;
+    //TaskQueue::Current()->PostDelayedTask(
+    //    std::move(task_),
+    //    post_time > milliseconds_ ? 0 : milliseconds_ - post_time);
     return true;
   }
 

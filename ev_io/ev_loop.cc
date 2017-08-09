@@ -29,8 +29,6 @@ static const char kQuit = 1;
 static const char kRunTask = 2;
 static const char kRunReplyTask = 3;
 
-typedef void (*ev_callback_t)(evutil_socket_t, short, void*);
-
 //   signal(SIGPIPE, SIG_IGN);
 void IgnoreSigPipeSignalOnCurrentThread() {
   sigset_t sigpipe_mask;
@@ -64,15 +62,30 @@ void EventAssign(struct event* ev,
   }
 }
 
-LoopContext& Current() {
+struct LoopContext {
+  explicit LoopContext() : loop(NULL), is_active(false) {}
+  void InitLoop(EventLoop* el) {
+    if (!is_active) {
+      loop = el;
+      is_active = true;
+    }
+  }
+  EventLoop* loop;
+  bool is_active;
+  // Holds a list of events pending timers for cleanup when the loop exits.
+  std::list<TimerEvent*> pending_timers_;
+};
+
+LoopContext& CurrentContext() {
   static thread_local LoopContext loop_context;
   return loop_context;
 }
 
 EventLoop::EventLoop(std::string name)
-  : event_base_(NULL),
+  : event_base_(event_base_new()),
     wakeup_pipe_in_(0),
-    wakeup_pipe_out_(0) {
+    wakeup_pipe_out_(0),
+    wakeup_event_(new event()) {
   loop_name_ = name;
 }
 
@@ -109,7 +122,7 @@ EventLoop::~EventLoop() {
   event_base_free(event_base_);
 }
 
-bool EventLoop::IsCurrent() {
+bool EventLoop::IsCurrent() const {
   return tid_ == std::this_thread::get_id();
 }
 
@@ -134,20 +147,58 @@ void EventLoop::Start() {
 }
 
 void EventLoop::LoopMain() {
-  //TaskQueue* me = static_cast<TaskQueue*>(context);
-/*
-  QueueContext queue_context(me);
-  pthread_setspecific(GetQueuePtrTls(), &queue_context);
+  LoopContext& context = CurrentContext();
+  context.InitLoop(this);
+ 
+  tid_ = std::this_thread::get_id();
 
-  while (queue_context.is_active)
-    event_base_loop(me->event_base_, 0);
+  while (context.is_active) {
+    event_base_loop(event_base_, 0);
+  }
 
-  pthread_setspecific(GetQueuePtrTls(), nullptr);
-
-  for (TimerEvent* timer : queue_context.pending_timers_)
+  //pthread_setspecific(GetQueuePtrTls(), nullptr);
+  for (TimerEvent* timer : context.pending_timers_) {
     delete timer;
-*/
+  }
+  context.loop = NULL;
 }
+
+void EventLoop::PostTask(std::unique_ptr<QueuedTask> task) {
+  DCHECK(task.get());
+  if (IsCurrent()) {
+    if (event_base_once(event_base_, -1, EV_TIMEOUT, &EventLoop::RunTask,
+                        task.get(), nullptr) == 0) {
+      task.release();
+    }
+  } else {
+    QueuedTask* task_id = task.get();  // Only used for comparison.
+    {
+      //CritScope lock(&pending_lock_);
+      std::unique_lock<std::mutex>  lck(pending_lock_);
+      pending_.push_back(std::move(task));
+    }
+    char message = kRunTask;
+    if (write(wakeup_pipe_in_, &message, sizeof(message)) != sizeof(message)) {
+      //LOG(WARNING) << "Failed to queue task.";
+      std::cout << "Failed to queue task.";
+      std::unique_lock<std::mutex>  lck(pending_lock_);
+      //CritScope lock(&pending_lock_);
+      pending_.remove_if([task_id](std::unique_ptr<QueuedTask>& t) {
+        return t.get() == task_id;
+      });
+    }
+  }
+}
+
+
+//static libevent callback_t
+void EventLoop::RunTask(int fd, short flags, void* context) {
+  auto* task = static_cast<QueuedTask*>(context);
+  if (task->Run()) {
+    delete task;
+  }
+}
+
 
 //static
 void EventLoop::OnWakeup(int socket, short flags, void* context) {
@@ -155,8 +206,9 @@ void EventLoop::OnWakeup(int socket, short flags, void* context) {
 }
 
 
-EventLoop& EventLoop::Current() {
-
+EventLoop* EventLoop::Current() {
+  return CurrentContext().loop; 
 }
 
 }//namespace
+

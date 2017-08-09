@@ -6,22 +6,20 @@
 #include "unistd.h"
 
 #include <iostream>
-//#include <thread>
+
+#include "ev_task.h"
 
 
 int main() {
-  //IO::EvIOLoop ioloop;
-/*
-  std::thread tr([&]() {
-    std::cout << "thread start" << std::endl;
-    sleep(5);
-  });
-*/
-  //ioloop.Init();
-  //ioloop.start();
-/*
-  if (tr.joinable()) {
-    tr.join();
-  }
-  */
+
+  IO::EventLoop loop("task loop");
+  std::cout << "is current thread:" << loop.IsCurrent() << std::endl;
+  loop.Start();
+  std::cout << "is current thread:" << loop.IsCurrent() << std::endl;
+  loop.PostTask(IO::NewClosure([]() {
+    std::cout << "run in task loop" << std::endl;
+    std::cout << std::this_thread::get_id() << std::endl;
+  }));
+  std::cout << "loop end" << std::endl;
+  return 0;
 }

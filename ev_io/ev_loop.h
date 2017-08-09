@@ -26,9 +26,12 @@ class EventLoop {
     EventLoop(std::string name);
     ~EventLoop();
 
+
+    void PostTask(std::unique_ptr<QueuedTask> task);
+
     void Start();
-    bool IsCurrent();
-    EventLoop& Current();
+    bool IsCurrent() const;
+    EventLoop* Current();
   private:
     void LoopMain();
     static void OnWakeup(int socket, short flags, void* context);  // NOLINT
@@ -43,7 +46,7 @@ class EventLoop {
 
     //void PrepareReplyTask(scoped_refptr<ReplyTaskOwnerRef> reply_task);
 
-    struct QueueContext;
+    //struct LoopContext;
 
     event_base* event_base_;
 
