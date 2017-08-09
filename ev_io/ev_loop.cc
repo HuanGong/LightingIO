@@ -149,7 +149,7 @@ void EventLoop::Start() {
 void EventLoop::LoopMain() {
   LoopContext& context = CurrentContext();
   context.InitLoop(this);
- 
+
   tid_ = std::this_thread::get_id();
 
   while (context.is_active) {
@@ -202,12 +202,57 @@ void EventLoop::RunTask(int fd, short flags, void* context) {
 
 //static
 void EventLoop::OnWakeup(int socket, short flags, void* context) {
-  std::cout << "EventLoop::OnWakeup ......" << std::endl;
+  LoopContext& ctx = CurrentContext();
+  DCHECK(ctx.loop == context);
+  DCHECK(ctx.loop->wakeup_pipe_out_ == socket);
+  char buf;
+  DCHECK(sizeof(buf) == read(socket, &buf, sizeof(buf)));
+  switch (buf) {
+    case kQuit:
+      ctx.is_active = false;
+      event_base_loopbreak(ctx.loop->event_base_);
+      break;
+    case kRunTask: {
+      std::unique_ptr<QueuedTask> task;
+      {
+        std::unique_lock<std::mutex> lck(ctx.loop->pending_lock_);
+        //CritScope lock(&ctx->queue->pending_lock_);
+        DCHECK(!ctx.loop->pending_.empty());
+        task = std::move(ctx.loop->pending_.front());
+        ctx.loop->pending_.pop_front();
+        DCHECK(task.get());
+      }
+      if (!task->Run()) {
+        task.release();
+      }
+      break;
+    }
+    /*
+    case kRunReplyTask: {
+      scoped_refptr<ReplyTaskOwnerRef> reply_task;
+      {
+        CritScope lock(&ctx->queue->pending_lock_);
+        for (auto it = ctx->queue->pending_replies_.begin();
+             it != ctx->queue->pending_replies_.end(); ++it) {
+          if ((*it)->HasOneRef()) {
+            reply_task = std::move(*it);
+            ctx->queue->pending_replies_.erase(it);
+            break;
+          }
+        }
+      }
+      reply_task->Run();
+      break;
+    } */
+    default:
+      std::cout << __FUNCTION__ << " should not readched !!!!" << std::endl;
+      break;
+  }
 }
 
 
 EventLoop* EventLoop::Current() {
-  return CurrentContext().loop; 
+  return CurrentContext().loop;
 }
 
 }//namespace
