@@ -151,7 +151,7 @@ void EventLoop::LoopMain() {
   context.InitLoop(this);
 
   tid_ = std::this_thread::get_id();
-
+  std::cout << "EventLoop:" << loop_name_ << " Run on thread:" << tid_ << std::endl;
   while (context.is_active) {
     event_base_loop(event_base_, 0);
   }
@@ -161,6 +161,10 @@ void EventLoop::LoopMain() {
     delete timer;
   }
   context.loop = NULL;
+}
+
+void EventLoop::PostDelayTask(std::unique_ptr<QueuedTask> t, uint32_t milliseconds) {
+  return;
 }
 
 void EventLoop::PostTask(std::unique_ptr<QueuedTask> task) {
@@ -182,7 +186,6 @@ void EventLoop::PostTask(std::unique_ptr<QueuedTask> task) {
       //LOG(WARNING) << "Failed to queue task.";
       std::cout << "Failed to queue task.";
       std::unique_lock<std::mutex>  lck(pending_lock_);
-      //CritScope lock(&pending_lock_);
       pending_.remove_if([task_id](std::unique_ptr<QueuedTask>& t) {
         return t.get() == task_id;
       });
@@ -250,7 +253,7 @@ void EventLoop::OnWakeup(int socket, short flags, void* context) {
   }
 }
 
-
+//static
 EventLoop* EventLoop::Current() {
   return CurrentContext().loop;
 }

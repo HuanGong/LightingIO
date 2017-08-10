@@ -24,14 +24,15 @@ enum LoopState {
 class EventLoop {
   public:
     EventLoop(std::string name);
-    ~EventLoop();
-
+    virtual ~EventLoop();
 
     void PostTask(std::unique_ptr<QueuedTask> task);
+    void PostDelayTask(std::unique_ptr<QueuedTask> t, uint32_t milliseconds);
 
     void Start();
     bool IsCurrent() const;
-    EventLoop* Current();
+    event_base* EventBase() {return event_base_;}
+    static EventLoop* Current();
   private:
     void LoopMain();
     static void OnWakeup(int socket, short flags, void* context);  // NOLINT

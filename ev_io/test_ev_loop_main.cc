@@ -11,6 +11,8 @@
 #include "ctime"
 #include <time.h>
 
+#include "http_server.h"
+
 //int gettimeofday(struct timeval *tv, struct timezone *tz);
 long long gettime() {
 
@@ -24,11 +26,11 @@ long long gettime() {
 }
 
 int main() {
+  net::SrvConfig config = {false, {8009}, 1};
+  net::HttpSrv server(NULL, config);
 
-  IO::EventLoop loop("task loop");
-  loop.Start();
-
-
-  std::cout << "loop end; join number:" << x << std::endl;
+  while(1) {
+    sleep(10);
+  }
   return 0;
 }
