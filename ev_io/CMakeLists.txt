@@ -1,5 +1,3 @@
-
-
 set(LIBEVENT_PATH ${LightingIO_SOURCE_DIR}/thirdparty/libevent)
 set(LIBEVENT_OUT_PATH ${CMAKE_BINARY_DIR}/thirdparty/libevent)
 
@@ -10,7 +8,7 @@ include_directories(${LIBEVENT_OUT_PATH}/include)
 
 SET(CMAKE_C_COMPILER g++)
 #add_compile_options(-std=c++11)
-ADD_COMPILE_OPTIONS(-std=c++11)
+ADD_DEFINITIONS(-std=c++11)
 
 set(IO_SOURCE
     ev_loop.cc
