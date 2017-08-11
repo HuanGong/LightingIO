@@ -51,6 +51,8 @@ private:
   //UniquePtrList<EventLoop> io_loops_;
   //std::unique_ptr<EventLoop> io_loop_;
 
+  UniquePtrList<IO::EventLoop> workers_;
+
   SrvConfig config_;
   HttpSrvDelegate* delegate_;
 

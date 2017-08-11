@@ -26,7 +26,7 @@ long long gettime() {
 }
 
 int main() {
-  net::SrvConfig config = {false, {8009}, 1};
+  net::SrvConfig config = {false, {8009}, 2};
   net::HttpSrv server(NULL, config);
 
   while(1) {

@@ -2,6 +2,9 @@
 
 #include "http_server.h"
 #include "event2/http_struct.h"
+#include "unistd.h"
+#include "stdlib.h"
+#include <memory>
 
 namespace net {
 
@@ -9,6 +12,11 @@ HttpSrv::HttpSrv(HttpSrvDelegate* delegate, SrvConfig& config)
   : delegate_(delegate),
     config_(config) {
 
+  for (int i= 0; i < config_.hander_workers; i++) {
+    std::unique_ptr<IO::EventLoop> loop(new IO::EventLoop("workerthread"));
+    loop->Start();
+    workers_.push_back(std::move(loop));
+  }
   ev_http_server_.io_loop_.reset(new IO::EventLoop("httpserver io loop"));
   ev_http_server_.io_loop_->Start();
   ev_http_server_.io_loop_->PostTask(
@@ -50,16 +58,8 @@ void HttpSrv::SetUpHttpSrv(EvHttpSrv* server) {
   return;
 }
 
-//static
-void HttpSrv::GenericCallback(struct evhttp_request* req, void* arg) {
-  static int i = 0;
-  i++;
-  if (i%20 == 0) {
-    std::cout << i << std::endl;
-  }
-
-  HttpSrv* server = static_cast<HttpSrv*>(arg);
-
+void Replyrequest(struct evhttp_request* req) {
+  std::cout << __FUNCTION__ << std::endl;
   //HTTP header
   evhttp_add_header(req->output_headers, "Server", "bad");
   evhttp_add_header(req->output_headers, "Content-Type", "text/plain; charset=UTF-8");
@@ -70,5 +70,38 @@ void HttpSrv::GenericCallback(struct evhttp_request* req, void* arg) {
   evhttp_send_reply(req, HTTP_OK, "OK", buf);
   evbuffer_free(buf);
 }
+
+//static
+void HttpSrv::GenericCallback(struct evhttp_request* req, void* arg) {
+  static long query_count = 0;
+  query_count++;
+
+  HttpSrv* server = static_cast<HttpSrv*>(arg);
+
+  std::cout << __FUNCTION__ << std::endl;
+  //round-robin
+  auto& worker = server->workers_[query_count%server->config_.hander_workers];
+
+  auto f = [&](IO::EventLoop* ioloop, struct evhttp_request* req) {
+    std::cout << __FUNCTION__ << std::endl;
+    ioloop->PostTask(IO::NewClosure(std::bind(Replyrequest, req)));
+  };
+
+
+  worker->PostTask(IO::NewClosure(std::bind(f, IO::EventLoop::Current(), req)));
+  /*
+  //HTTP header
+  evhttp_add_header(req->output_headers, "Server", "bad");
+  evhttp_add_header(req->output_headers, "Content-Type", "text/plain; charset=UTF-8");
+  evhttp_add_header(req->output_headers, "Connection", "close");
+  //输出的内容
+  struct evbuffer *buf = evbuffer_new();
+  evbuffer_add(buf, "hello work!", sizeof("hello work!"));
+  evhttp_send_reply(req, HTTP_OK, "OK", buf);
+  evbuffer_free(buf);
+  */
+}
+
+
 
 }//endnamespace
