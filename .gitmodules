@@ -1,3 +1,6 @@
 [submodule "thirdparty/libevent"]
 	path = thirdparty/libevent
 	url = https://github.com/libevent/libevent.git
+[submodule "thirdparty/concurrentqueue"]
+	path = thirdparty/concurrentqueue
+	url = https://github.com/cameron314/concurrentqueue.git

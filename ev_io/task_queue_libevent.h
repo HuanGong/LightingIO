@@ -290,8 +290,7 @@ void TaskQueue::PostDelayedTask(std::unique_ptr<QueuedTask> task,
     timeval tv = {milliseconds / 1000, (milliseconds % 1000) * 1000};
     event_add(&timer->ev, &tv);
   } else {
-    PostTask(std::unique_ptr<QueuedTask>(
-        new SetTimerTask(std::move(task), milliseconds)));
+    PostTask(std::unique_ptr<QueuedTask>(new SetTimerTask(std::move(task), milliseconds)));
   }
 }
 

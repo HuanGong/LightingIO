@@ -75,7 +75,7 @@ void Replyrequest(struct evhttp_request* req) {
 void HttpSrv::GenericCallback(struct evhttp_request* req, void* arg) {
   static long query_count = 0;
   query_count++;
-
+/*
   HttpSrv* server = static_cast<HttpSrv*>(arg);
 
   std::cout << __FUNCTION__ << std::endl;
@@ -89,7 +89,7 @@ void HttpSrv::GenericCallback(struct evhttp_request* req, void* arg) {
 
 
   worker->PostTask(IO::NewClosure(std::bind(f, IO::EventLoop::Current(), req)));
-  /*
+  */
   //HTTP header
   evhttp_add_header(req->output_headers, "Server", "bad");
   evhttp_add_header(req->output_headers, "Content-Type", "text/plain; charset=UTF-8");
@@ -99,7 +99,6 @@ void HttpSrv::GenericCallback(struct evhttp_request* req, void* arg) {
   evbuffer_add(buf, "hello work!", sizeof("hello work!"));
   evhttp_send_reply(req, HTTP_OK, "OK", buf);
   evbuffer_free(buf);
-  */
 }
 
 
