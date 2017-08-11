@@ -178,17 +178,23 @@ void EventLoop::PostTask(std::unique_ptr<QueuedTask> task) {
     QueuedTask* task_id = task.get();  // Only used for comparison.
     {
       //CritScope lock(&pending_lock_);
-      std::unique_lock<std::mutex>  lck(pending_lock_);
-      pending_.push_back(std::move(task));
+      //std::unique_lock<std::mutex>  lck(pending_lock_);
+      //pending_.push_back(std::move(task));
+      pending_.enqueue(std::move(task));
     }
     char message = kRunTask;
     if (write(wakeup_pipe_in_, &message, sizeof(message)) != sizeof(message)) {
       //LOG(WARNING) << "Failed to queue task.";
       std::cout << "Failed to queue task.";
-      std::unique_lock<std::mutex>  lck(pending_lock_);
-      pending_.remove_if([task_id](std::unique_ptr<QueuedTask>& t) {
-        return t.get() == task_id;
-      });
+      std::unique_ptr<QueuedTask> task;
+      pending_.try_dequeue(task);
+      if (task_id == task.get()) {
+        std::cout << "release failed schedule task" << std::endl;
+      }
+      //std::unique_lock<std::mutex>  lck(pending_lock_);
+      //pending_.remove_if([task_id](std::unique_ptr<QueuedTask>& t) {
+        //return t.get() == task_id;
+      //});
     }
   }
 }
@@ -218,11 +224,12 @@ void EventLoop::OnWakeup(int socket, short flags, void* context) {
     case kRunTask: {
       std::unique_ptr<QueuedTask> task;
       {
-        std::unique_lock<std::mutex> lck(ctx.loop->pending_lock_);
+        //std::unique_lock<std::mutex> lck(ctx.loop->pending_lock_);
         //CritScope lock(&ctx->queue->pending_lock_);
-        DCHECK(!ctx.loop->pending_.empty());
-        task = std::move(ctx.loop->pending_.front());
-        ctx.loop->pending_.pop_front();
+        //DCHECK(!ctx.loop->pending_.empty());
+        ctx.loop->pending_.try_dequeue(task);
+        //task = std::move(ctx.loop->pending_.front());
+        //ctx.loop->pending_.pop_front();
         DCHECK(task.get());
       }
       if (!task->Run()) {

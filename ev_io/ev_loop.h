@@ -9,6 +9,7 @@
 #include <queue>
 
 #include <mutex>
+#include "thirdparty/concurrentqueue/concurrentqueue.h"
 
 #include "ev_task.h"
 
@@ -54,10 +55,12 @@ class EventLoop {
     int wakeup_pipe_in_ = -1;
     int wakeup_pipe_out_ = -1;
 
-    std::mutex pending_lock_;
+    //std::mutex pending_lock_;
 
     std::unique_ptr<event> wakeup_event_;
-    std::list<std::unique_ptr<QueuedTask>> pending_;
+
+    moodycamel::ConcurrentQueue<std::unique_ptr<QueuedTask>> pending_;
+    //std::list<std::unique_ptr<QueuedTask>> pending_;
     //std::list<scoped_refptr<ReplyTaskOwnerRef>> pending_replies_
 
     std::atomic_int status_;
