@@ -9,6 +9,9 @@
 #include "event.h"
 #include "closure_task.h"
 
+#include "base/memory/scoped_ref_ptr.h"
+#include "base/memory/refcountedobject.h"
+
 #include <iostream>
 
 namespace base {
@@ -20,28 +23,6 @@ enum LoopState {
   ST_STARTED = 3
 };
 
-#ifdef XXXX_ENABLE_SET_TIMMER
-class SetTimerTask : public QueuedTask {
- public:
-  SetTimerTask(std::unique_ptr<QueuedTask> task, uint32_t milliseconds)
-      : task_(std::move(task)),
-        milliseconds_(milliseconds),
-        posted_(time_ms()) {}
-
- private:
-  bool Run() override {
-    uint32_t post_time = time_ms() - posted_;
-    //TaskQueue::Current()->PostDelayedTask(std::move(task_),
-    //                                      post_time > milliseconds_ ? 0 : milliseconds_ - post_time);
-    return true;
-  }
-
-  std::unique_ptr<QueuedTask> task_;
-  const uint32_t milliseconds_;
-  const uint32_t posted_;
-};
-#endif
-
 class MessageLoop {
   public:
     MessageLoop(std::string name);
@@ -49,6 +30,12 @@ class MessageLoop {
 
     void PostTask(std::unique_ptr<QueuedTask> task);
     void PostDelayTask(std::unique_ptr<QueuedTask> t, uint32_t milliseconds);
+
+    void PostTaskAndReply(std::unique_ptr<QueuedTask> task,
+                          std::unique_ptr<QueuedTask> reply,
+                          MessageLoop* reply_queue);
+    void PostTaskAndReply(std::unique_ptr<QueuedTask> task,
+                          std::unique_ptr<QueuedTask> reply);
 
     void Start();
     bool IsInLoopThread() const;
@@ -61,12 +48,12 @@ class MessageLoop {
     static void RunTask(int fd, short flags, void* context);       // NOLINT
     static void RunTimer(int fd, short flags, void* context);      // NOLINT
 
-    //class ReplyTaskOwner;
-    //class PostAndReplyTask;
-    //class SetTimerTask;
+    class ReplyTaskOwner;
+    class PostAndReplyTask;
+    class SetTimerTask;
 
-    //typedef RefCountedObject<ReplyTaskOwner> ReplyTaskOwnerRef;
-    //void PrepareReplyTask(scoped_refptr<ReplyTaskOwnerRef> reply_task);
+    typedef RefCountedObject<ReplyTaskOwner> ReplyTaskOwnerRef;
+    void PrepareReplyTask(scoped_refptr<ReplyTaskOwnerRef> reply_task);
     //struct LoopContext;
 
     event_base* event_base_;
@@ -78,7 +65,7 @@ class MessageLoop {
 
     std::unique_ptr<event> wakeup_event_;
     std::list<std::unique_ptr<QueuedTask>> pending_;
-    //std::list<scoped_refptr<ReplyTaskOwnerRef>> pending_replies_
+    std::list<scoped_refptr<ReplyTaskOwnerRef>> pending_replies_;
 
     std::atomic_int status_;
 

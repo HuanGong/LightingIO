@@ -1,4 +1,3 @@
-
 #include "message_loop.h"
 
 #include <sys/types.h>
@@ -18,7 +17,6 @@
 #include <functional>
 #include <event2/util.h>
 
-
 #include <base/utils/hpp_2_c_helper.h>
 
 #include <iostream>
@@ -37,12 +35,88 @@ void IgnoreSigPipeSignalOnCurrentThread() {
   pthread_sigmask(SIG_BLOCK, &sigpipe_mask, nullptr);
 }
 
+class MessageLoop::ReplyTaskOwner {
+  public:
+    ReplyTaskOwner(std::unique_ptr<QueuedTask> reply)
+      : reply_(std::move(reply)) {}
+    void Run() {
+      DCHECK(reply_);
+      if (run_task_ && (!reply_->Run())) {
+        reply_.release();
+      }
+      reply_.reset();
+    }
+    void set_should_run_task() {
+      DCHECK(!run_task_);
+      run_task_ = true;
+    }
+  private:
+    std::unique_ptr<QueuedTask> reply_;
+    bool run_task_ = false;
+};
+
 struct TimerEvent {
   explicit TimerEvent(std::unique_ptr<QueuedTask> task)
       : task(std::move(task)) {}
   ~TimerEvent() { event_del(&ev); }
   event ev;
   std::unique_ptr<QueuedTask> task;
+};
+
+class MessageLoop::SetTimerTask : public QueuedTask {
+ public:
+  SetTimerTask(std::unique_ptr<QueuedTask> task, uint32_t milliseconds)
+      : task_(std::move(task)),
+        milliseconds_(milliseconds),
+        posted_(time_ms()) {}
+ private:
+  bool Run() override {
+    uint32_t post_time = time_ms() - posted_;
+    MessageLoop::Current()->PostDelayTask(std::move(task_),
+                                            post_time > milliseconds_ ? 0 : milliseconds_ - post_time);
+    return true;
+  }
+
+  std::unique_ptr<QueuedTask> task_;
+  const uint32_t milliseconds_;
+  const uint32_t posted_;
+};
+
+class MessageLoop::PostAndReplyTask : public QueuedTask {
+  public:
+    PostAndReplyTask(std::unique_ptr<QueuedTask> task,
+                     std::unique_ptr<QueuedTask> reply,
+                     MessageLoop* reply_queue,
+                     int reply_pipe)
+      : task_(std::move(task)),
+        reply_pipe_(reply_pipe),
+        reply_task_owner_(new RefCountedObject<ReplyTaskOwner>(std::move(reply))) {
+        reply_queue->PrepareReplyTask(reply_task_owner_);
+      }
+
+    ~PostAndReplyTask() override {
+      reply_task_owner_ = nullptr;
+      IgnoreSigPipeSignalOnCurrentThread();
+      // Send a signal to the reply queue that the reply task can run now.
+      // Depending on whether |set_should_run_task()| was called by the
+      // PostAndReplyTask(), the reply task may or may not actually run.
+      // In either case, it will be deleted.
+      char message = kRunReplyTask;
+      int num = write(reply_pipe_, &message, sizeof(message));
+      DCHECK(num == sizeof(message));
+    }
+  private:
+    bool Run() override {
+      if (!task_->Run()) {
+        task_.release();
+      }
+      reply_task_owner_->set_should_run_task();
+      return true;
+    }
+
+    std::unique_ptr<QueuedTask> task_;
+    int reply_pipe_;
+    scoped_refptr<RefCountedObject<ReplyTaskOwner>> reply_task_owner_;
 };
 
 bool SetNonBlocking(int fd) {
@@ -151,7 +225,7 @@ void MessageLoop::ThreadMain() {
   context.InitLoop(this);
 
   tid_ = std::this_thread::get_id();
-  std::cout << "MessageLoop:" << loop_name_ << " Run on thread:" << tid_ << std::endl;
+  std::cout << "MessageLoop: " << loop_name_ << " Run on thread:" << tid_ << std::endl;
   while (context.is_active) {
     event_base_loop(event_base_, 0);
   }
@@ -162,7 +236,19 @@ void MessageLoop::ThreadMain() {
   context.loop = NULL;
 }
 
-void MessageLoop::PostDelayTask(std::unique_ptr<QueuedTask> t, uint32_t milliseconds) {
+void MessageLoop::PostDelayTask(std::unique_ptr<QueuedTask> task, uint32_t milliseconds) {
+
+  LoopContext& ctx = CurrentContext();
+
+  if (IsInLoopThread()) {
+    TimerEvent* timer = new TimerEvent(std::move(task));
+    EventAssign(&timer->ev, event_base_, -1, 0, &MessageLoop::RunTimer, timer);
+    ctx.pending_timers_.push_back(timer);
+    timeval tv = {milliseconds / 1000, (milliseconds % 1000) * 1000};
+    event_add(&timer->ev, &tv);
+  } else {
+    PostTask(std::unique_ptr<QueuedTask>(new SetTimerTask(std::move(task), milliseconds)));
+  }
   return;
 }
 
@@ -192,6 +278,16 @@ void MessageLoop::PostTask(std::unique_ptr<QueuedTask> task) {
   }
 }
 
+//static 
+void MessageLoop::RunTimer(int fd, short flags, void* context) {
+  TimerEvent* timer = static_cast<TimerEvent*>(context);
+  if (!timer->task->Run()) {
+    timer->task.release();
+  }
+  auto& ctx = CurrentContext();
+  ctx.pending_timers_.remove(timer);
+  delete timer;
+}
 
 //static libevent callback_t
 void MessageLoop::RunTask(int fd, short flags, void* context) {
@@ -228,33 +324,58 @@ void MessageLoop::OnWakeup(int socket, short flags, void* context) {
       }
       break;
     }
-    /*
     case kRunReplyTask: {
       scoped_refptr<ReplyTaskOwnerRef> reply_task;
       {
-        CritScope lock(&ctx->queue->pending_lock_);
-        for (auto it = ctx->queue->pending_replies_.begin();
-             it != ctx->queue->pending_replies_.end(); ++it) {
+        std::unique_lock<std::mutex> lck(ctx.loop->pending_lock_);
+        for (auto it = ctx.loop->pending_replies_.begin();
+             it != ctx.loop->pending_replies_.end(); ++it) {
           if ((*it)->HasOneRef()) {
             reply_task = std::move(*it);
-            ctx->queue->pending_replies_.erase(it);
+            ctx.loop->pending_replies_.erase(it);
             break;
           }
         }
       }
       reply_task->Run();
       break;
-    } */
+    } 
     default:
-      std::cout << __FUNCTION__ << " should not readched !!!!" << std::endl;
+      std::cout << __FUNCTION__ << " should not be readched !!!!" << std::endl;
       break;
   }
+}
+
+
+void MessageLoop::PostTaskAndReply(std::unique_ptr<QueuedTask> task,
+                                   std::unique_ptr<QueuedTask> reply,
+                                   MessageLoop* reply_queue) {
+  std::unique_ptr<QueuedTask> wrapper_task(
+    new PostAndReplyTask(std::move(task),
+                         std::move(reply),
+                         reply_queue,
+                         reply_queue->wakeup_pipe_in_));
+
+  PostTask(std::move(wrapper_task));
+}
+
+void MessageLoop::PostTaskAndReply(std::unique_ptr<QueuedTask> task,
+                                   std::unique_ptr<QueuedTask> reply) {
+  PostTaskAndReply(std::move(task), std::move(reply), Current());
+}
+
+void MessageLoop::PrepareReplyTask(scoped_refptr<ReplyTaskOwnerRef> reply_task) {
+  DCHECK(reply_task);
+  //CritScope lock(&pending_lock_);
+  std::unique_lock<std::mutex> lck(pending_lock_);
+  pending_replies_.push_back(std::move(reply_task));
 }
 
 //static
 MessageLoop* MessageLoop::Current() {
   return CurrentContext().loop;
 }
+
 
 }//namespace
 
