@@ -3,14 +3,26 @@ SET(CMAKE_C_COMPILER g++)
 #add_compile_options(-std=c++11)
 ADD_DEFINITIONS(-std=c++11)
 
-set(LIBEVENT_PATH ${LightingIO_SOURCE_DIR}/thirdparty/libevent)
-set(LIBEVENT_OUT_PATH ${CMAKE_BINARY_DIR}/thirdparty/libevent)
+#set(LIBEVENT_PATH ${LightingIO_SOURCE_DIR}/thirdparty/libevent)
+#set(LIBEVENT_OUT_PATH ${CMAKE_BINARY_DIR}/thirdparty/libevent)
 
-include_directories(${LIBEVENT_PATH}/include)
-include_directories(${LIBEVENT_OUT_PATH}/include)
+#include_directories(${LIBEVENT_PATH}/include)
+#include_directories(${LIBEVENT_OUT_PATH}/include)
 
-# libevent.so path
-LINK_DIRECTORIES(${LIBEVENT_OUT_PATH}/lib)
+include_directories(
+  ${CMAKE_BINARY_DIR}/thirdparty
+
+  ${CMAKE_BINARY_DIR}/thirdparty/glog
+  ${CMAKE_SOURCE_DIR}/thirdparty/glog/src
+
+  ${CMAKE_BINARY_DIR}/thirdparty/libevent/include
+  ${CMAKE_SOURCE_DIR}/thirdparty/libevent/include
+  )
+
+LINK_DIRECTORIES(
+  # libevent.so path
+  ${CMAKE_BINARY_DIR}/thirdparty/libevent/lib
+  )
 
 include(ExternalProject)
 ExternalProject_Add(concurrentqueue
@@ -25,18 +37,25 @@ ExternalProject_Add(concurrentqueue
 )
 
 SET(BASE_SOURCES
-    utils/ns_convertor.cc
-    message_loop/message_loop.cc)
+  time_utils.cc
+  utils/ns_convertor.cc
+  message_loop/message_loop.cc)
 
+#ADD_LIBRARY(base STATIC ${BASE_SOURCES})
 ADD_LIBRARY(base SHARED ${BASE_SOURCES})
-TARGET_LINK_LIBRARIES(base -levent)
+TARGET_LINK_LIBRARIES(base
+  libglog.a
+  -levent
+  -lpthread
+  )
 
 
 #test code
 SET(BASE_UNITTESTS main.c)
 
 ADD_EXECUTABLE(base_unittest ${BASE_UNITTESTS})
-TARGET_LINK_LIBRARIES(base_unittest base)
+TARGET_LINK_LIBRARIES(base_unittest
+  libbase.a)
 
 #messageloop test
 SET(MessageLoopTestSRC

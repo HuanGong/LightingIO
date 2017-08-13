@@ -12,6 +12,8 @@
 #include "base/memory/scoped_ref_ptr.h"
 #include "base/memory/refcountedobject.h"
 
+#include "glog/logging.h"
+
 #include <iostream>
 
 namespace base {
@@ -34,7 +36,7 @@ class MessageLoop {
     void PostTaskAndReply(std::unique_ptr<QueuedTask> task,
                           std::unique_ptr<QueuedTask> reply,
                           MessageLoop* reply_queue);
-    void PostTaskAndReply(std::unique_ptr<QueuedTask> task,
+    bool PostTaskAndReply(std::unique_ptr<QueuedTask> task,
                           std::unique_ptr<QueuedTask> reply);
 
     void Start();
@@ -48,13 +50,13 @@ class MessageLoop {
     static void RunTask(int fd, short flags, void* context);       // NOLINT
     static void RunTimer(int fd, short flags, void* context);      // NOLINT
 
+    //struct LoopContext;
     class ReplyTaskOwner;
     class PostAndReplyTask;
     class SetTimerTask;
 
     typedef RefCountedObject<ReplyTaskOwner> ReplyTaskOwnerRef;
     void PrepareReplyTask(scoped_refptr<ReplyTaskOwnerRef> reply_task);
-    //struct LoopContext;
 
     event_base* event_base_;
 

@@ -15,14 +15,6 @@ struct event;
 
 namespace base {
 
-#define DCHECK(condition)                                                               \
-  do {                                                                                  \
-    if (!(condition)) {                                                                 \
-      std::cout << __FILE__ << __LINE__ << "DCHECK failed:" << #condition << std::endl; \
-      assert(condition);                                                                \
-    }                                                                                   \
-  } while (0)
-
 class QueuedTask {
  public:
   QueuedTask() {}

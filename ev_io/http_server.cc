@@ -17,6 +17,7 @@ HttpSrv::HttpSrv(HttpSrvDelegate* delegate, SrvConfig& config)
     loop->Start();
     workers_.push_back(std::move(loop));
   }
+
   ev_http_server_.io_loop_.reset(new IO::EventLoop("httpserver io loop"));
   ev_http_server_.io_loop_->Start();
   ev_http_server_.io_loop_->PostTask(
@@ -60,6 +61,7 @@ void HttpSrv::SetUpHttpSrv(EvHttpSrv* server) {
 
 void Replyrequest(struct evhttp_request* req) {
   std::cout << __FUNCTION__ << std::endl;
+
   //HTTP header
   evhttp_add_header(req->output_headers, "Server", "bad");
   evhttp_add_header(req->output_headers, "Content-Type", "text/plain; charset=UTF-8");
@@ -75,7 +77,7 @@ void Replyrequest(struct evhttp_request* req) {
 void HttpSrv::GenericCallback(struct evhttp_request* req, void* arg) {
   static long query_count = 0;
   query_count++;
-/*
+#if 1
   HttpSrv* server = static_cast<HttpSrv*>(arg);
 
   std::cout << __FUNCTION__ << std::endl;
@@ -83,13 +85,13 @@ void HttpSrv::GenericCallback(struct evhttp_request* req, void* arg) {
   auto& worker = server->workers_[query_count%server->config_.hander_workers];
 
   auto f = [&](IO::EventLoop* ioloop, struct evhttp_request* req) {
-    std::cout << __FUNCTION__ << std::endl;
+    std::cout << "handler the request" << std::endl;
+
     ioloop->PostTask(IO::NewClosure(std::bind(Replyrequest, req)));
   };
 
-
   worker->PostTask(IO::NewClosure(std::bind(f, IO::EventLoop::Current(), req)));
-  */
+#else
   //HTTP header
   evhttp_add_header(req->output_headers, "Server", "bad");
   evhttp_add_header(req->output_headers, "Content-Type", "text/plain; charset=UTF-8");
@@ -99,6 +101,7 @@ void HttpSrv::GenericCallback(struct evhttp_request* req, void* arg) {
   evbuffer_add(buf, "hello work!", sizeof("hello work!"));
   evhttp_send_reply(req, HTTP_OK, "OK", buf);
   evbuffer_free(buf);
+#endif
 }
 
 

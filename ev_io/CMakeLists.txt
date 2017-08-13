@@ -23,7 +23,7 @@ TARGET_LINK_LIBRARIES(socktio -levent)
 
 # loop test
 set(TEST_IO_SOURCE
-  test_ev_loop_main.cc)
+    test_ev_loop_main.cc)
 
 ADD_EXECUTABLE(ioloop_test ${TEST_IO_SOURCE})
 
@@ -31,7 +31,6 @@ TARGET_LINK_LIBRARIES(ioloop_test
   base
   socktio
   libevent.a
-  #-levent
   -lpthread)
 #TARGET_LINK_LIBRARIES(ioloop_test base)
 

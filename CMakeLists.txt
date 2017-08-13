@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 2.8)
 
 find_program(CCACHE_FOUND ccache)
 if(CCACHE_FOUND)
@@ -14,17 +14,18 @@ SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 # set default LIBRARY_OUTPUT_PATH to build/lib
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 
+
 # add a default linked path to build/lib
-LINK_DIRECTORIES(${LIBRARY_OUTPUT_PATH}/lib)
+LINK_DIRECTORIES(${LIBRARY_OUTPUT_PATH})
 
 # top level include dir
 INCLUDE_DIRECTORIES(${LightingIO_SOURCE_DIR})
+INCLUDE_DIRECTORIES(${LightingIO_SOURCE_DIR}/base)
+INCLUDE_DIRECTORIES(${LightingIO_SOURCE_DIR}/thirdparty)
 
 ADD_SUBDIRECTORY(base)
 ADD_SUBDIRECTORY(ev_io)
 ADD_SUBDIRECTORY(thirdparty)
-ADD_SUBDIRECTORY(thirdparty/libco)
-ADD_SUBDIRECTORY(thirdparty/libevent)
 
 MESSAGE(STATUS "This is BINARY dir " ${LightingIO_BINARY_DIR})
 MESSAGE(STATUS "This is SOURCE dir " ${LightingIO_SOURCE_DIR})
