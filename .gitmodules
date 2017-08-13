@@ -4,3 +4,6 @@
 [submodule "thirdparty/concurrentqueue"]
 	path = thirdparty/concurrentqueue
 	url = https://github.com/cameron314/concurrentqueue.git
+[submodule "thirdparty/glog"]
+	path = thirdparty/glog
+	url = https://github.com/google/glog.git
