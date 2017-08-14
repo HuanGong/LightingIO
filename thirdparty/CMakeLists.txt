@@ -2,8 +2,10 @@
 #ADD_DEFINITIONS(-std=c++11)
 #add_compile_options(-std=c++11)
 
+SET(gflags_DIR ${LightingIO_BINARY_DIR}/thirdparty/gflags)
+
 ADD_SUBDIRECTORY(glog)
-ADD_SUBDIRECTORY(libco)
+ADD_SUBDIRECTORY(gflags)
 ADD_SUBDIRECTORY(libcoro)
 ADD_SUBDIRECTORY(libevent)
 

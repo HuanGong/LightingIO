@@ -17,6 +17,8 @@ include_directories(
 
   ${CMAKE_BINARY_DIR}/thirdparty/libevent/include
   ${CMAKE_SOURCE_DIR}/thirdparty/libevent/include
+
+  ${CMAKE_BINARY_DIR}/thirdparty/gflags/include
   )
 
 LINK_DIRECTORIES(
