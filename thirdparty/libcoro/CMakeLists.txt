@@ -5,12 +5,15 @@ include (CheckIncludeFiles)
 include (CheckSymbolExists)
 
 project (libcoro)
+add_executable(coro_test test.c)
 add_library(coro coro.c coro.h)
-set_target_properties(coro PROPERTIES COMPILE_DEFINITIONS "CORO_ASM=1")
+#set_target_properties(coro PROPERTIES COMPILE_DEFINITIONS "CORO_ASM=1")
+
+target_link_libraries (coro_test coro)
 
 check_include_files (ucontext.h HAVE_UCONTEXT_H)
 check_include_files (setjmp.h HAVE_SETJMP_H)
 check_symbol_exists (sigaltstack "signal.h" HAVE_SIGALTSTACK)
 
-configure_file(config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/config.h)
+configure_file(config.h.in config.h)
 include_directories("${PROJECT_BINARY_DIR}")

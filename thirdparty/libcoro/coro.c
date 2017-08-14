@@ -77,10 +77,9 @@
 #  include <unistd.h>
 # endif
 
-static __thread coro_func coro_init_func;
-static __thread void *coro_init_arg;
-static __thread coro_context *new_coro = NULL; 
-static __thread coro_context *create_coro = NULL;
+static coro_func coro_init_func;
+static void *coro_init_arg;
+static coro_context *new_coro, *create_coro;
 
 static void
 coro_init (void)
@@ -102,7 +101,7 @@ coro_init (void)
 
 # if CORO_SJLJ
 
-static __thread volatile int trampoline_done;
+static volatile int trampoline_done;
 
 /* trampoline signal handler */
 static void
@@ -705,5 +704,4 @@ coro_stack_free (struct coro_stack *stack)
 }
 
 #endif
-
 

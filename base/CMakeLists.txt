@@ -55,7 +55,7 @@ SET(BASE_UNITTESTS main.c)
 
 ADD_EXECUTABLE(base_unittest ${BASE_UNITTESTS})
 TARGET_LINK_LIBRARIES(base_unittest
-  libbase.a)
+  -lbase)
 
 #messageloop test
 SET(MessageLoopTestSRC
