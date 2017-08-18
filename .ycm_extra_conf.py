@@ -16,14 +16,20 @@ flags = [
     '-isystem', '/usr/include',
     '-isystem', '/usr/include/linux',
     '-isystem', '/usr/include/c++/5',
+    '-isystem', '/usr/include/c++/4.8',
     '-isystem', '/usr/include/asm-generic',
 
     '-I', '.',
     '-I', './base',
     '-I', './thirdparty',
+    '-I', './thirdparty/glog',
     '-I', './thirdparty/libcoro',
     '-I', './thirdparty/urlsafe64',
     '-I', './thirdparty/libevent/include',
+    '-I', './thirdparty/libevent/include',
+
+
+    '-I', './build/thirdparty/glog/glog',
 ]
 
 compilation_database_folder = ''

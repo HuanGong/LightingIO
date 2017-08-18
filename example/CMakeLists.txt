@@ -19,7 +19,7 @@ ADD_EXECUTABLE(coro_task_test
 
 add_dependencies(coro_task_test
   base_shared
-  libcoro
+  coro
   glog
   )
 TARGET_LINK_LIBRARIES(coro_task_test
