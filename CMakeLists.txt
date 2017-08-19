@@ -9,22 +9,35 @@ endif(CCACHE_FOUND)
 project(LightingIO)
 
 
-# set default EXECUTABLE_OUTPUT_PATH to build/bin
-SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 # set default LIBRARY_OUTPUT_PATH to build/lib
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
+# set default EXECUTABLE_OUTPUT_PATH to build/bin
+SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 
 
 # add a default linked path to build/lib
-LINK_DIRECTORIES(${LIBRARY_OUTPUT_PATH})
+LINK_DIRECTORIES(
+  ${CMAKE_BINARY_DIR}/lib
+  ${CMAKE_BINARY_DIR}/thirdparty/libevent/lib
+)
 
 # top level include dir
-INCLUDE_DIRECTORIES(${LightingIO_SOURCE_DIR}/thirdparty)
-INCLUDE_DIRECTORIES(${LightingIO_SOURCE_DIR}/base)
-INCLUDE_DIRECTORIES(${LightingIO_SOURCE_DIR})
+include_directories(
+  ${CMAKE_SOURCE_DIR}
+  ${CMAKE_SOURCE_DIR}/base
+  ${CMAKE_SOURCE_DIR}/thirdparty
+  ${CMAKE_BINARY_DIR}/thirdparty
+  #glog
+  ${CMAKE_BINARY_DIR}/thirdparty/glog
+  ${CMAKE_SOURCE_DIR}/thirdparty/glog/src
+  #libevent
+  ${CMAKE_BINARY_DIR}/thirdparty/libevent/include
+  ${CMAKE_SOURCE_DIR}/thirdparty/libevent/include
+  #coro
+  ${CMAKE_BINARY_DIR}/thirdparty/libcoro
+)
 
 ADD_SUBDIRECTORY(thirdparty)
-ADD_SUBDIRECTORY(ev_io)
 ADD_SUBDIRECTORY(base)
 ADD_SUBDIRECTORY(lighting)
 

@@ -1,26 +1,12 @@
-
 SET(CMAKE_C_COMPILER g++)
 #add_compile_options(-std=c++11)
 ADD_DEFINITIONS(-std=c++11)
 
-include_directories(
-  ${CMAKE_BINARY_DIR}/thirdparty
 
-  ${CMAKE_BINARY_DIR}/thirdparty/glog
-  ${CMAKE_SOURCE_DIR}/thirdparty/glog/src
-
-  ${CMAKE_BINARY_DIR}/thirdparty/libevent/include
-  ${CMAKE_SOURCE_DIR}/thirdparty/libevent/include
-
-  ${CMAKE_BINARY_DIR}/thirdparty/gflags/include
-
-  ${CMAKE_BINARY_DIR}/thirdparty/libcoro
-  )
-
+# libevent.so path
 LINK_DIRECTORIES(
-  # libevent.so path
   ${CMAKE_BINARY_DIR}/thirdparty/libevent/lib
-  )
+)
 
 include(ExternalProject)
 ExternalProject_Add(concurrentqueue
@@ -43,11 +29,9 @@ ADD_LIBRARY(base_static STATIC ${BASE_SOURCES})
 add_dependencies(base_static
   glog
   event_static
-  gflags_nothreads_static
-  )
+)
 TARGET_LINK_LIBRARIES(base_static
   libglog.a
-  libgflags_nothreads.a
   libevent.a
   -lpthread
 )
@@ -56,15 +40,12 @@ ADD_LIBRARY(base_shared SHARED ${BASE_SOURCES})
 add_dependencies(base_shared
   glog
   event_shared
-  gflags_nothreads_static
-  )
+)
 TARGET_LINK_LIBRARIES(base_shared
-  #-lglog
+  -lglog
   -levent
   -lpthread
-  )
-
-
+)
 
 #test code
 SET(BASE_UNITTESTS main.c)
@@ -72,8 +53,11 @@ ADD_EXECUTABLE(base_unittest ${BASE_UNITTESTS})
 add_dependencies(base_unittest base_static)
 
 #messageloop test
-SET(MessageLoopTestSRC
-    message_loop/messageloop_test.cc)
-ADD_EXECUTABLE(messageloop_test ${MessageLoopTestSRC})
-TARGET_LINK_LIBRARIES(messageloop_test base_static)
+ADD_EXECUTABLE(messageloop_test
+  message_loop/messageloop_test.cc
+)
+TARGET_LINK_LIBRARIES(messageloop_test
+  gflags
+  base_static
+)
 

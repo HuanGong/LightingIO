@@ -9,8 +9,6 @@ include_directories(${LIBEVENT_OUT_PATH}/include)
 SET(CMAKE_C_COMPILER g++)
 ADD_DEFINITIONS(-std=c++11)
 
-#LINK_DIRECTORIES(${LIBEVENT_OUT_PATH}/lib)
-
 ADD_EXECUTABLE(lighting_srv
   test_http_server_main.cc
   http_server.cc
@@ -18,15 +16,13 @@ ADD_EXECUTABLE(lighting_srv
 
 TARGET_LINK_LIBRARIES(lighting_srv
   -lglog
-  -levent
-  -lgflags_nothreads
   -lbase_shared
+  -levent
   -lpthread
 )
 add_dependencies(lighting_srv
+  glog
   base_shared
-  gflags_nothreads
-  gflags_nothreads_static
 )
 
 

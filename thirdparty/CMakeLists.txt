@@ -1,17 +1,12 @@
-#SET(CMAKE_C_COMPILER g++)
-#ADD_DEFINITIONS(-std=c++11)
-#add_compile_options(-std=c++11)
 
-SET(gflags_DIR ${LightingIO_BINARY_DIR}/thirdparty/gflags)
-
+SET(gflags_DIR /usr/lib/x86_64-linux-gnu)
 ADD_SUBDIRECTORY(glog)
-ADD_SUBDIRECTORY(gflags)
 ADD_SUBDIRECTORY(libcoro)
 ADD_SUBDIRECTORY(libevent)
 
 INCLUDE_DIRECTORIES(
   glog/src
-  )
+)
 
 SET(CRC_SOURCES
     crc/crc.cpp
