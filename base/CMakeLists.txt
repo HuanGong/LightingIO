@@ -48,9 +48,9 @@ add_dependencies(base_static
 TARGET_LINK_LIBRARIES(base_static
   libglog.a
   libgflags_nothreads.a
-  -levent
+  libevent.a
   -lpthread
-  )
+)
 
 ADD_LIBRARY(base_shared SHARED ${BASE_SOURCES})
 add_dependencies(base_shared

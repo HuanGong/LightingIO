@@ -28,7 +28,7 @@ set(TEST_IO_SOURCE
 ADD_EXECUTABLE(ioloop_test ${TEST_IO_SOURCE})
 
 TARGET_LINK_LIBRARIES(ioloop_test
-  base
+  base_shared
   socktio
   libevent.a
   -lpthread)

@@ -19,7 +19,7 @@ HttpSrv::HttpSrv(HttpSrvDelegate* delegate, SrvConfig& config)
   ev_http_server_.io_loop_.reset(new base::MessageLoop("httpserver io loop"));
   ev_http_server_.io_loop_->Start();
   ev_http_server_.io_loop_->PostTask(
-    IO::NewClosure(std::bind(&HttpSrv::SetUpHttpSrv, this, &ev_http_server_)));
+    base::NewClosure(std::bind(&HttpSrv::SetUpHttpSrv, this, &ev_http_server_)));
 }
 
 HttpSrv::~HttpSrv() {
@@ -85,10 +85,10 @@ void HttpSrv::GenericCallback(struct evhttp_request* req, void* arg) {
   auto f = [&](base::MessageLoop* ioloop, struct evhttp_request* req) {
     std::cout << "handler the request" << std::endl;
 
-    ioloop->PostTask(IO::NewClosure(std::bind(Replyrequest, req)));
+    ioloop->PostTask(base::NewClosure(std::bind(Replyrequest, req)));
   };
 
-  worker->PostTask(IO::NewClosure(std::bind(f, base::MessageLoop::Current(), req)));
+  worker->PostTask(base::NewClosure(std::bind(f, base::MessageLoop::Current(), req)));
 #else
   //HTTP header
   evhttp_add_header(req->output_headers, "Server", "bad");

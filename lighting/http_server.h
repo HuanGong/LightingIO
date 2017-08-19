@@ -1,7 +1,6 @@
 #ifndef HTTP_SERVER_H_
 #define HTTP_SERVER_H_
 
-#include "ev_loop.h"
 #include <memory>
 #include <vector>
 #include "event2/http.h"
