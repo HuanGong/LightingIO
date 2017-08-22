@@ -49,4 +49,11 @@ inline uint32_t delta_us(const uint32_t before_us) {
   return time_us() - before_us;
 }
 
+struct timeval ms_to_timeval(uint32_t ms) {
+  timeval tv;
+  tv.tv_sec = ms / 1000;
+  tv.tv_usec = (ms % 1000) * 1000;
+  return tv;
+}
+
 }//end namespace

@@ -21,5 +21,7 @@ uint32_t delta_ms(const uint32_t before_ms);
 
 uint32_t delta_us(const uint32_t before_us);
 
+struct timeval ms_to_timeval(uint32_t ms);
+
 }
 #endif

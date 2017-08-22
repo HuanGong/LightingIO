@@ -25,4 +25,18 @@ add_dependencies(lighting_srv
   base_shared
 )
 
+# client side
+ADD_LIBRARY(urlclient STATIC
+  client/httpchannel_libevent.cc
+)
 
+TARGET_LINK_LIBRARIES(urlclient
+  -lglog
+  -lbase_shared
+  -levent
+  -lpthread
+)
+add_dependencies(urlclient
+  glog
+  base_shared
+)
