@@ -55,7 +55,7 @@ void HttpChannelLibEvent::CloseConnection() {
     connection_ = nullptr;
   }
   if (evdns_base_) {
-    evdns_base_free(evdns_base_);
+    evdns_base_free(evdns_base_, 0);
   }
 }
 
@@ -65,5 +65,8 @@ void HttpChannelLibEvent::OnChannelClosed() {
   // delegate->OnChannelClosed(this);
 }
 
+ChannelStatus HttpChannelLibEvent::Status() {
+  return ChannelStatus::ST_IDLE;
+}
 
 }// end namespace

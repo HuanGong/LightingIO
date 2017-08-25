@@ -44,7 +44,9 @@ void HttpSrv::SetUpHttpSrv(EvHttpSrv* server) {
 
   int listen_port = config_.ports[0];
 #if LIBEVENT_VERSION_NUMBER >= 0x02001500
-  server->evhttp_bound_socket_ = evhttp_bind_socket_with_handle(server->ev_http_, "0.0.0.0", listen_port);
+  server->evhttp_bound_socket_ = evhttp_bind_socket_with_handle(server->ev_http_,
+                                                                "0.0.0.0",
+                                                                listen_port);
   if (!server->evhttp_bound_socket_) {
     return;
   }
@@ -77,13 +79,21 @@ void HttpSrv::GenericCallback(struct evhttp_request* req, void* arg) {
   query_count++;
 #if 1
   HttpSrv* server = static_cast<HttpSrv*>(arg);
+  RequestMessage requestMessage(req);
 
   std::cout << __FUNCTION__ << std::endl;
   //round-robin
   auto& worker = server->workers_[query_count%server->config_.hander_workers];
 
   auto f = [&](base::MessageLoop* ioloop, struct evhttp_request* req) {
+
     std::cout << "handler the request" << std::endl;
+
+    HttpMessage msg;
+    {
+      io->posttask(base::NewsClourse(std::bind(ClientSendRecieve, msg)));
+      CoroTask::Yield();
+    }
 
     ioloop->PostTask(base::NewClosure(std::bind(Replyrequest, req)));
   };

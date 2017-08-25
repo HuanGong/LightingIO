@@ -1,45 +1,37 @@
 #include "libcoro/coro.h"
 #include "message_loop/message_loop.h"
 
-struct coro_stack stack;
-coro_context mainctx;
-
-std::vector<coro_context> coro_tasks;
-
-void coro_task(void* arg) {
-  LOG(INFO) << "coro task run on thread" << std::this_thread::get_id();
-  coro_transfer(&coro_tasks[0], &mainctx);
-}
+#include "coroutine/coroutine.h"
 
 int main(int arvc, char **argv) {
+
+  base::Coroutine coro(0, true);
 
   base::MessageLoop loop("loop");
   loop.Start();
   LOG(INFO) << "main thread" << std::this_thread::get_id();
 
   loop.PostTask(base::NewClosure([&](){
-    //atatch main coro to current thread
-    coro_stack_alloc(&stack, 0);
-    coro_create(&mainctx, NULL, NULL, NULL, 0);
 
-    coro_context task;
-    coro_create(&task, coro_task, NULL, stack.sptr, stack.ssze);
-    coro_tasks.push_back(task);
+    {
+      base::Coroutine subcoro(0);
+      subcoro.SetCaller(&coro);
+
+      LOG(INFO) << "schedule subcoro";
+      coro.Transfer(&subcoro);
+    }
+
+    LOG(INFO) << "io loop task finished";
   }));
 
-  loop.PostTask(base::NewClosure([&](){
-    LOG(INFO) << "going handle http request";
-    usleep(2000); //sleep 1ms
-
-    //response = httpclient_->Get("0.0.0.0/abc");
-
-  }));
-
-    coro_transfer(&mainctx, &coro_tasks[0]);
-    LOG(INFO) << "after run coro_task, schedule it again, core?";
-    //coro_transfer(&mainctx, &task);
-    //LOG(INFO) << "run coro_task again, it work and run again";
-
+  /*
+    sleep(5);
+    loop.PostTask(base::NewClosure([&](){
+      LOG(INFO) << "io loop live, schedule remain coro_task";
+      coro_transfer(&mainctx, &coro_task);
+      LOG(INFO) << "return to mainctx";
+    }));
+  */
   while(1) {
     sleep(2);
   }

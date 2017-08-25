@@ -51,6 +51,7 @@ public:
   uint32_t TimeoutMs() {return timeout_ms_; }
   void SetTimeoutMs(uint32_t ms) {timeout_ms_ = ms;}
 
+  ChannelStatus Status();
   evhttp_connection* EvHttpConnection() {
     return connection_;
   }

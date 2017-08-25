@@ -1,6 +1,7 @@
 SET(CMAKE_C_COMPILER g++)
 #add_compile_options(-std=c++11)
 ADD_DEFINITIONS(-std=c++11)
+ADD_DEFINITIONS(-fPIC)
 
 
 # libevent.so path
@@ -23,25 +24,32 @@ ExternalProject_Add(concurrentqueue
 SET(BASE_SOURCES
   time_utils.cc
   utils/ns_convertor.cc
-  message_loop/message_loop.cc)
+  message_loop/message_loop.cc
+  coroutine/coroutine.cc
+)
 
 ADD_LIBRARY(base_static STATIC ${BASE_SOURCES})
 add_dependencies(base_static
+  coro
   glog
   event_static
 )
 TARGET_LINK_LIBRARIES(base_static
   libglog.a
   libevent.a
+  libcoro.a
   -lpthread
 )
 
 ADD_LIBRARY(base_shared SHARED ${BASE_SOURCES})
 add_dependencies(base_shared
+  coro
   glog
   event_shared
 )
 TARGET_LINK_LIBRARIES(base_shared
+  libcoro.a
+  libglog.a
   -lglog
   -levent
   -lpthread
