@@ -12,6 +12,8 @@ add_dependencies(coro_task_test
 TARGET_LINK_LIBRARIES(coro_task_test
   libcoro.a
   libglog.a
+  liburlclient.a
+  -levent
   -lbase_shared
   -lpthread
 )

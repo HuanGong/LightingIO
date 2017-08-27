@@ -86,15 +86,7 @@ void HttpSrv::GenericCallback(struct evhttp_request* req, void* arg) {
   auto& worker = server->workers_[query_count%server->config_.hander_workers];
 
   auto f = [&](base::MessageLoop* ioloop, struct evhttp_request* req) {
-
     std::cout << "handler the request" << std::endl;
-
-    HttpMessage msg;
-    {
-      io->posttask(base::NewsClourse(std::bind(ClientSendRecieve, msg)));
-      CoroTask::Yield();
-    }
-
     ioloop->PostTask(base::NewClosure(std::bind(Replyrequest, req)));
   };
 

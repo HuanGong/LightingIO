@@ -1,6 +1,12 @@
 #ifndef COROUTINE_TASK_H_
 #define COROUTINE_TASK_H_
 
+#include <memory>
+#include <assert.h>
+
+#include "base/base_micro.h"
+#include "base/time_utils.h"
+
 namespace base {
 
 class CoroTask {
@@ -16,8 +22,9 @@ class CoroTask {
 template <class Closure>
 class CoroClosureTask : public CoroTask {
  public:
-  explicit CoroClosureTask(const Closure& closure) : closure_(closure) {}
-
+  explicit CoroClosureTask(const Closure& closure)
+    : closure_(closure) {
+  }
  private:
   bool RunCoro() override {
     closure_();
@@ -26,6 +33,11 @@ class CoroClosureTask : public CoroTask {
   Closure closure_;
 };
 
+template <class Closure>
+static std::unique_ptr<CoroTask> NewCoroTask(const Closure& closure) {
+  return std::unique_ptr<CoroTask>(new CoroClosureTask<Closure>(closure));
+}
+/*
 template <class Functor, class Ctx>
 class CoroCtxTask : public CoroTask {
 public:
@@ -43,8 +55,7 @@ private:
   std::unique_ptr<Ctx> ctx;
 };
 //CoroCtxTask<std::function<void(HttpMessage)> >
-
-};
+*/
 
 }//end base
 #endif

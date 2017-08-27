@@ -1,42 +1,83 @@
 
 #include "coroutine.h"
+#include <vector>
 #include <iostream>
-
 #include "glog/logging.h"
 
 namespace base {
+static std::vector<Coroutine*> finished_tasks_;
 
-static void RunCoroTask(void* arg) {
+static void run_coroutine(void* arg) {
+  CHECK(arg);
   LOG(INFO) << __FUNCTION__ << " RUN" << std::endl;
+  for (auto& v : finished_tasks_) {
+    delete v;
+  }
+  finished_tasks_.clear();
   Coroutine* coroutine = static_cast<Coroutine*>(arg);
-  coroutine->Yield();
+  //IMPORTANT!! here save the call stack parent, when call
+  //RunCoroTask May Yield Again and Again, it my change the
+  //Caller, so here need save it
+  Coroutine* call_stack_prarent = coroutine->GetCaller();
+
+  // do coro work here
+  coroutine->RunCoroTask();
+
+  //this coro is finished, now we need back to parent call stack
+  //and nerver came back again, so here can't be Transfer，bz Transfer
+  //will set the caller
+
+  finished_tasks_.push_back(coroutine);
+  if (call_stack_prarent) {
+    // set to parent to corotine contex
+    // CorotineContext::SetCurrent(Call_stack_parent)
+    coro_transfer(coroutine, call_stack_prarent);
+  }
 }
 
-Coroutine::Coroutine(int stack_size, bool meta)
+Coroutine::Coroutine()
   : caller_(nullptr),
-    stack_size_(stack_size) {
-  coro_stack_alloc(&coro_stack_, stack_size_);
+    stack_size_(0),
+    meta_coro_(false) {
 
-  if (meta) {
-    coro_create(this, NULL, NULL, NULL, 0);
-  } else {
-    coro_create(this,
-                RunCoroTask,
-                this,
-                coro_stack_.sptr,
-                coro_stack_.ssze);
-  }
-  //LOG(INFO) << __FUNCTION__ << " RUN";
-  std::cout << __FUNCTION__ << "line " << __LINE__ << std::endl;
+  InitCoroutine();
+}
+
+Coroutine::Coroutine(std::unique_ptr<CoroTask> t, int stack_sz)
+  : caller_(nullptr),
+    stack_size_(0),
+    meta_coro_(false),
+    task_(std::move(t)) {
+
+  InitCoroutine();
+}
+
+Coroutine::Coroutine(int stack_size, bool meta_coro)
+  : caller_(nullptr),
+    stack_size_(stack_size),
+    meta_coro_(meta_coro) {
+
+  InitCoroutine();
 }
 
 Coroutine::~Coroutine() {
-  if (scheduled_ && !meta_coro_) {
-    Yield();
+  coro_stack_free(&stack_);
+}
+
+void Coroutine::InitCoroutine() {
+  if (meta_coro_) {
+    coro_create(this, NULL, NULL, NULL, 0);
+  } else {
+    coro_stack_alloc(&stack_, stack_size_);
+    coro_create(this, // coro_context
+                run_coroutine, //func
+                this, //arg
+                stack_.sptr,
+                stack_.ssze);
   }
-  coro_stack_free(&coro_stack_);
-  std::cout << __FUNCTION__ << "line " << __LINE__ << std::endl;
-  LOG(INFO) << __FUNCTION__ << " RUN";
+  VLOG(4) << __FUNCTION__
+             << " MainCoro:" << meta_coro_
+             << " stack_size:" << stack_size_;
 }
 
 Coroutine* Coroutine::GetCaller() {
@@ -47,13 +88,33 @@ void Coroutine::SetCaller(Coroutine* caller) {
 }
 
 void Coroutine::Yield() {
-  //CHECK(GetCaller());
+  CHECK(GetCaller());
+  // CorotineContext::SetCurrent(Caller)
   coro_transfer(this, GetCaller());
 }
+
 void Coroutine::Transfer(Coroutine* next) {
-  //CHECK(GetCaller());
+  CHECK(next != this); //avoid infinite loop
+
   next->SetCaller(this);
+  // CorotineContext::SetCurrent(next)
   coro_transfer(this, next);
+}
+
+void Coroutine::RunCoroTask() {
+  if (!task_.get()) {
+    LOG(INFO) << "this coro not Bind To a Task";
+    return;
+  }
+  task_->RunCoro();
+  task_.reset();
+}
+
+void Coroutine::SetCoroTask(std::unique_ptr<CoroTask> t) {
+  if (task_.get()) {
+    LOG(ERROR) << "A Task Aready Set, Coroutine Can't Assign Task Twice";
+  }
+  task_ = std::move(t);
 }
 
 }//end base

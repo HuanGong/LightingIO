@@ -9,6 +9,7 @@
 #include <memory>
 #include <queue>
 #include <assert.h>
+#include "glog/logging.h"
 
 struct event_base;
 struct event;
@@ -30,7 +31,6 @@ template <class Closure>
 class ClosureTask : public QueuedTask {
  public:
   explicit ClosureTask(const Closure& closure) : closure_(closure) {}
-
  private:
   bool Run() override {
     closure_();
