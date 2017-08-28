@@ -79,7 +79,6 @@ void HttpSrv::GenericCallback(struct evhttp_request* req, void* arg) {
   query_count++;
 #if 1
   HttpSrv* server = static_cast<HttpSrv*>(arg);
-  RequestMessage requestMessage(req);
 
   std::cout << __FUNCTION__ << std::endl;
   //round-robin
