@@ -60,7 +60,6 @@ void request_done_cb(evhttp_request* request, void* arg) {
   LOG(INFO) << "ready let http request coro resume";
   req->handler_worker->PostTask(
     base::NewClosure(std::bind(&ResumeHttpRequestCoro, req)));
-  //free(m_response);
 }
 
 void MakeHttpRequest(HttpRequest* req) {
@@ -123,6 +122,8 @@ void CoroWokerHttpHandle(std::shared_ptr<HttpMessage> msg) {
   woker_ptr->PostTask(base::NewClosure([&](){
     LOG(INFO) << "schedule a nother coro run http request";
     woker_main_coro->Transfer(httpreqcoro);
+    LOG(INFO) << "HttpRequestCoro run over.... should resume the CoroWokerHttpHandle continue finish the msg handle";
+    woker_main_coro->Transfer(httphandle_coro);
   }));
 
   httphandle_coro->Yield();
