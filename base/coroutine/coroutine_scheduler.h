@@ -9,17 +9,20 @@ namespace base {
 
 class CoroScheduler {
 public:
+  static const CoroScheduler* Current();
+  static void TlsDestroy();
+
+  static bool CreateAndSchedule(std::unique_ptr<CoroTask> task);
+
+  void ScheduleCoro(Coroutine* coro);
+protected:
   CoroScheduler(MessageLoop* loop);
   ~CoroScheduler();
 
-  void ScheduleCoro(Coroutine* coro);
-
-protected:
   void schedule_coro(Coroutine* coro);
 private:
-
   //a root coro created by base::coroutine(0, true);
-  Coroutine* tls_main_coro_;
+  Coroutine* main_coro_;
   MessageLoop* schedule_loop_;
   DISALLOW_COPY_AND_ASSIGN(CoroScheduler);
 };

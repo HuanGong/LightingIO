@@ -5,34 +5,37 @@
 #include "glog/logging.h"
 
 namespace base {
-static std::vector<Coroutine*> finished_tasks_;
+static thread_local Coroutine* tls_current_ = nullptr;
 
-static void run_coroutine(void* arg) {
+//static
+void Coroutine::run_coroutine(void* arg) {
   CHECK(arg);
-  LOG(INFO) << __FUNCTION__ << " RUN" << std::endl;
-  for (auto& v : finished_tasks_) {
-    delete v;
-  }
-  finished_tasks_.clear();
   Coroutine* coroutine = static_cast<Coroutine*>(arg);
+
   //IMPORTANT!! here save the call stack parent, when call
   //RunCoroTask May Yield Again and Again, it my change the
   //Caller, so here need save it
   Coroutine* call_stack_prarent = coroutine->GetCaller();
 
+  LOG(INFO) << __FUNCTION__ << " RUN" << std::endl;
   // do coro work here
   coroutine->RunCoroTask();
 
   //this coro is finished, now we need back to parent call stack
-  //and nerver came back again, so here can't be Transfer，bz Transfer
-  //will set the caller
-
-  finished_tasks_.push_back(coroutine);
+  //and nerver came back again, so here can't use coro->Transfer，
+  //bz func Transfer will set the caller
   if (call_stack_prarent) {
-    // set to parent to corotine contex
     // CorotineContext::SetCurrent(Call_stack_parent)
+    tls_current_ = call_stack_prarent;
+    coroutine->current_state_ = CoroState::KFinished;
+    call_stack_prarent->current_state_ = CoroState::kRunning;
     coro_transfer(coroutine, call_stack_prarent);
   }
+}
+
+//static
+Coroutine* Coroutine::Current() {
+  return tls_current_;
 }
 
 Coroutine::Coroutine()
@@ -66,14 +69,17 @@ Coroutine::~Coroutine() {
 
 void Coroutine::InitCoroutine() {
   if (meta_coro_) {
+    tls_current_ = this;
+    current_state_ = CoroState::kRunning;
     coro_create(this, NULL, NULL, NULL, 0);
   } else {
     coro_stack_alloc(&stack_, stack_size_);
     coro_create(this, // coro_context
-                run_coroutine, //func
+                Coroutine::run_coroutine, //func
                 this, //arg
                 stack_.sptr,
                 stack_.ssze);
+    current_state_ = CoroState::kJustReady;
   }
   VLOG(4) << __FUNCTION__
              << " MainCoro:" << meta_coro_
@@ -88,16 +94,26 @@ void Coroutine::SetCaller(Coroutine* caller) {
 }
 
 void Coroutine::Yield() {
-  CHECK(GetCaller());
-  // CorotineContext::SetCurrent(Caller)
-  coro_transfer(this, GetCaller());
+  Coroutine* caller = GetCaller();
+  CHECK(caller);
+
+  tls_current_ = caller;
+  current_state_ = CoroState::kPaused;
+  caller->current_state_ = CoroState::kRunning;
+
+  coro_transfer(this, caller);
 }
 
 void Coroutine::Transfer(Coroutine* next) {
-  CHECK(next != this); //avoid infinite loop
-
+  //avoid a nother running coro: call PausedCoro->Transfer(Another Coro)
+  if (next != this || current_state_ != CoroState::kRunning) {
+    return;
+  }
   next->SetCaller(this);
-  // CorotineContext::SetCurrent(next)
+
+  tls_current_ = next;
+  current_state_ = CoroState::kPaused;
+  next->current_state_ = CoroState::kRunning;
   coro_transfer(this, next);
 }
 
@@ -113,6 +129,7 @@ void Coroutine::RunCoroTask() {
 void Coroutine::SetCoroTask(std::unique_ptr<CoroTask> t) {
   if (task_.get()) {
     LOG(ERROR) << "A Task Aready Set, Coroutine Can't Assign Task Twice";
+    return;
   }
   task_ = std::move(t);
 }

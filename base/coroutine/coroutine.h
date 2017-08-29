@@ -6,6 +6,14 @@
 
 namespace base {
 
+enum CoroState {
+  kJustReady = 0,
+  kScheduled = 1,
+  kRunning = 2,
+  kPaused = 3,
+  KFinished = 3
+};
+
 class Coroutine : public coro_context {
 public:
   Coroutine();
@@ -13,6 +21,7 @@ public:
   Coroutine(std::unique_ptr<CoroTask> t, int stack_sz = 0);
   ~Coroutine();
 
+  CoroState Status() {return current_state_; }
   Coroutine* GetCaller();
   void SetCaller(Coroutine* caller);
   void SetCoroTask(std::unique_ptr<CoroTask> t);
@@ -20,9 +29,11 @@ public:
   void Yield();
   void Transfer(Coroutine* next);
 
-
-  void RunCoroTask();
+  static Coroutine* Current();
 private:
+  void RunCoroTask();
+  static void run_coroutine(void* arg);
+
   void InitCoroutine();
 
   Coroutine* caller_;
@@ -31,8 +42,9 @@ private:
   //bool scheduled_;
   bool meta_coro_;
   coro_stack stack_;
-
+  CoroState current_state_;
   std::unique_ptr<CoroTask> task_;
+  DISALLOW_COPY_AND_ASSIGN(Coroutine);
 };
 
 }//end base

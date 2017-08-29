@@ -135,18 +135,23 @@ void HandleHttpMsg(std::shared_ptr<HttpMessage> msg) {
 
   LOG(INFO) << " 3 msg.user_count:" << msg.use_count();
 
+  //CoroScheduler::SpawnAndScheduler()
+  CoroScheduler::CreateAndSchedule(
+    base::NewCoroTask(std::bind(&CoroWokerHttpHandle, std::move(msg))));
+
+  /*
   httphandle_coro = new base::Coroutine();
   httphandle_coro->SetCaller(woker_main_coro);
   std::unique_ptr<base::CoroTask>
-    handle_http(base::NewCoroTask(std::bind(&CoroWokerHttpHandle, std::move(msg))));
+    handle_http();
   httphandle_coro->SetCoroTask(std::move(handle_http));
 
   LOG(INFO) << " schedule a coro to handle httpmessage";
   LOG(INFO) << " 4 msg.user_count:" << msg.use_count();
 
   woker_main_coro->Transfer(httphandle_coro);
+  */
 
-  LOG(INFO) << " 6 msg.user_count:" << msg.use_count();
   LOG(INFO) << "HttpMessage Handle finished";
 }
 
