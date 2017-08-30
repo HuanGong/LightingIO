@@ -22,8 +22,9 @@ public:
   ~Coroutine();
 
   CoroState Status() {return current_state_; }
+  Coroutine* GetSuperior() {return superior_;}
   Coroutine* GetCaller();
-  void SetCaller(Coroutine* caller);
+  void SetSuperior(Coroutine* su);
   void SetCoroTask(std::unique_ptr<CoroTask> t);
 
   void Yield();
@@ -31,11 +32,14 @@ public:
 
   static Coroutine* Current();
 private:
+  void InitCoroutine();
   void RunCoroTask();
+  void SetCaller(Coroutine* caller);
+
   static void run_coroutine(void* arg);
 
-  void InitCoroutine();
-
+private:
+  Coroutine* superior_ ;
   Coroutine* caller_;
   int stack_size_;
 

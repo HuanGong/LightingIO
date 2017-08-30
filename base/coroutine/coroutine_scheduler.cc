@@ -7,9 +7,9 @@ namespace base {
 static thread_local CoroScheduler* scheduler_=nullptr;
 
 //static thread safe
-const CoroScheduler* CoroScheduler::TlsCurrent() {
+CoroScheduler* CoroScheduler::TlsCurrent() {
   if (!scheduler_ && MessageLoop::Current()) {
-    scheduler_ = new Coroutine(MessageLoop::Current());
+    scheduler_ = new CoroScheduler(MessageLoop::Current());
   }
   return scheduler_;
 }
@@ -28,18 +28,18 @@ Coroutine* CoroScheduler::CreateAndSchedule(std::unique_ptr<CoroTask> task) {
   Coroutine* coro = new base::Coroutine();
   //important, this ensure back to the
   //parent coro after finishing work
-  coro->SetCaller(Coroutine::Current());
+  //coro->SetCaller(Coroutine::Current());
 
   coro->SetCoroTask(std::move(task));
 
   TlsCurrent()->ScheduleCoro(coro);
 
-  return coroutine;
+  return coro;
 }
 
 
 CoroScheduler::CoroScheduler(MessageLoop* loop)
-  : tls_main_coro_(nullptr),
+  : main_coro_(nullptr),
     schedule_loop_(loop) {
 }
 
@@ -54,11 +54,11 @@ void CoroScheduler::ScheduleCoro(Coroutine* coro) {
     return;
   }
   schedule_loop_->PostTask(
-    NewClosure(std::bind(&ScheduleCoro::schedule_coro, this, coro)));
+    NewClosure(std::bind(&CoroScheduler::schedule_coro, this, coro)));
 }
 
 void CoroScheduler::schedule_coro(Coroutine* coro) {
-  DCHECK(meta_coro_ == Coroutine::Current())
+  DCHECK(main_coro_ == Coroutine::Current());
   main_coro_->Transfer(coro);
 }
 

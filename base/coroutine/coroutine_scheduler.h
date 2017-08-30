@@ -9,10 +9,10 @@ namespace base {
 
 class CoroScheduler {
 public:
-  static const CoroScheduler* Current();
   static void TlsDestroy();
+  static CoroScheduler* TlsCurrent();
 
-  static bool CreateAndSchedule(std::unique_ptr<CoroTask> task);
+  static Coroutine* CreateAndSchedule(std::unique_ptr<CoroTask> task);
 
   void ScheduleCoro(Coroutine* coro);
 protected:

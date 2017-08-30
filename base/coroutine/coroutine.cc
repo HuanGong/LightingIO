@@ -12,11 +12,6 @@ void Coroutine::run_coroutine(void* arg) {
   CHECK(arg);
   Coroutine* coroutine = static_cast<Coroutine*>(arg);
 
-  //IMPORTANT!! here save the call stack parent, when call
-  //RunCoroTask May Yield Again and Again, it my change the
-  //Caller, so here need save it
-  Coroutine* call_stack_prarent = coroutine->GetCaller();
-
   LOG(INFO) << __FUNCTION__ << " RUN" << std::endl;
   // do coro work here
   coroutine->RunCoroTask();
@@ -24,13 +19,23 @@ void Coroutine::run_coroutine(void* arg) {
   //this coro is finished, now we need back to parent call stack
   //and nerver came back again, so here can't use coro->Transfer，
   //bz func Transfer will set the caller
-  if (call_stack_prarent) {
-    // CorotineContext::SetCurrent(Call_stack_parent)
+  coroutine->current_state_ = CoroState::KFinished;
+
+  Coroutine* superior = coroutine->GetSuperior();
+  Coroutine* call_stack_prarent = coroutine->GetCaller();
+
+  if (superior) {
+    superior->current_state_ = CoroState::kRunning;
+    tls_current_ = superior;
+
+    coro_transfer(coroutine, call_stack_prarent);
+  } else if (call_stack_prarent) {
     tls_current_ = call_stack_prarent;
-    coroutine->current_state_ = CoroState::KFinished;
     call_stack_prarent->current_state_ = CoroState::kRunning;
+
     coro_transfer(coroutine, call_stack_prarent);
   }
+  LOG(ERROR) << __FUNCTION__ << "SHOULD NOT REACHED!";
 }
 
 //static
@@ -39,7 +44,8 @@ Coroutine* Coroutine::Current() {
 }
 
 Coroutine::Coroutine()
-  : caller_(nullptr),
+  : superior_(nullptr),
+    caller_(nullptr),
     stack_size_(0),
     meta_coro_(false) {
 
@@ -47,7 +53,8 @@ Coroutine::Coroutine()
 }
 
 Coroutine::Coroutine(std::unique_ptr<CoroTask> t, int stack_sz)
-  : caller_(nullptr),
+  : superior_(nullptr),
+    caller_(nullptr),
     stack_size_(0),
     meta_coro_(false),
     task_(std::move(t)) {
@@ -56,7 +63,8 @@ Coroutine::Coroutine(std::unique_ptr<CoroTask> t, int stack_sz)
 }
 
 Coroutine::Coroutine(int stack_size, bool meta_coro)
-  : caller_(nullptr),
+  : superior_(nullptr),
+    caller_(nullptr),
     stack_size_(stack_size),
     meta_coro_(meta_coro) {
 
@@ -89,6 +97,11 @@ void Coroutine::InitCoroutine() {
 Coroutine* Coroutine::GetCaller() {
   return caller_;
 }
+
+void Coroutine::SetSuperior(Coroutine* su) {
+  superior_ = su;
+}
+
 void Coroutine::SetCaller(Coroutine* caller) {
   caller_ = caller;
 }

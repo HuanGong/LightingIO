@@ -26,6 +26,7 @@ SET(BASE_SOURCES
   utils/ns_convertor.cc
   message_loop/message_loop.cc
   coroutine/coroutine.cc
+  coroutine/coroutine_scheduler.cc
 )
 
 ADD_LIBRARY(base_static STATIC ${BASE_SOURCES})
