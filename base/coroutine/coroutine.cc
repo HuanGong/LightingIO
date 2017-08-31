@@ -3,9 +3,12 @@
 #include <vector>
 #include <iostream>
 #include "glog/logging.h"
+#include "coroutine_scheduler.h"
+#include <atomic>
 
 namespace base {
 static thread_local Coroutine* tls_current_ = nullptr;
+std::atomic<long> count;
 
 //static
 void Coroutine::run_coroutine(void* arg) {
@@ -24,6 +27,7 @@ void Coroutine::run_coroutine(void* arg) {
   Coroutine* superior = coroutine->GetSuperior();
   Coroutine* call_stack_prarent = coroutine->GetCaller();
 
+  CoroScheduler::TlsCurrent()->DeleteLater(coroutine);
   if (superior) {
     superior->current_state_ = CoroState::kRunning;
     tls_current_ = superior;
@@ -73,6 +77,8 @@ Coroutine::Coroutine(int stack_size, bool meta_coro)
 
 Coroutine::~Coroutine() {
   coro_stack_free(&stack_);
+  count--;
+  LOG(INFO) << "coroutine count:" << count;
 }
 
 void Coroutine::InitCoroutine() {
@@ -81,6 +87,8 @@ void Coroutine::InitCoroutine() {
     current_state_ = CoroState::kRunning;
     coro_create(this, NULL, NULL, NULL, 0);
   } else {
+    count++;
+    LOG(INFO) << "coroutine count:" << count;
     coro_stack_alloc(&stack_, stack_size_);
     coro_create(this, // coro_context
                 Coroutine::run_coroutine, //func
@@ -119,7 +127,8 @@ void Coroutine::Yield() {
 
 void Coroutine::Transfer(Coroutine* next) {
   //avoid a nother running coro: call PausedCoro->Transfer(Another Coro)
-  if (next != this || current_state_ != CoroState::kRunning) {
+  if (next == this || current_state_ != CoroState::kRunning) {
+    LOG(INFO) << __FUNCTION__ << ":" << __LINE__ << " Transfer Failed";
     return;
   }
   next->SetCaller(this);

@@ -21,6 +21,9 @@ public:
   Coroutine(std::unique_ptr<CoroTask> t, int stack_sz = 0);
   ~Coroutine();
 
+  void SetCoroState(CoroState st) {
+    current_state_ = st;
+  }
   CoroState Status() {return current_state_; }
   Coroutine* GetSuperior() {return superior_;}
   Coroutine* GetCaller();

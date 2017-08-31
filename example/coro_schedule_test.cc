@@ -4,6 +4,7 @@
 #include <functional>
 #include "coroutine/coroutine.h"
 #include "coroutine/coroutine_task.h"
+#include "coroutine/coroutine_scheduler.h"
 #include "lighting/client/httpchannel_libevent.h"
 
 base::MessageLoop* io_ptr = nullptr;
@@ -18,6 +19,9 @@ public:
 
 class HttpMessage {
 public:
+  ~HttpMessage() {
+    LOG(INFO) << __FUNCTION__ << " HttpMessage deleted";
+  }
   int code;
   int a[1024];
   std::string content;
@@ -108,11 +112,9 @@ void HttpRequestCoro(std::shared_ptr<HttpMessage> msg) {
 }
 
 void CoroWokerHttpHandle(std::shared_ptr<HttpMessage> msg) {
-  LOG(INFO) << " Handle http message on CORO";
+  LOG(INFO) << __FUNCTION__ << " Handle http message on CORO";
 
-  //do something speed 10ms
-  //usleep(10000);
-  // emulate a client request
+  /*
   httpreqcoro = new base::Coroutine();
   httpreqcoro->SetCaller(woker_main_coro);
   std::unique_ptr<base::CoroTask>
@@ -127,18 +129,20 @@ void CoroWokerHttpHandle(std::shared_ptr<HttpMessage> msg) {
   }));
 
   httphandle_coro->Yield();
+  */
 
   LOG(INFO) << " Handle httpmessage Done On CORO; 5 msg.user_count:" << msg.use_count();
 }
 
 void HandleHttpMsg(std::shared_ptr<HttpMessage> msg) {
+  //CHECK(CoroScheduler::TlsCurrent()->InRootCoroutine());
 
   LOG(INFO) << " 3 msg.user_count:" << msg.use_count();
 
-  //CoroScheduler::SpawnAndScheduler()
-  CoroScheduler::CreateAndSchedule(
+  base::CoroScheduler::CreateAndSchedule(
     base::NewCoroTask(std::bind(&CoroWokerHttpHandle, std::move(msg))));
 
+  //Coroutine::Current()->Transfer();
   /*
   httphandle_coro = new base::Coroutine();
   httphandle_coro->SetCaller(woker_main_coro);
@@ -152,7 +156,7 @@ void HandleHttpMsg(std::shared_ptr<HttpMessage> msg) {
   woker_main_coro->Transfer(httphandle_coro);
   */
 
-  LOG(INFO) << "HttpMessage Handle finished";
+  LOG(INFO) << "HttpMessage Handle finished" << "msg.use_count:" << msg.use_count();
 }
 
 int main(int arvc, char **argv) {
@@ -161,44 +165,32 @@ int main(int arvc, char **argv) {
 
   base::MessageLoop loop("IO");
   base::MessageLoop worker("WORKER");
-  loop.Start();
-  worker.Start();
-  io_ptr = &loop;
-  woker_ptr = &worker;
+  loop.Start(); worker.Start();
+  io_ptr = &loop; woker_ptr = &worker;
 
   LOG(INFO) << "main thread" << std::this_thread::get_id();
-
   //init connect client
   loop.PostTask(base::NewClosure(std::bind(CreateHttpConnection)));
 
   //init coro_woker
   worker.PostTask(base::NewClosure([&]() {
-    woker_main_coro = new base::Coroutine(0, true);
+    base::CoroScheduler::TlsCurrent();
   }));
 
   loop.PostTask(base::NewClosure([&]() {
     std::shared_ptr<HttpMessage> incoming_http(new HttpMessage());
     incoming_http->code = 200;
-    incoming_http->content = "hello world";
     incoming_http->io = &loop;
+    incoming_http->content = "hello world";
 
-    LOG(INFO) << " 1 msg.user_count:" << incoming_http.use_count();
-    auto func = std::bind(&HandleHttpMsg, std::move(incoming_http));
-    worker.PostTask(base::NewClosure(func));
-    LOG(INFO) << " 2 msg.user_count:" << incoming_http.use_count();
+    auto handle_in_works = std::bind(&HandleHttpMsg, std::move(incoming_http));
+    worker.PostTask(base::NewClosure(handle_in_works));
   }));
 
   //a fake httpmsg to worker
+  long i = 0;
   while(1) {
-#if 0
-    loop.PostTask(base::NewClosure([&]() {
-      LOG(INFO) << "IOloop alive";
-      auto func = []() {
-        LOG(INFO) << "worker alive";
-      };
-      worker.PostTask(base::NewClosure(func));
-    }));
-#endif
+    i++;
     usleep(10);
 /*
     // make a fake io event create a fake httpmsg
@@ -214,5 +206,9 @@ int main(int arvc, char **argv) {
       LOG(INFO) << " 2 msg.user_count:" << incoming_http.use_count();
     }));
     */
+    if (i != 10000)
+      continue;
+    i = 0;
+    worker.PostTask(base::NewClosure([]() {LOG(INFO) << "Work still Alive!";}));
   }
 }
