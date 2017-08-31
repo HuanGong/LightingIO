@@ -16,12 +16,8 @@ void Coroutine::run_coroutine(void* arg) {
   Coroutine* coroutine = static_cast<Coroutine*>(arg);
 
   LOG(INFO) << __FUNCTION__ << " RUN" << std::endl;
-  // do coro work here
   coroutine->RunCoroTask();
 
-  //this coro is finished, now we need back to parent call stack
-  //and nerver came back again, so here can't use coro->Transfer，
-  //bz func Transfer will set the caller
   coroutine->current_state_ = CoroState::KFinished;
 
   Coroutine* superior = coroutine->GetSuperior();
@@ -31,15 +27,16 @@ void Coroutine::run_coroutine(void* arg) {
   if (superior) {
     superior->current_state_ = CoroState::kRunning;
     tls_current_ = superior;
-
-    coro_transfer(coroutine, call_stack_prarent);
+    LOG(INFO) << __FUNCTION__ << " to superior";
+    coro_transfer(coroutine, superior);
   } else if (call_stack_prarent) {
     tls_current_ = call_stack_prarent;
+    LOG(INFO) << __FUNCTION__ << " to superior";
     call_stack_prarent->current_state_ = CoroState::kRunning;
 
     coro_transfer(coroutine, call_stack_prarent);
   }
-  LOG(ERROR) << __FUNCTION__ << "SHOULD NOT REACHED!";
+  LOG(ERROR) << __FUNCTION__ << " SHOULD NOT REACHED!";
 }
 
 //static
@@ -116,8 +113,9 @@ void Coroutine::SetCaller(Coroutine* caller) {
 
 void Coroutine::Yield() {
   Coroutine* caller = GetCaller();
-  CHECK(caller);
-
+  if (!caller) {
+    return;
+  }
   tls_current_ = caller;
   current_state_ = CoroState::kPaused;
   caller->current_state_ = CoroState::kRunning;

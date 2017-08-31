@@ -42,11 +42,10 @@ void CoroScheduler::DeleteLater(Coroutine* finished) {
   if (finished == coro_deleter_) {
     return;
   }
-
+  LOG(INFO) << __FUNCTION__;
   trash_can_.push_back(finished);
   ScheduleCoro(coro_deleter_);
 }
-
 CoroScheduler::CoroScheduler(MessageLoop* loop)
   : main_coro_(nullptr),
     schedule_loop_(loop) {
@@ -67,17 +66,17 @@ void CoroScheduler::ScheduleCoro(Coroutine* coro) {
     LOG(INFO) << "this coroutine aready scheduled";
     return;
   }
-  LOG(INFO) << __FUNCTION__ << " : " << __LINE__;
+  LOG(INFO) << __FUNCTION__;
   coro->SetCoroState(CoroState::kScheduled);
   schedule_loop_->PostTask(
     NewClosure(std::bind(&CoroScheduler::schedule_coro, this, coro)));
 }
 
 void CoroScheduler::schedule_coro(Coroutine* coro) {
+  LOG(INFO) << __FUNCTION__ << " from main_coro to a coro";
   DCHECK(main_coro_ == Coroutine::Current());
-  LOG(INFO) << __FUNCTION__ << " : " << __LINE__ << "from main_coro transfer to a new coro";
   main_coro_->Transfer(coro);
-  LOG(INFO) << __FUNCTION__ << " : " << __LINE__ << "back to main_coro from scheduled coroutine";
+  LOG(INFO) << __FUNCTION__ << " back to main_coro from scheduled coro";
 }
 
 inline bool CoroScheduler::InRootCoroutine() {

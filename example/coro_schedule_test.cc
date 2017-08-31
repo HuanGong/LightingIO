@@ -15,12 +15,13 @@ public:
   int request_id;
   std::string response;
   base::MessageLoop* handler_worker;
+  base::Coroutine* coro_task;
 };
 
 class HttpMessage {
 public:
   ~HttpMessage() {
-    LOG(INFO) << __FUNCTION__ << " HttpMessage deleted";
+    LOG(INFO) << __FUNCTION__ << " HttpMessage deleted >>>>>>>>>>>";
   }
   int code;
   int a[1024];
@@ -35,8 +36,7 @@ net::HttpChannelLibEvent* client_channel = NULL;
 
 void ResumeHttpRequestCoro(HttpRequest* request) {
   LOG(INFO) << __FUNCTION__ << "Resume this request coro here";
-  woker_main_coro->Transfer(httpreqcoro);
-  LOG(INFO) << __FUNCTION__ << "Worker Thread alive again";
+  base::Coroutine::Current()->Transfer(request->coro_task);
 }
 
 void CreateHttpConnection() {
@@ -48,8 +48,9 @@ void CreateHttpConnection() {
   client_channel = new net::HttpChannelLibEvent(info, base);
 }
 
+//io
 void request_done_cb(evhttp_request* request, void* arg) {
-  LOG(INFO) << "time end" << base::time_ms();
+  LOG(INFO) << __FUNCTION__ << " Get Response From Server On IO";
   HttpRequest* req = static_cast<HttpRequest*>(arg);
 
   ev_ssize_t m_len;
@@ -61,15 +62,18 @@ void request_done_cb(evhttp_request* request, void* arg) {
   req->response.assign((char*)EVBUFFER_DATA(request->input_buffer), m_len);
   req->response[m_len] = '\0';
 
-  LOG(INFO) << "ready let http request coro resume";
+  LOG(INFO) << __FUNCTION__ << " Going to resume the coro which Send the This Request";
   req->handler_worker->PostTask(
     base::NewClosure(std::bind(&ResumeHttpRequestCoro, req)));
 }
 
 void MakeHttpRequest(HttpRequest* req) {
   if (client_channel == NULL) {
-    std::cout << "no connection to server" << std::endl;
+    LOG(ERROR) << __FUNCTION__ << " no connection to server";
+    return;
   }
+
+  LOG(INFO) << __FUNCTION__ << " Start Http Request On IO";
 
   event_base* base = base::MessageLoop::Current()->EventBase();
   struct evhttp_request* request = evhttp_request_new(request_done_cb, req);
@@ -87,25 +91,24 @@ void MakeHttpRequest(HttpRequest* req) {
   }
 
   evhttp_cmd_type cmd = EVHTTP_REQ_POST;// : EVHTTP_REQ_GET;
-  std::cout << "time start:" << base::time_ms() << std::endl;
   int ret = evhttp_make_request(client_channel->EvHttpConnection(),
                                 request,
                                 cmd,
                                 "http://127.0.0.1:6666/post");
   if (ret != 0) {
-    LOG(INFO) << "make request failed ";
-    return;
+    LOG(INFO) << __FUNCTION__ << " make request failed ";
   }
 }
 
 void HttpRequestCoro(std::shared_ptr<HttpMessage> msg) {
-  LOG(INFO) << __FUNCTION__ << " CORO RUN Begain";
+  LOG(INFO) << __FUNCTION__ << " make http request on worker";
   HttpRequest request;
   request.request_id = ++request_count;
   request.handler_worker = base::MessageLoop::Current();
+  request.coro_task = base::Coroutine::Current();
 
   msg->io->PostTask(base::NewClosure(std::bind(&MakeHttpRequest, &request)));
-  httpreqcoro->Yield();
+  base::Coroutine::Current()->Yield();
 
   LOG(INFO) << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! it's works!!!!!!!!!!!!!!!!!!";
   LOG(INFO) << __FUNCTION__ << " CORO RUN END, request response:" << request.response;
@@ -114,49 +117,20 @@ void HttpRequestCoro(std::shared_ptr<HttpMessage> msg) {
 void CoroWokerHttpHandle(std::shared_ptr<HttpMessage> msg) {
   LOG(INFO) << __FUNCTION__ << " Handle http message on CORO";
 
-  /*
-  httpreqcoro = new base::Coroutine();
-  httpreqcoro->SetCaller(woker_main_coro);
-  std::unique_ptr<base::CoroTask>
-    func(base::NewCoroTask(std::bind(&HttpRequestCoro, std::move(msg))));
-  httpreqcoro->SetCoroTask(std::move(func));
+  auto this_coro = base::Coroutine::Current();
 
-  woker_ptr->PostTask(base::NewClosure([&](){
-    LOG(INFO) << "schedule a nother coro run http request";
-    woker_main_coro->Transfer(httpreqcoro);
-    LOG(INFO) << "HttpRequestCoro run over.... should resume the CoroWokerHttpHandle continue finish the msg handle";
-    woker_main_coro->Transfer(httphandle_coro);
-  }));
+  auto coro = base::CoroScheduler::CreateAndSchedule(
+    base::NewCoroTask(std::bind(&HttpRequestCoro, std::move(msg))));
 
-  httphandle_coro->Yield();
-  */
-
-  LOG(INFO) << " Handle httpmessage Done On CORO; 5 msg.user_count:" << msg.use_count();
+  coro->SetSuperior(this_coro);
+  LOG(INFO) << __FUNCTION__ << " Paused Here";
+  this_coro->Yield();
 }
 
 void HandleHttpMsg(std::shared_ptr<HttpMessage> msg) {
-  //CHECK(CoroScheduler::TlsCurrent()->InRootCoroutine());
-
-  LOG(INFO) << " 3 msg.user_count:" << msg.use_count();
 
   base::CoroScheduler::CreateAndSchedule(
     base::NewCoroTask(std::bind(&CoroWokerHttpHandle, std::move(msg))));
-
-  //Coroutine::Current()->Transfer();
-  /*
-  httphandle_coro = new base::Coroutine();
-  httphandle_coro->SetCaller(woker_main_coro);
-  std::unique_ptr<base::CoroTask>
-    handle_http();
-  httphandle_coro->SetCoroTask(std::move(handle_http));
-
-  LOG(INFO) << " schedule a coro to handle httpmessage";
-  LOG(INFO) << " 4 msg.user_count:" << msg.use_count();
-
-  woker_main_coro->Transfer(httphandle_coro);
-  */
-
-  LOG(INFO) << "HttpMessage Handle finished" << "msg.use_count:" << msg.use_count();
 }
 
 int main(int arvc, char **argv) {
