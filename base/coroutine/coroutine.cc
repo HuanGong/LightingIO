@@ -27,11 +27,9 @@ void Coroutine::run_coroutine(void* arg) {
   if (superior) {
     superior->current_state_ = CoroState::kRunning;
     tls_current_ = superior;
-    LOG(INFO) << __FUNCTION__ << " to superior";
     coro_transfer(coroutine, superior);
   } else if (call_stack_prarent) {
     tls_current_ = call_stack_prarent;
-    LOG(INFO) << __FUNCTION__ << " to superior";
     call_stack_prarent->current_state_ = CoroState::kRunning;
 
     coro_transfer(coroutine, call_stack_prarent);

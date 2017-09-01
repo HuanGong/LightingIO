@@ -12,12 +12,14 @@ base::MessageLoop* woker_ptr = nullptr;
 unsigned int request_count = 0;
 class HttpRequest {
 public:
+  ~HttpRequest() {
+    LOG(INFO) << __FUNCTION__ << " HttpRequest deleted >>>>>>>>>>>";
+  }
   int request_id;
   std::string response;
   base::MessageLoop* handler_worker;
   base::Coroutine* coro_task;
 };
-
 class HttpMessage {
 public:
   ~HttpMessage() {
@@ -28,11 +30,12 @@ public:
   std::string content;
   base::MessageLoop* io;
 };
+struct RequestContex {
+  HttpRequest* req;
+  net::HttpChannelLibEvent* connection;
+};
 
-base::Coroutine* woker_main_coro;
-base::Coroutine* httphandle_coro;
-base::Coroutine* httpreqcoro;
-net::HttpChannelLibEvent* client_channel = NULL;
+std::list<net::HttpChannelLibEvent*> client_channels;
 
 void ResumeHttpRequestCoro(HttpRequest* request) {
   LOG(INFO) << __FUNCTION__ << "Resume this request coro here";
@@ -40,18 +43,24 @@ void ResumeHttpRequestCoro(HttpRequest* request) {
 }
 
 void CreateHttpConnection() {
-  std::cout << " make a httpconnection " << std::endl;
+  LOG(INFO) << __FUNCTION__ << " make a httpconnection ";
   net::ChannelInfo info;
   info.host = "127.0.0.1";
   info.port = 6666;
   event_base* base = base::MessageLoop::Current()->EventBase();
-  client_channel = new net::HttpChannelLibEvent(info, base);
+  int n = 50;
+  for (int n = 50; n > 0; n--) {
+    client_channels.push_back(new net::HttpChannelLibEvent(info, base));
+  }
 }
 
 //io
 void request_done_cb(evhttp_request* request, void* arg) {
   LOG(INFO) << __FUNCTION__ << " Get Response From Server On IO";
-  HttpRequest* req = static_cast<HttpRequest*>(arg);
+  //HttpRequest* req = static_cast<HttpRequest*>(arg);
+  RequestContex* rctx = static_cast<RequestContex*>(arg);
+  HttpRequest* req = rctx->req;
+  net::HttpChannelLibEvent* connection = rctx->connection;
 
   ev_ssize_t m_len;
 	struct evhttp_connection *evcon = evhttp_request_get_connection(request);
@@ -65,38 +74,49 @@ void request_done_cb(evhttp_request* request, void* arg) {
   LOG(INFO) << __FUNCTION__ << " Going to resume the coro which Send the This Request";
   req->handler_worker->PostTask(
     base::NewClosure(std::bind(&ResumeHttpRequestCoro, req)));
+  delete rctx;
+  client_channels.push_front(connection);
 }
 
 void MakeHttpRequest(HttpRequest* req) {
-  if (client_channel == NULL) {
+  if (!client_channels.size()) {
     LOG(ERROR) << __FUNCTION__ << " no connection to server";
+    req->response = "========= no clients ===========";
+    req->handler_worker->PostTask(
+      base::NewClosure(std::bind(&ResumeHttpRequestCoro, req)));
     return;
   }
 
   LOG(INFO) << __FUNCTION__ << " Start Http Request On IO";
+  RequestContex* rctx = new RequestContex();
+  rctx->connection = client_channels.back();
+  client_channels.pop_back();
+  rctx->req = req;
 
   event_base* base = base::MessageLoop::Current()->EventBase();
-  struct evhttp_request* request = evhttp_request_new(request_done_cb, req);
+  struct evhttp_request* request = evhttp_request_new(request_done_cb, rctx);
   evhttp_add_header(request->output_headers, "Connection", "keep-alive");
   evhttp_add_header(request->output_headers, "Host", "127.0.0.1");
   evbuffer_add(request->output_buffer, "hello world", sizeof("hello world"));
 
-  if (client_channel->EvHttpConnection()) {
+  if (rctx->connection->EvHttpConnection()) {
     event_base* base = base::MessageLoop::Current()->EventBase();
     event_base_loop(base, EVLOOP_NONBLOCK);
   }
 
-  if (!client_channel->EvHttpConnection()) {
-    client_channel->InitConnection();
+  if (!rctx->connection->EvHttpConnection()) {
+    rctx->connection->InitConnection();
   }
 
   evhttp_cmd_type cmd = EVHTTP_REQ_POST;// : EVHTTP_REQ_GET;
-  int ret = evhttp_make_request(client_channel->EvHttpConnection(),
+  int ret = evhttp_make_request(rctx->connection->EvHttpConnection(),
                                 request,
                                 cmd,
                                 "http://127.0.0.1:6666/post");
   if (ret != 0) {
     LOG(INFO) << __FUNCTION__ << " make request failed ";
+    req->handler_worker->PostTask(
+      base::NewClosure(std::bind(&ResumeHttpRequestCoro, req)));
   }
 }
 
@@ -110,8 +130,7 @@ void HttpRequestCoro(std::shared_ptr<HttpMessage> msg) {
   msg->io->PostTask(base::NewClosure(std::bind(&MakeHttpRequest, &request)));
   base::Coroutine::Current()->Yield();
 
-  LOG(INFO) << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! it's works!!!!!!!!!!!!!!!!!!";
-  LOG(INFO) << __FUNCTION__ << " CORO RUN END, request response:" << request.response;
+  LOG(INFO) << __FUNCTION__ << " request response:" << request.response;
 }
 
 void CoroWokerHttpHandle(std::shared_ptr<HttpMessage> msg) {
@@ -151,6 +170,8 @@ int main(int arvc, char **argv) {
     base::CoroScheduler::TlsCurrent();
   }));
 
+  sleep(10);
+
   loop.PostTask(base::NewClosure([&]() {
     std::shared_ptr<HttpMessage> incoming_http(new HttpMessage());
     incoming_http->code = 200;
@@ -165,24 +186,20 @@ int main(int arvc, char **argv) {
   long i = 0;
   while(1) {
     i++;
-    usleep(10);
-/*
-    // make a fake io event create a fake httpmsg
-    loop.PostTask(base::NewClosure([&]() {
-      std::shared_ptr<HttpMessage> incoming_http(new HttpMessage());
-      incoming_http->code = 200;
-      incoming_http->content = "hello world";
-      incoming_http->io = &loop;
+    usleep(1000);
+    //sleep(10);
 
-      LOG(INFO) << " 1 msg.user_count:" << incoming_http.use_count();
-      auto func = std::bind(&HandleHttpMsg, std::move(incoming_http));
-      worker.PostTask(base::NewClosure(func));
-      LOG(INFO) << " 2 msg.user_count:" << incoming_http.use_count();
-    }));
-    */
-    if (i != 10000)
-      continue;
-    i = 0;
+    if (i <= 100) {
+      loop.PostTask(base::NewClosure([&]() {
+        std::shared_ptr<HttpMessage> incoming_http(new HttpMessage());
+        incoming_http->code = 200;
+        incoming_http->io = &loop;
+        incoming_http->content = "hello world";
+
+        auto handle_in_works = std::bind(&HandleHttpMsg, std::move(incoming_http));
+        worker.PostTask(base::NewClosure(handle_in_works));
+      }));
+    }
     worker.PostTask(base::NewClosure([]() {LOG(INFO) << "Work still Alive!";}));
   }
 }
