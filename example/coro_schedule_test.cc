@@ -26,7 +26,6 @@ public:
     LOG(INFO) << __FUNCTION__ << " HttpMessage deleted >>>>>>>>>>>";
   }
   int code;
-  int a[1024];
   std::string content;
   base::MessageLoop* io;
 };
@@ -56,26 +55,24 @@ void CreateHttpConnection() {
 
 //io
 void request_done_cb(evhttp_request* request, void* arg) {
-  LOG(INFO) << __FUNCTION__ << " Get Response From Server On IO";
-  //HttpRequest* req = static_cast<HttpRequest*>(arg);
+  LOG(INFO) << __FUNCTION__ << " http requect get results";
+
   RequestContex* rctx = static_cast<RequestContex*>(arg);
   HttpRequest* req = rctx->req;
+
   net::HttpChannelLibEvent* connection = rctx->connection;
 
-  ev_ssize_t m_len;
-	struct evhttp_connection *evcon = evhttp_request_get_connection(request);
-
-  m_len = EVBUFFER_LENGTH(request->input_buffer);
+  ev_ssize_t m_len = EVBUFFER_LENGTH(request->input_buffer);
 
   req->response.reserve(m_len+1);
   req->response.assign((char*)EVBUFFER_DATA(request->input_buffer), m_len);
   req->response[m_len] = '\0';
 
-  LOG(INFO) << __FUNCTION__ << " Going to resume the coro which Send the This Request";
   req->handler_worker->PostTask(
     base::NewClosure(std::bind(&ResumeHttpRequestCoro, req)));
-  delete rctx;
+
   client_channels.push_front(connection);
+  delete rctx;
 }
 
 void MakeHttpRequest(HttpRequest* req) {
@@ -115,8 +112,10 @@ void MakeHttpRequest(HttpRequest* req) {
                                 "http://127.0.0.1:6666/post");
   if (ret != 0) {
     LOG(INFO) << __FUNCTION__ << " make request failed ";
+    client_channels.push_front(rctx->connection);
     req->handler_worker->PostTask(
       base::NewClosure(std::bind(&ResumeHttpRequestCoro, req)));
+    delete rctx;
   }
 }
 
@@ -134,15 +133,11 @@ void HttpRequestCoro(std::shared_ptr<HttpMessage> msg) {
 }
 
 void CoroWokerHttpHandle(std::shared_ptr<HttpMessage> msg) {
-  LOG(INFO) << __FUNCTION__ << " Handle http message on CORO";
-
   auto this_coro = base::Coroutine::Current();
-
   auto coro = base::CoroScheduler::CreateAndSchedule(
     base::NewCoroTask(std::bind(&HttpRequestCoro, std::move(msg))));
 
   coro->SetSuperior(this_coro);
-  LOG(INFO) << __FUNCTION__ << " Paused Here";
   this_coro->Yield();
 }
 
@@ -170,7 +165,7 @@ int main(int arvc, char **argv) {
     base::CoroScheduler::TlsCurrent();
   }));
 
-  sleep(10);
+  sleep(5);
 
   loop.PostTask(base::NewClosure([&]() {
     std::shared_ptr<HttpMessage> incoming_http(new HttpMessage());
@@ -186,10 +181,9 @@ int main(int arvc, char **argv) {
   long i = 0;
   while(1) {
     i++;
-    usleep(1000);
-    //sleep(10);
+    usleep(100000);
 
-    if (i <= 100) {
+    //if (i <= 100) {
       loop.PostTask(base::NewClosure([&]() {
         std::shared_ptr<HttpMessage> incoming_http(new HttpMessage());
         incoming_http->code = 200;
@@ -199,7 +193,7 @@ int main(int arvc, char **argv) {
         auto handle_in_works = std::bind(&HandleHttpMsg, std::move(incoming_http));
         worker.PostTask(base::NewClosure(handle_in_works));
       }));
-    }
-    worker.PostTask(base::NewClosure([]() {LOG(INFO) << "Work still Alive!";}));
+    //}
+    //worker.PostTask(base::NewClosure([]() {LOG(INFO) << "Work still Alive!";}));
   }
 }

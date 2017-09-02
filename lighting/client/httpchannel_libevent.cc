@@ -60,9 +60,10 @@ void HttpChannelLibEvent::CloseConnection() {
 }
 
 void HttpChannelLibEvent::OnChannelClosed() {
+  LOG(INFO) << __FUNCTION__ << "seems evhttp_connection closed";
   connection_ = nullptr;
-  // notify others
-  // delegate->OnChannelClosed(this);
+  //notify others
+  //delegate->OnChannelClosed(this);
 }
 
 ChannelStatus HttpChannelLibEvent::Status() {
