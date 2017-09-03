@@ -53,9 +53,11 @@ void CreateHttpConnection() {
   }
 }
 
-//io
 void request_done_cb(evhttp_request* request, void* arg) {
   LOG(INFO) << __FUNCTION__ << " http requect get results";
+  if (arg == NULL || request == NULL) {
+    return;
+  }
 
   RequestContex* rctx = static_cast<RequestContex*>(arg);
   HttpRequest* req = rctx->req;
@@ -63,10 +65,11 @@ void request_done_cb(evhttp_request* request, void* arg) {
   net::HttpChannelLibEvent* connection = rctx->connection;
 
   ev_ssize_t m_len = EVBUFFER_LENGTH(request->input_buffer);
-
-  req->response.reserve(m_len+1);
-  req->response.assign((char*)EVBUFFER_DATA(request->input_buffer), m_len);
-  req->response[m_len] = '\0';
+  if (m_len) {
+    req->response.reserve(m_len+1);
+    req->response.assign((char*)EVBUFFER_DATA(request->input_buffer), m_len);
+    req->response[m_len] = '\0';
+  }
 
   req->handler_worker->PostTask(
     base::NewClosure(std::bind(&ResumeHttpRequestCoro, req)));
@@ -77,44 +80,41 @@ void request_done_cb(evhttp_request* request, void* arg) {
 
 void MakeHttpRequest(HttpRequest* req) {
   if (!client_channels.size()) {
-    LOG(ERROR) << __FUNCTION__ << " no connection to server";
-    req->response = "========= no clients ===========";
+    req->response = "========= no clients to server ===========";
     req->handler_worker->PostTask(
       base::NewClosure(std::bind(&ResumeHttpRequestCoro, req)));
     return;
   }
 
-  LOG(INFO) << __FUNCTION__ << " Start Http Request On IO";
+  LOG(INFO) << __FUNCTION__ << " Start Http Request On IO Thread";
+
   RequestContex* rctx = new RequestContex();
   rctx->connection = client_channels.back();
   client_channels.pop_back();
   rctx->req = req;
 
-  event_base* base = base::MessageLoop::Current()->EventBase();
   struct evhttp_request* request = evhttp_request_new(request_done_cb, rctx);
+
   evhttp_add_header(request->output_headers, "Connection", "keep-alive");
   evhttp_add_header(request->output_headers, "Host", "127.0.0.1");
   evbuffer_add(request->output_buffer, "hello world", sizeof("hello world"));
 
-  if (rctx->connection->EvHttpConnection()) {
-    event_base* base = base::MessageLoop::Current()->EventBase();
-    event_base_loop(base, EVLOOP_NONBLOCK);
-  }
-
-  if (!rctx->connection->EvHttpConnection()) {
+  if (!rctx->connection->EvConnection()) {
     rctx->connection->InitConnection();
   }
 
   evhttp_cmd_type cmd = EVHTTP_REQ_POST;// : EVHTTP_REQ_GET;
-  int ret = evhttp_make_request(rctx->connection->EvHttpConnection(),
-                                request,
-                                cmd,
-                                "http://127.0.0.1:6666/post");
+  int ret = evhttp_make_request(rctx->connection->EvConnection(),
+                                request, cmd, "/");
+
   if (ret != 0) {
-    LOG(INFO) << __FUNCTION__ << " make request failed ";
+    LOG(INFO) << __FUNCTION__ << " make httpreqeust failed";
+
     client_channels.push_front(rctx->connection);
+
     req->handler_worker->PostTask(
       base::NewClosure(std::bind(&ResumeHttpRequestCoro, req)));
+
     delete rctx;
   }
 }
@@ -129,7 +129,7 @@ void HttpRequestCoro(std::shared_ptr<HttpMessage> msg) {
   msg->io->PostTask(base::NewClosure(std::bind(&MakeHttpRequest, &request)));
   base::Coroutine::Current()->Yield();
 
-  LOG(INFO) << __FUNCTION__ << " request response:" << request.response;
+  LOG(INFO) << __FUNCTION__ << " request resumed, get response:" << request.response;
 }
 
 void CoroWokerHttpHandle(std::shared_ptr<HttpMessage> msg) {
@@ -181,7 +181,7 @@ int main(int arvc, char **argv) {
   long i = 0;
   while(1) {
     i++;
-    usleep(100000);
+    usleep(10000);
 
     //if (i <= 100) {
       loop.PostTask(base::NewClosure([&]() {

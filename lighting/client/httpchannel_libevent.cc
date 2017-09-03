@@ -6,10 +6,11 @@
 
 namespace net {
 
-static void on_connection_closed(struct evhttp_connection* /*conn*/, void* obj) {
+//static bridge
+void HttpChannelLibEvent::on_connection_reseted(struct evhttp_connection* conn, void* obj) {
   CHECK(obj);
   HttpChannelLibEvent* channel = static_cast<HttpChannelLibEvent*>(obj);
-  channel->OnChannelClosed();
+  channel->OnChannelReseted();
 }
 
 HttpChannelLibEvent::HttpChannelLibEvent(ChannelInfo info, event_base* base)
@@ -17,7 +18,9 @@ HttpChannelLibEvent::HttpChannelLibEvent(ChannelInfo info, event_base* base)
     evdns_base_(nullptr),
     connection_(nullptr),
     channel_info_(info),
-    timeout_ms_(0) {
+    timeout_ms_(0),
+    retry_max_(3),
+    retry_interval_(1) {
 	evdns_base_ = evdns_base_new(base, EVDNS_BASE_DISABLE_WHEN_INACTIVE);
 }
 
@@ -35,13 +38,17 @@ void HttpChannelLibEvent::InitConnection() {
                                              evdns_base_,
                                              channel_info_.host.c_str(),
                                              channel_info_.port);
-    evhttp_connection_set_closecb(connection_, on_connection_closed, this);
   }
 
   if (!connection_) {
     LOG(ERROR) << "HttpClient Init Failed in evhttp_connection_base_new";
     return;
   }
+  //evhttp_connection_set_retries(connection_, retry_max_);
+  //evhttp_connection_set_closecb(connection_, on_connection_reseted, this);
+
+  //struct timeval retry_tv = base::ms_to_timeval(retry_interval_);
+  //evhttp_connection_set_initial_retry_tv(connection_, &retry_tv);
 
   if (TimeoutMs() != 0) {
     struct timeval tv = base::ms_to_timeval(TimeoutMs());
@@ -56,12 +63,12 @@ void HttpChannelLibEvent::CloseConnection() {
   }
   if (evdns_base_) {
     evdns_base_free(evdns_base_, 0);
+    evdns_base_ = nullptr;
   }
 }
 
-void HttpChannelLibEvent::OnChannelClosed() {
-  LOG(INFO) << __FUNCTION__ << "seems evhttp_connection closed";
-  connection_ = nullptr;
+void HttpChannelLibEvent::OnChannelReseted() {
+  LOG(INFO) << "evhttp_connection was reseted";
   //notify others
   //delegate->OnChannelClosed(this);
 }

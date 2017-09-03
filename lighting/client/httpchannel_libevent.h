@@ -46,15 +46,17 @@ public:
   void InitConnection();
   void CloseConnection();
 
-  void OnChannelClosed();
-
   uint32_t TimeoutMs() {return timeout_ms_; }
   void SetTimeoutMs(uint32_t ms) {timeout_ms_ = ms;}
 
   ChannelStatus Status();
-  evhttp_connection* EvHttpConnection() {
-    return connection_;
-  }
+  evhttp_connection* EvConnection() {return connection_;}
+protected:
+  //!! this is just a notify, it present the connection {socket fd} was reseted
+  //not mean the connection was free
+  void OnChannelReseted();
+  static void on_connection_reseted(evhttp_connection* , void*);
+
 private:
   event_base* ev_base_;
   struct evdns_base* evdns_base_;
@@ -62,6 +64,9 @@ private:
 
   ChannelInfo channel_info_;
   uint32_t timeout_ms_;
+  uint32_t retry_max_;
+  //ms -1 mean infinitily
+  int32_t retry_interval_;
 };
 
 }// end namespace net
