@@ -64,8 +64,9 @@ void Replyrequest(struct evhttp_request* req) {
 
   //HTTP header
   evhttp_add_header(req->output_headers, "Server", "bad");
+  evhttp_add_header(req->output_headers, "Connection", "keep-alive");
   evhttp_add_header(req->output_headers, "Content-Type", "text/plain; charset=UTF-8");
-  evhttp_add_header(req->output_headers, "Connection", "close");
+  //evhttp_add_header(req->output_headers, "Connection", "close");
   //输出的内容
   struct evbuffer *buf = evbuffer_new();
   evbuffer_add(buf, "hello work!", sizeof("hello work!"));
@@ -85,7 +86,6 @@ void HttpSrv::GenericCallback(struct evhttp_request* req, void* arg) {
   auto& worker = server->workers_[query_count%server->config_.hander_workers];
 
   auto f = [&](base::MessageLoop* ioloop, struct evhttp_request* req) {
-    std::cout << "handler the request" << std::endl;
     ioloop->PostTask(base::NewClosure(std::bind(Replyrequest, req)));
   };
 
@@ -94,7 +94,6 @@ void HttpSrv::GenericCallback(struct evhttp_request* req, void* arg) {
   //HTTP header
   evhttp_add_header(req->output_headers, "Server", "bad");
   evhttp_add_header(req->output_headers, "Content-Type", "text/plain; charset=UTF-8");
-  evhttp_add_header(req->output_headers, "Connection", "close");
   //输出的内容
   struct evbuffer *buf = evbuffer_new();
   evbuffer_add(buf, "hello work!", sizeof("hello work!"));

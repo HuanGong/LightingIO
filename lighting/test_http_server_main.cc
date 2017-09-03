@@ -6,7 +6,7 @@
 #include "http_server.h"
 
 int main() {
-  net::SrvConfig config = {false, {6666}, 2};
+  net::SrvConfig config = {false, {6666}, 8};
   net::HttpSrv server(NULL, config);
 
   while(1) {
