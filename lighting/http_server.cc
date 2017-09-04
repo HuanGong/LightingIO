@@ -60,10 +60,8 @@ void HttpSrv::SetUpHttpSrv(EvHttpSrv* server) {
 }
 
 void Replyrequest(struct evhttp_request* req) {
-  std::cout << __FUNCTION__ << std::endl;
-
   //HTTP header
-  evhttp_add_header(req->output_headers, "Server", "bad");
+  //evhttp_add_header(req->output_headers, "Server", "bad");
   evhttp_add_header(req->output_headers, "Connection", "keep-alive");
   evhttp_add_header(req->output_headers, "Content-Type", "text/plain; charset=UTF-8");
   //evhttp_add_header(req->output_headers, "Connection", "close");
@@ -81,7 +79,6 @@ void HttpSrv::GenericCallback(struct evhttp_request* req, void* arg) {
 #if 1
   HttpSrv* server = static_cast<HttpSrv*>(arg);
 
-  std::cout << __FUNCTION__ << std::endl;
   //round-robin
   auto& worker = server->workers_[query_count%server->config_.hander_workers];
 
