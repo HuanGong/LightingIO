@@ -56,17 +56,11 @@ TARGET_LINK_LIBRARIES(base_shared
   -lpthread
 )
 
-#test code
-SET(BASE_UNITTESTS main.c)
-ADD_EXECUTABLE(base_unittest ${BASE_UNITTESTS})
-add_dependencies(base_unittest base_static)
-
 #messageloop test
 ADD_EXECUTABLE(messageloop_test
   message_loop/messageloop_test.cc
 )
 TARGET_LINK_LIBRARIES(messageloop_test
-  gflags
   base_static
 )
 
