@@ -27,6 +27,8 @@ add_dependencies(lighting_srv
 
 # client side
 ADD_LIBRARY(urlclient STATIC
+  request/url_request.cc
+  request/url_response.cc
   client/httpchannel_libevent.cc
 )
 

@@ -14,7 +14,7 @@ namespace net {
 class HttpResponse;
 
 //typedef std::unique_prt<std::string> UniqueContent;
-typedef std::map<std::string, std::string> HeadersMap;
+typedef std::map<std::string, std::string> KeyValMap;
 typedef std::unique_ptr<HttpResponse> UniqueResponse;
 
 enum RequestType {
@@ -24,16 +24,17 @@ enum RequestType {
 
 class HttpUrlRequest {
 public:
-  UrlRequest(RequestType type);
-  ~UrlRequest();
+  HttpUrlRequest(RequestType type);
+  ~HttpUrlRequest();
 
   // header
-  const HeadersMap& Headers();
-  HeadersMap& MutableHeaders();
-  void HasHeader(const std::string&);
+  const KeyValMap& Headers();
+  KeyValMap& MutableHeaders();
+  bool HasHeader(const std::string&);
   void DelHeader(const std::string&);
   void AddHeader(const std::string&, const std::string&);
-  void SwapHeaders(HeadersMap& headers);
+  void SwapHeaders(KeyValMap& headers);
+  const std::string& GetHeader(const std::string& header);
 
   // content
   const std::string& ContentBody();
@@ -52,11 +53,16 @@ public:
   const HttpResponse& Response();
   void SetReplyResponse(UniqueResponse response);
 
+  bool IsOutGoingRequest();
 private:
-  std::string method_;
-  std::string reqeust_url_;
+  RequestType type_;
 
-  HeadersMap headers_;
+  std::string method_;
+  std::string request_url_;
+
+  KeyValMap params_;
+  KeyValMap headers_;
+
   std::string content_;
 
   UniqueResponse response_;
