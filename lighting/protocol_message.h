@@ -14,11 +14,7 @@ public:
 
   virtual bool DecodeContent() {};
   virtual bool EncodeContent() {};
-  const std::string& GetContent() {
-    return content_;
-  }
 private:
-  std::string content_;
 };
 
 }//end net

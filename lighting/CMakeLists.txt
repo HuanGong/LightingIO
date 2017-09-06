@@ -54,4 +54,8 @@ TARGET_LINK_LIBRARIES(client_main
   -levent
   -lpthread
 )
+add_dependencies(client_main
+  glog
+  base_shared
+)
 
