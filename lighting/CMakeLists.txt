@@ -11,10 +11,10 @@ ADD_DEFINITIONS(-std=c++11)
 
 ADD_EXECUTABLE(lighting_srv
   test_http_server_main.cc
-  http_server.cc
 )
 
 TARGET_LINK_LIBRARIES(lighting_srv
+  liblightingio.a
   -lglog
   -lbase_shared
   -levent
@@ -22,23 +22,26 @@ TARGET_LINK_LIBRARIES(lighting_srv
 )
 add_dependencies(lighting_srv
   glog
+  lightingio
   base_shared
 )
 
 # client side
-ADD_LIBRARY(urlclient STATIC
+ADD_LIBRARY(lightingio STATIC
   request/url_request.cc
   request/url_response.cc
   client/httpchannel_libevent.cc
+  io_service.cc
+  http_server.cc
 )
 
-TARGET_LINK_LIBRARIES(urlclient
+TARGET_LINK_LIBRARIES(lightingio
   -lglog
-  -lbase_shared
   -levent
+  -lbase_shared
   -lpthread
 )
-add_dependencies(urlclient
+add_dependencies(lightingio
   glog
   base_shared
 )

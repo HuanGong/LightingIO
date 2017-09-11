@@ -160,6 +160,21 @@ MessageLoop::MessageLoop(std::string name)
     wakeup_pipe_out_(0),
     wakeup_event_(new event()) {
   loop_name_ = name;
+
+  int fds[2];
+  CHECK(pipe(fds) == 0);
+
+  SetNonBlocking(fds[0]);
+  SetNonBlocking(fds[1]);
+
+  wakeup_pipe_out_ = fds[0];
+  wakeup_pipe_in_ = fds[1];
+
+  EventAssign(wakeup_event_.get(),
+              event_base_,
+              wakeup_pipe_out_,
+              EV_READ | EV_PERSIST, OnWakeup, this);
+  event_add(wakeup_event_.get(), 0);
 }
 
 MessageLoop::~MessageLoop() {
@@ -198,22 +213,6 @@ bool MessageLoop::IsInLoopThread() const {
 }
 
 void MessageLoop::Start() {
-
-  int fds[2];
-  CHECK(pipe(fds) == 0);
-
-  SetNonBlocking(fds[0]);
-  SetNonBlocking(fds[1]);
-
-  wakeup_pipe_out_ = fds[0];
-  wakeup_pipe_in_ = fds[1];
-
-  EventAssign(wakeup_event_.get(),
-              event_base_,
-              wakeup_pipe_out_,
-              EV_READ | EV_PERSIST, OnWakeup, this);
-  event_add(wakeup_event_.get(), 0);
-
   thread_ptr_.reset(new std::thread(std::bind(&MessageLoop::ThreadMain, this)));
 }
 

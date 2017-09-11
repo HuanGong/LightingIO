@@ -2,6 +2,7 @@
 #include "base/base_constants.h"
 
 namespace net {
+
 HttpResponse::HttpResponse(int32_t code) {
 
 }

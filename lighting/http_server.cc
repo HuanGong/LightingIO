@@ -3,60 +3,64 @@
 #include "unistd.h"
 #include "stdlib.h"
 #include <memory>
+#include <string>
 
 namespace net {
+static SrvDelegate default_delegate;
+static std::string wokername_prefix("worker_");
 
-HttpSrv::HttpSrv(HttpSrvDelegate* delegate, SrvConfig& config)
-  : delegate_(delegate),
-    config_(config) {
+Server::Server(SrvDelegate* delegate)
+  : delegate_(delegate) {
+  if (nullptr == delegate_) {
+    delegate_ = &default_delegate;
+  }
+}
 
-  for (int i= 0; i < config_.hander_workers; i++) {
-    std::unique_ptr<base::MessageLoop> loop(new base::MessageLoop("workerthread"));
-    loop->Start();
+Server::~Server() {
+//clean up things
+}
+
+void Server::InitWithAddrPorts(std::vector<std::string>& addr_ports) {
+  CHECK(delegate_);
+  CHECK(!addr_ports.empty());
+
+  for (auto& addr_port : addr_ports) {
+    IoService* srv = new IoService(addr_port);
+    ioservices.push_back(srv);
+  }
+}
+
+void Server::InitializeWorkerService() {
+  CHECK(delegate_);
+  int32_t worker_count = delegate_->WorkerCount();
+
+  for (int idx = 0; idx < worker_count; idx++) {
+    std::string worker_name = wokername_prefix + std::to_string(idx);
+    std::unique_ptr<base::MessageLoop> loop(new base::MessageLoop(worker_name));
     workers_.push_back(std::move(loop));
   }
-
-  ev_http_server_.io_loop_.reset(new base::MessageLoop("httpserver io loop"));
-  ev_http_server_.io_loop_->Start();
-  ev_http_server_.io_loop_->PostTask(
-    base::NewClosure(std::bind(&HttpSrv::SetUpHttpSrv, this, &ev_http_server_)));
+  //other settings for worker
 }
 
-HttpSrv::~HttpSrv() {
+void Server::Run() {
 
-}
-
-void HttpSrv::Run() {
-
-}
-
-void HttpSrv::InstallPath(const std::string& path) {
-
-}
-
-//run on io thread
-void HttpSrv::SetUpHttpSrv(EvHttpSrv* server) {
-  std::cout << "enter HttpSrv::SetUpHttpSrv" << std::endl;
-  server->ev_http_ = evhttp_new(server->io_loop_->EventBase());
-  if (!server->ev_http_) {
-    return;
+  for (auto& worker : workers_) {
+    worker->Start();
+    delegate_->OnWorkerStarted(worker.get());
   }
 
-  int listen_port = config_.ports[0];
-#if LIBEVENT_VERSION_NUMBER >= 0x02001500
-  server->evhttp_bound_socket_ = evhttp_bind_socket_with_handle(server->ev_http_,
-                                                                "0.0.0.0",
-                                                                listen_port);
-  if (!server->evhttp_bound_socket_) {
-    return;
+  for (auto& service : ioservices) {
+    service->StartIOService();
+    delegate_->OnIoServiceRun(service);
   }
-#else
-  if (evhttp_bind_socket(server->evhttp_, "0.0.0.0", listen_port) != 0) {
-    return;
-  }
-#endif
-  evhttp_set_gencb(server->ev_http_, &HttpSrv::GenericCallback, this);
-  return;
+}
+
+void Server::Stop() {
+
+}
+
+void Server::CleanUp() {
+
 }
 
 void Replyrequest(struct evhttp_request* req) {
@@ -72,8 +76,12 @@ void Replyrequest(struct evhttp_request* req) {
   evbuffer_free(buf);
 }
 
-//static
-void HttpSrv::GenericCallback(struct evhttp_request* req, void* arg) {
+//typedef std::function <void(RequestContext*)> HTTPRequestHandler;
+void Server::DistributeHttpReqeust(RequestContext* reqeust_ctx) {
+  std::atomic<long> qps;
+  //filter by qps
+
+/*
   static long query_count = 0;
   query_count++;
 #if 1
@@ -97,6 +105,7 @@ void HttpSrv::GenericCallback(struct evhttp_request* req, void* arg) {
   evhttp_send_reply(req, HTTP_OK, "OK", buf);
   evbuffer_free(buf);
 #endif
+*/
 }
 
 
