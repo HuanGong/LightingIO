@@ -66,6 +66,7 @@ void IoService::InitEvHttpServer() {
   }
 #endif
   evhttp_set_gencb(ev_http_, &IoService::EvRequestHandler, this);
+  LOG(INFO) << "Listen On:" << addr_ << " Port:" << port_;
 }
 
 IoService::~IoService() {
@@ -93,7 +94,7 @@ void IoService::StartIOService() {
 }
 
 void IoService::ResolveAddressPorts(const std::string& addr_port) {
-  std::size_t found = addr_port.rfind("::");
+  std::size_t found = addr_port.find("::");
   if (found != std::string::npos) {
     addr_ = std::string(addr_port.begin(), addr_port.begin() + found);
     port_ = std::atoi(std::string(addr_port.begin() + found + 2, addr_port.end()).c_str());
@@ -102,6 +103,16 @@ void IoService::ResolveAddressPorts(const std::string& addr_port) {
     port_ = 6666;
     addr_ = "0.0.0.0";
   }
+}
+
+std::shared_ptr<HttpUrlRequest> IoService::CreateFromNative(PlatformReqeust* req) {
+  std::shared_ptr<HttpUrlRequest> http_req(new HttpUrlRequest(RequestType::INCOMING_REQ));
+
+  //const char *evhttp_request_get_uri(const struct evhttp_request *req);
+  http_req->SetRequestURL(evhttp_request_get_uri(req));
+
+  //struct evhttp_uri *evhttp_request_get_evhttp_uri(const struct evhttp_request *req);
+
 }
 
 } //end namespace net

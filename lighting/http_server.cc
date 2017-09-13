@@ -4,6 +4,8 @@
 #include "stdlib.h"
 #include <memory>
 #include <string>
+#include <functional>
+#include "glog/logging.h"
 
 namespace net {
 static SrvDelegate default_delegate;
@@ -25,9 +27,14 @@ void Server::InitWithAddrPorts(std::vector<std::string>& addr_ports) {
   CHECK(!addr_ports.empty());
 
   for (auto& addr_port : addr_ports) {
+
     IoService* srv = new IoService(addr_port);
+
+    srv->RegisterHandler(std::bind(&Server::DistributeHttpReqeust, this, std::placeholders::_1));
+
     ioservices.push_back(srv);
   }
+
 }
 
 void Server::InitializeWorkerService() {
@@ -79,8 +86,9 @@ void Replyrequest(struct evhttp_request* req) {
 //typedef std::function <void(RequestContext*)> HTTPRequestHandler;
 void Server::DistributeHttpReqeust(RequestContext* reqeust_ctx) {
   std::atomic<long> qps;
-  //filter by qps
+  LOG(INFO) << "Distribute a http reqeust";
 
+  delete reqeust_ctx;
 /*
   static long query_count = 0;
   query_count++;

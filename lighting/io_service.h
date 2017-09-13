@@ -49,8 +49,10 @@ protected:
 
   void ResolveAddressPorts(const std::string& addr_port);
 
-  void HandleEvHttpReqeust(evhttp_request* req);
+  void HandleEvHttpReqeust(PlatformReqeust* req);
+  std::shared_ptr<HttpUrlRequest> CreateFromNative(PlatformReqeust* req);
 private:
+
   //server info
   uint32_t port_;
   std::string addr_;
