@@ -55,7 +55,6 @@ protected:
   void ReplyRequestInternal(RequestContext* req_ctx);
 
   std::shared_ptr<HttpUrlRequest> CreateFromNative(PlatformReqeust* req);
-
 private:
   //server info
   uint32_t port_;

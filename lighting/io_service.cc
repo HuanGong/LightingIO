@@ -103,7 +103,6 @@ void IoService::ResolveAddressPorts(const std::string& addr_port) {
 
 std::shared_ptr<HttpUrlRequest> IoService::CreateFromNative(PlatformReqeust* req) {
   std::shared_ptr<HttpUrlRequest> http_req(new HttpUrlRequest(RequestType::INCOMING_REQ));
-
   //method
   enum evhttp_cmd_type method = evhttp_request_get_command(req);
   http_req->SetRequestMethod((HttpMethod)method);

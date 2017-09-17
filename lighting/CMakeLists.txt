@@ -31,6 +31,7 @@ ADD_LIBRARY(lightingio STATIC
   request/url_request.cc
   request/url_response.cc
   client/httpchannel_libevent.cc
+  server.cc
   io_service.cc
   http_server.cc
 )

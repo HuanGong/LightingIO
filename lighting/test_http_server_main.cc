@@ -7,11 +7,9 @@
 
 int main() {
 
-  net::Server server(NULL);
-
-  std::vector<std::string> service = {std::string("0.0.0.0:6666")};
-
-  server.InitWithAddrPorts(service);
+  // use default delegate
+  net::HttpServer server(NULL);
+  server.Initialize();
 
   server.Run();
 
