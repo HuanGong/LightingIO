@@ -3,8 +3,10 @@
 
 namespace net {
 
-HttpResponse::HttpResponse(int32_t code) {
-
+HttpResponse::HttpResponse(int32_t code)
+  : reponse_code_(code),
+    version_major_(1),
+    version_minor_(1) {
 }
 
 HttpResponse::~HttpResponse() {
@@ -16,7 +18,7 @@ void HttpResponse::SetVersion(char major, char minor) {
   version_minor_ = minor;
 }
 
-const int32_t& HttpResponse::Code() {
+const int32_t& HttpResponse::Code() const {
   return reponse_code_;
 }
 
@@ -32,7 +34,7 @@ void HttpResponse::SetCodeMessage(std::string message) {
   code_message_ = message;
 }
 
-const std::string& HttpResponse::ResponseBody() {
+const std::string& HttpResponse::ResponseBody() const {
   return content_;
 }
 
@@ -40,7 +42,7 @@ void HttpResponse::SetResponseBody(std::string& response) {
   content_ = response;
 }
 
-const HeadersMap& HttpResponse::Headers() {
+const HeadersMap& HttpResponse::Headers() const {
   return headers_;
 }
 

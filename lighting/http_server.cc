@@ -34,7 +34,7 @@ void Server::InitWithAddrPorts(std::vector<std::string>& addr_ports) {
 
     ioservices.push_back(srv);
   }
-
+  InitializeWorkerService();
 }
 
 void Server::InitializeWorkerService() {
@@ -70,55 +70,31 @@ void Server::CleanUp() {
 
 }
 
-void Replyrequest(struct evhttp_request* req) {
-  //HTTP header
-  //evhttp_add_header(req->output_headers, "Server", "bad");
-  evhttp_add_header(req->output_headers, "Connection", "keep-alive");
-  evhttp_add_header(req->output_headers, "Content-Type", "text/plain; charset=UTF-8");
-  //evhttp_add_header(req->output_headers, "Connection", "close");
-  //输出的内容
-  struct evbuffer *buf = evbuffer_new();
-  evbuffer_add(buf, "hello work!", sizeof("hello work!"));
-  evhttp_send_reply(req, HTTP_OK, "OK", buf);
-  evbuffer_free(buf);
+void Replyrequest(RequestContext* req_ctx) {
+  std::unique_ptr<HttpResponse> response(new HttpResponse(200));
+  std::string body("helsdfadfadfa \n");
+  response->SetResponseBody(body);
+
+  auto& http_request = req_ctx->url_request;
+  http_request->SetReplyResponse(std::move(response));
+
+  req_ctx->ioservice->ReplyRequest(req_ctx);
 }
 
 //typedef std::function <void(RequestContext*)> HTTPRequestHandler;
-void Server::DistributeHttpReqeust(RequestContext* reqeust_ctx) {
-  std::atomic<long> qps;
+void Server::DistributeHttpReqeust(RequestContext* request_ctx) {
+  static std::atomic<uint32_t> qps;
+  static std::atomic_int time_ms;
+  if (!workers_.size()) {
+    LOG(ERROR) << "no worker can handle this request";
+    return;
+  }
 
-  std::stringstream ss;
-  reqeust_ctx->url_request->Dump2Sstream(ss);
-  LOG(INFO) << "Distribute a http reqeust body:" << ss.str();
+  int x = qps++ % workers_.size();
+  LOG(ERROR) << x;
 
-  delete reqeust_ctx;
-/*
-  static long query_count = 0;
-  query_count++;
-#if 1
-  HttpSrv* server = static_cast<HttpSrv*>(arg);
-
-  //round-robin
-  auto& worker = server->workers_[query_count%server->config_.hander_workers];
-
-  auto f = [&](base::MessageLoop* ioloop, struct evhttp_request* req) {
-    ioloop->PostTask(base::NewClosure(std::bind(Replyrequest, req)));
-  };
-
-  worker->PostTask(base::NewClosure(std::bind(f, base::MessageLoop::Current(), req)));
-#else
-  //HTTP header
-  evhttp_add_header(req->output_headers, "Server", "bad");
-  evhttp_add_header(req->output_headers, "Content-Type", "text/plain; charset=UTF-8");
-  //输出的内容
-  struct evbuffer *buf = evbuffer_new();
-  evbuffer_add(buf, "hello work!", sizeof("hello work!"));
-  evhttp_send_reply(req, HTTP_OK, "OK", buf);
-  evbuffer_free(buf);
-#endif
-*/
+  base::MessageLoop* w = workers_[x].get();
+  w->PostTask(base::NewClosure(std::bind(Replyrequest, request_ctx)));
 }
-
-
 
 }//endnamespace

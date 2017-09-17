@@ -44,12 +44,16 @@ public:
   void StartIOService();
 
   void RegisterHandler(HTTPRequestHandler handler);
+
+  void ReplyRequest(RequestContext* request);
 protected:
   void InitEvHttpServer();
 
   void ResolveAddressPorts(const std::string& addr_port);
 
   void HandleEvHttpReqeust(PlatformReqeust* req);
+  void ReplyRequestInternal(RequestContext* req_ctx);
+
   std::shared_ptr<HttpUrlRequest> CreateFromNative(PlatformReqeust* req);
 
 private:

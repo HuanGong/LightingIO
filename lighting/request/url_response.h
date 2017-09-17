@@ -17,16 +17,16 @@ public:
 
   void SetVersion(char major, char minor);
 
-  const int32_t& Code();
+  const int32_t& Code() const;
   void SetCode(int32_t code);
 
   const std::string CodeMessage();
   void SetCodeMessage(std::string message);
 
-  const std::string& ResponseBody();
+  const std::string& ResponseBody() const;
   void SetResponseBody(std::string& response);
 
-  const HeadersMap& Headers();
+  const HeadersMap& Headers() const;
   HeadersMap& MutableHeaders();
   bool HasHeader(const std::string&);
   void DelHeader(const std::string&);

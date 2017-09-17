@@ -4,18 +4,21 @@
 #include "base/base_micro.h"
 
 #include <map>
+#include <unordered_map>
 #include <set>
 #include <string>
 #include <memory>
 #include <unordered_map>
 #include <sstream>
+#include "url_response.h"
 
 namespace net {
 
-class HttpResponse;
+//class HttpResponse;
 
 //typedef std::unique_prt<std::string> UniqueContent;
-typedef std::map<std::string, std::string> KeyValMap;
+//typedef std::map<std::string, std::string> KeyValMap;
+typedef std::unordered_map<std::string, std::string> KeyValMap;
 typedef std::unique_ptr<HttpResponse> UniqueResponse;
 
 enum RequestType {
@@ -77,6 +80,12 @@ public:
   void SetURLPath(const char* path);
   void SetURLPath(const std::string& path);
 
+  KeyValMap& MutableParams();
+  const KeyValMap& RequestParams();
+  void AddRequestParams(const std::string&, const std::string&);
+
+  int64_t BirthTime() const;
+
   bool IsOutGoingRequest();
   void Dump2Sstream(std::ostream& os) const;
 private:
@@ -87,12 +96,14 @@ private:
 
   std::string request_url_;
   std::string url_path_;
-  KeyValMap params_;
   KeyValMap headers_;
+  KeyValMap params_;
+  //std::unordered_map<std::string, std::string> params_;
 
   std::string content_;
-
+  uint32_t birth_time_;
   UniqueResponse response_;
+
   DISALLOW_COPY_AND_ASSIGN(HttpUrlRequest);
 };
 

@@ -2,13 +2,16 @@
 #include "url_request.h"
 #include "url_response.h"
 #include "base/base_constants.h"
+#include "base/time_utils.h"
 
 //class HttpResponse;
 namespace net {
 
 HttpUrlRequest::HttpUrlRequest(RequestType type) {
   type_ = type;
+  birth_time_ = base::time_ms();
 }
+
 HttpUrlRequest::~HttpUrlRequest() {
 
 }
@@ -138,16 +141,46 @@ void HttpUrlRequest::SetURLPath(const std::string& path) {
   url_path_ = path;
 }
 
+KeyValMap& HttpUrlRequest::MutableParams() {
+  return params_;
+}
+
+const KeyValMap& HttpUrlRequest::RequestParams() {
+  return params_;
+}
+
+void HttpUrlRequest::AddRequestParams(const std::string& p, const std::string& v) {
+  params_[p] = v;
+}
+
+int64_t HttpUrlRequest::BirthTime() const {
+  return birth_time_;
+}
+
 void HttpUrlRequest::Dump2Sstream(std::ostream& os) const {
-  os << "Reqeust Type:" << ((type_ == RequestType::INCOMING_REQ) ? "INCOMING_REQ" : "OUTGOING_REQ") << std::endl;
-  os << "Host" << host_ << std::endl;
-  os << "URL:" << request_url_ << std::endl;
-  os << "URL PATH:" << url_path_ << std::endl;
-  os << "Method: " << GetMethodAsString() << std::endl;
-  for (auto& header : headers_) {
-    os << header.first << ": " << header.second << std::endl;
+  if (type_ == RequestType::INCOMING_REQ) {
+    os << "Type\t: " << "INCOMING_REQ" << std::endl;
+  } else {
+    os << "Type\t: " << "OUTGOING_REQ" << std::endl;
   }
-  os << "Body:" << content_ << std::endl;
+  os << "Method\t: " << GetMethodAsString() << std::endl;
+  os << "Host\t: " << host_ << std::endl;
+  os << "PATH\t: " << url_path_ << std::endl;
+  os << "FullURL\t: " << request_url_ << std::endl;
+
+  os << "start params>>>>>>>>>>>>>>>>>>>>>>>" << std::endl;
+  for (auto& param : params_) {
+    os << param.first << "\t: " << param.second << std::endl;
+  }
+  os << "end params  <<<<<<<<<<<<<<<<<<<<<<<" << std::endl;
+
+  os << "start headers>>>>>>>>>>>>>>>>>>>>>>>" << std::endl;
+  for (auto& header : headers_) {
+    os << header.first << "\t: " << header.second << std::endl;
+  }
+  os << "end headers  <<<<<<<<<<<<<<<<<<<<<<<" << std::endl;
+
+  os << "Body\t: " << content_ << std::endl;
 }
 
 } //end net
