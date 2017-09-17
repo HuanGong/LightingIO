@@ -51,8 +51,8 @@ protected:
 
   void HandleEvHttpReqeust(PlatformReqeust* req);
   std::shared_ptr<HttpUrlRequest> CreateFromNative(PlatformReqeust* req);
-private:
 
+private:
   //server info
   uint32_t port_;
   std::string addr_;

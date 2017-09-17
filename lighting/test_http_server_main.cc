@@ -9,7 +9,7 @@ int main() {
 
   net::Server server(NULL);
 
-  std::vector<std::string> service = {std::string("0.0.0.0:6666")};
+  std::vector<std::string> service = {std::string("192.168.10.101:6666")};
 
   server.InitWithAddrPorts(service);
 

@@ -8,7 +8,8 @@ public:
   ReqeustHandler();
   ~ReqeustHandler();
 
-  void HandlerHttpReqeust();
+  virtual HandlerHttpReqeust();
+  virtual HandleTcpMessage();
 private:
 
 };

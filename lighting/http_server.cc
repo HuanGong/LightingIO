@@ -86,7 +86,10 @@ void Replyrequest(struct evhttp_request* req) {
 //typedef std::function <void(RequestContext*)> HTTPRequestHandler;
 void Server::DistributeHttpReqeust(RequestContext* reqeust_ctx) {
   std::atomic<long> qps;
-  LOG(INFO) << "Distribute a http reqeust";
+
+  std::stringstream ss;
+  reqeust_ctx->url_request->Dump2Sstream(ss);
+  LOG(INFO) << "Distribute a http reqeust body:" << ss.str();
 
   delete reqeust_ctx;
 /*
