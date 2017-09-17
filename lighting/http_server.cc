@@ -42,8 +42,10 @@ void HttpServer::Initialize() {
 void HttpServer::InitIOService(std::vector<std::string>& addr_ports) {
   CHECK(delegate_);
   CHECK(!addr_ports.empty());
+  LOG(INFO) << "InitIOService addrs size:" << addr_ports.size();
 
   for (auto& addr_port : addr_ports) {
+    LOG(INFO) << "InitIOService:" << addr_port;
     IoService* srv = new IoService(addr_port);
 
     auto dispatcher = std::bind(&HttpServer::DistributeHttpReqeust,

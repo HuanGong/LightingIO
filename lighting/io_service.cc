@@ -8,7 +8,6 @@ namespace net {
 //static run on io messageloop
 void IoService::EvRequestHandler(evhttp_request* req, void* arg) {
   DCHECK(arg);
-  printf("function %s be called\n", __FUNCTION__);
   IoService* service = static_cast<IoService*>(arg);
   service->HandleEvHttpReqeust(req);
 }
@@ -54,10 +53,12 @@ void IoService::InitEvHttpServer() {
 #if LIBEVENT_VERSION_NUMBER >= 0x02001500
   bound_socket_ = evhttp_bind_socket_with_handle(ev_http_, addr_.c_str(), port_);
   if (!bound_socket_) {
+    LOG(INFO) << "Create Server And Bind " << addr_ << ":" << port_ << "failed";
     return;
   }
 #else
   if (evhttp_bind_socket(ev_http_, addr_.c_str(), port_) != 0) {
+    LOG(INFO) << "Create Server And Bind " << addr_ << ":" << port_ << "failed";
     return;
   }
 #endif
@@ -90,12 +91,12 @@ void IoService::StartIOService() {
 }
 
 void IoService::ResolveAddressPorts(const std::string& addr_port) {
-  std::size_t found = addr_port.find("::");
+  std::size_t found = addr_port.find(":");
   if (found != std::string::npos) {
     addr_ = std::string(addr_port.begin(), addr_port.begin() + found);
     port_ = std::atoi(std::string(addr_port.begin() + found + 2, addr_port.end()).c_str());
   } else {
-    LOG(INFO) << "parse address info failed, use 0.0.0.0::6666 as default";
+    LOG(INFO) << "parse address info failed, use 0.0.0.0:6666 as default";
     port_ = 6666;
     addr_ = "0.0.0.0";
   }
