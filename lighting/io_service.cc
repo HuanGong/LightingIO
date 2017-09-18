@@ -53,12 +53,12 @@ void IoService::InitEvHttpServer() {
 #if LIBEVENT_VERSION_NUMBER >= 0x02001500
   bound_socket_ = evhttp_bind_socket_with_handle(ev_http_, addr_.c_str(), port_);
   if (!bound_socket_) {
-    LOG(INFO) << "Create Server And Bind " << addr_ << ":" << port_ << "failed";
+    LOG(INFO) << "Create Server And Bind " << addr_ << ":" << port_ << " failed";
     return;
   }
 #else
   if (evhttp_bind_socket(ev_http_, addr_.c_str(), port_) != 0) {
-    LOG(INFO) << "Create Server And Bind " << addr_ << ":" << port_ << "failed";
+    LOG(INFO) << "Create Server And Bind " << addr_ << ":" << port_ << " failed";
     return;
   }
 #endif
@@ -94,7 +94,7 @@ void IoService::ResolveAddressPorts(const std::string& addr_port) {
   std::size_t found = addr_port.find(":");
   if (found != std::string::npos) {
     addr_ = std::string(addr_port.begin(), addr_port.begin() + found);
-    port_ = std::atoi(std::string(addr_port.begin() + found + 2, addr_port.end()).c_str());
+    port_ = std::atoi(std::string(addr_port.begin() + found + 1, addr_port.end()).c_str());
   } else {
     LOG(INFO) << "parse address info failed, use 0.0.0.0:6666 as default";
     port_ = 6666;

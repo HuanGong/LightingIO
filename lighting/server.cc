@@ -6,7 +6,8 @@ namespace net {
 static std::string wokername_prefix("worker_");
 
 uint32_t SrvDelegate::CreateWorkersForServer(WorkerContainer& container) {
-  int hardware_concurrency = std::thread::hardware_concurrency();
+  //int hardware_concurrency = std::thread::hardware_concurrency();
+  int hardware_concurrency = 24;//std::thread::hardware_concurrency();
 
   for (int idx = 0; idx < hardware_concurrency; idx++) {
     std::string worker_name = wokername_prefix + std::to_string(idx);
@@ -21,6 +22,7 @@ uint32_t SrvDelegate::CreateWorkersForServer(WorkerContainer& container) {
 std::vector<std::string> SrvDelegate::HttpListenAddress() {
   std::vector<std::string> http_v;
   http_v.push_back(std::string("0.0.0.0:6666"));
+  http_v.push_back(std::string("0.0.0.0:6665"));
   return http_v;
 }
 
