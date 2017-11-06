@@ -29,29 +29,14 @@ SET(BASE_SOURCES
   coroutine/coroutine_scheduler.cc
 )
 
-ADD_LIBRARY(base_static STATIC ${BASE_SOURCES})
-add_dependencies(base_static
-  coro
-  glog
-  event_static
-)
-TARGET_LINK_LIBRARIES(base_static
-  libglog.a
-  libevent.a
-  libcoro.a
-  -lpthread
-)
-
 ADD_LIBRARY(base_shared SHARED ${BASE_SOURCES})
 add_dependencies(base_shared
-  coro
   glog
+  coro
   event_shared
 )
 TARGET_LINK_LIBRARIES(base_shared
-  libcoro.a
-  libglog.a
-  -lglog
+  coro
   -levent
   -lpthread
 )
@@ -61,6 +46,8 @@ ADD_EXECUTABLE(messageloop_test
   message_loop/messageloop_test.cc
 )
 TARGET_LINK_LIBRARIES(messageloop_test
-  base_static
+  coro
+  glog
+  base_shared
 )
 
