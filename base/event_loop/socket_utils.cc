@@ -8,15 +8,16 @@
 #include <netinet/in.h>
 #include <assert.h>
 
-#include "net_endian.h"
 #include "glog/logging.h"
 
 #include <sys/types.h>
 #include <arpa/inet.h>
 
+#include "net_endian.h"
+
 namespace net {
 
-namespace socketutils {
+namespace utils {
 
 #define SocketFd int
 
@@ -24,7 +25,6 @@ template<typename To, typename From>
 inline To implicit_cast(From const &f) {
   return f;
 }
-
 
 struct sockaddr* sockaddr_cast(struct sockaddr_in6* addr) {
   return static_cast<struct sockaddr*>(implicit_cast<void*>(addr));
@@ -244,6 +244,5 @@ bool IsSelfConnect(int sockfd) {
 
   return false;
 }
-
 
 }} //end net::socketutils

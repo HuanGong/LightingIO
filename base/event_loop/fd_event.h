@@ -16,20 +16,23 @@ public:
   class FdEventDelegate {
     public:
       virtual ~FdEventDelegate() {}
-      virtual void AddFdEventToMultiplexors(FdEvent* fd_event) = 0;
-      virtual void DelFdEventFromMultiplexors(FdEvent* fd_event) = 0;
+      //virtual void AddFdEventToMultiplexors(FdEvent* fd_event) = 0;
+      //virtual void DelFdEventFromMultiplexors(FdEvent* fd_event) = 0;
       virtual void UpdateFdEventToMultiplexors(FdEvent* fd_event) = 0;
   };
 
   typedef std::function<void()> EventCallback;
   typedef std::shared_ptr<FdEvent> FdEventPtr;
 
-  static FdEventPtr create(FdEventDelegate* delegate, int fd, uint32_t events) {
-      return std::make_shared<FdEvent>(delegate, fd, events);
+  static FdEventPtr create(int fd, uint32_t events) {
+      return std::make_shared<FdEvent>(fd, events);
   }
 
-  FdEvent(FdEventDelegate* d, int fd, uint32_t events);
+  FdEvent(int fd, uint32_t events);
   ~FdEvent();
+
+  void set_delegate(FdEventDelegate* d);
+  FdEventDelegate* delegate() {return delegate_;}
 
   void handle_event();
   void set_read_callback(const EventCallback &cb);

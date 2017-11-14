@@ -3,14 +3,18 @@
 
 namespace base {
 
-FdEvent::FdEvent(FdEventDelegate* d, int fd, uint32_t event):
-  delegate_(d),
+FdEvent::FdEvent(int fd, uint32_t event):
+  delegate_(NULL),
   fd_(fd),
   events_(event) {
 }
 
 FdEvent::~FdEvent() {
-  delegate_->DelFdEventFromMultiplexors(this);
+  //delegate_->DelFdEventFromMultiplexors(this);
+}
+
+void FdEvent::set_delegate(FdEventDelegate* d) {
+  delegate_ = d;
 }
 
 uint32_t FdEvent::events() const {
@@ -34,7 +38,11 @@ void FdEvent::set_revents(uint32_t ev){
 }
 
 void FdEvent::update() {
-  delegate_->UpdateFdEventToMultiplexors(this);
+  if (delegate_) {
+    delegate_->UpdateFdEventToMultiplexors(this);
+  } else {
+    VLOG(1) << "No FdEventDelegate Can update this FdEvent, fd:" << fd();
+  }
 }
 
 void FdEvent::set_close_callback(const EventCallback &cb) {
@@ -46,6 +54,7 @@ int FdEvent::fd() const {
 }
 
 void FdEvent::handle_event() {
+  LOG(INFO) << "FdEvent::handle_event:" << revents_;
   if(revents_ & EPOLLIN && read_callback_) {
     VLOG(1) << "EPOLLIN";
     read_callback_();

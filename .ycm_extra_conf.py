@@ -19,17 +19,18 @@ flags = [
     '-isystem', '/usr/include/c++/4.8',
     '-isystem', '/usr/include/asm-generic',
 
-    '-I', '.',
-    '-I', './base',
-    '-I', './thirdparty',
-    '-I', './thirdparty/glog',
-    '-I', './thirdparty/libcoro',
-    '-I', './thirdparty/urlsafe64',
-    '-I', './thirdparty/libevent/include',
-    '-I', './thirdparty/libevent/include',
+    '-I', 'net',
+    '-I', 'base',
+    '-I', 'lighting',
+    '-I', 'thirdparty',
+    '-I', 'thirdparty/glog',
+    '-I', 'thirdparty/libcoro',
+    '-I', 'thirdparty/urlsafe64',
+    '-I', 'thirdparty/libevent/include',
+    '-I', 'thirdparty/libevent/include',
 
 
-    '-I', './build/thirdparty/glog/glog',
+    '-I', 'build/thirdparty/glog/glog',
 ]
 
 compilation_database_folder = ''

@@ -14,7 +14,7 @@ public:
   void DelFdEvent(FdEvent* fd_ev) override;
   void UpdateFdEvent(FdEvent* fd_ev) override;
 
-  int WaitingIO(FdEventList& active_list, int timeout_ms) override;
+  int WaitingIO(FdEventList& active_list, int32_t timeout_ms) override;
 private:
   void epoll_del(int fd, uint32_t events);
   void epoll_add(int fd, uint32_t events);

@@ -15,11 +15,11 @@ public:
   IoMultiplexer();
   virtual ~IoMultiplexer();
 
-  virtual void AddFdEvent(FdEvent* fd_ev);
-  virtual void DelFdEvent(FdEvent* fd_ev);
-  virtual void UpdateFdEvent(FdEvent* fd_ev);
+  virtual void AddFdEvent(FdEvent* fd_ev) {};
+  virtual void DelFdEvent(FdEvent* fd_ev) {};
+  virtual void UpdateFdEvent(FdEvent* fd_ev) {};
 
-  virtual int WaitingIO(FdEventList& active_list, int timeout_ms) = 0;
+  virtual int WaitingIO(FdEventList& active_list, int32_t timeout_ms) = 0;
 
   uint32_t WatchingFdCounts() const;
   bool HasFdEvent(const FdEvent* fd_ev);

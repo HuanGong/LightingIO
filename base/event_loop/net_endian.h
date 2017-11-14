@@ -6,7 +6,6 @@
 
 namespace net {
 namespace endian {
-
 // the inline assembler code makes type blur,
 // so we disable warnings for a while.
 #if defined(__clang__) || __GNUC_PREREQ (4,6)
@@ -45,7 +44,6 @@ inline uint16_t NetworkToHost16(uint16_t net16) {
 #pragma GCC diagnostic warning "-Wconversion"
 #pragma GCC diagnostic warning "-Wold-style-cast"
 #endif
-
 
 }}
 #endif  // LIGHTING_NET_ENDIAN_H
