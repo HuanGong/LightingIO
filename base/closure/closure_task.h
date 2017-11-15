@@ -1,6 +1,5 @@
-
-#ifndef IO_EV_TASK_H_H
-#define IO_EV_TASK_H_H
+#ifndef BASE_CLOSURE_TASK_H_H
+#define BASE_CLOSURE_TASK_H_H
 
 #include <list>
 #include <memory>
@@ -9,28 +8,25 @@
 #include "glog/logging.h"
 
 #include "base/base_micro.h"
-#include "base/time/time_utils.h"
-struct event_base;
-struct event;
 
 namespace base {
 
 class QueuedTask {
- public:
+public:
   QueuedTask() {}
   virtual ~QueuedTask() {}
 
   virtual bool Run() = 0;
- private:
+private:
   DISALLOW_COPY_AND_ASSIGN(QueuedTask);
 };
 
 
 template <class Closure>
 class ClosureTask : public QueuedTask {
- public:
+public:
   explicit ClosureTask(const Closure& closure) : closure_(closure) {}
- private:
+private:
   bool Run() override {
     closure_();
     return true;
@@ -40,11 +36,11 @@ class ClosureTask : public QueuedTask {
 
 template <class Closure, class Cleanup>
 class ClosureTaskWithCleanup : public ClosureTask<Closure> {
- public:
+public:
   ClosureTaskWithCleanup(const Closure& closure, Cleanup cleanup)
       : ClosureTask<Closure>(closure), cleanup_(cleanup) {}
   ~ClosureTaskWithCleanup() { cleanup_(); }
- private:
+private:
   Cleanup cleanup_;
 };
 

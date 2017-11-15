@@ -1,8 +1,8 @@
 SET(CMAKE_C_COMPILER g++)
+
 #add_compile_options(-std=c++11)
 ADD_DEFINITIONS(-std=c++11)
 ADD_DEFINITIONS(-fPIC)
-
 
 # libevent.so path
 LINK_DIRECTORIES(
@@ -22,16 +22,14 @@ ExternalProject_Add(concurrentqueue
 )
 
 SET(BASE_SOURCES
+  time/timestamp.cc
   time/time_utils.cc
   utils/ns_convertor.cc
-
   #messageloop
   message_loop/message_loop.cc
-
   #coroutine
   coroutine/coroutine.cc
   coroutine/coroutine_scheduler.cc
-
   #new eventloop
   event_loop/fd_event.cc
   event_loop/event_pump.cc
@@ -42,7 +40,10 @@ SET(BASE_SOURCES
   event_loop/io_multiplexer_epoll.cc
 )
 
-ADD_LIBRARY(base_shared SHARED ${BASE_SOURCES})
+ADD_LIBRARY(base_shared SHARED
+  ${BASE_SOURCES}
+)
+
 add_dependencies(base_shared
   glog
   coro

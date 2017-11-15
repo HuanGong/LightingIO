@@ -7,10 +7,10 @@
 #include <mutex>
 
 #include "event.h"
-#include "closure_task.h"
+#include "closure/closure_task.h"
 
-#include "base/memory/scoped_ref_ptr.h"
-#include "base/memory/refcountedobject.h"
+#include "memory/scoped_ref_ptr.h"
+#include "memory/refcountedobject.h"
 
 #include "glog/logging.h"
 

@@ -5,6 +5,8 @@
 #include <memory>
 #include <map>
 #include <inttypes.h>
+#include <queue>
+
 
 namespace base {
 
@@ -31,12 +33,14 @@ protected:
   //void ScheduleWork();
   void ScheduleTimerTask();
 private:
-  //std::map<int64_t, > timer_events;
   bool running_;
   int32_t prefect_timeout_;
 
   std::vector<FdEvent*> active_events_;
   std::unique_ptr<IoMultiplexer> multiplexer_;
+
+  //typedef std::shared_ptr<TimerEvent> CountedTimerEvent;
+  //std::priority_queue<int64_t, CountedTimerEvent> TimerQueue;
 };
 
 }
