@@ -13,24 +13,22 @@ public:
   Timestamp(const Timestamp& other);
 
   static Timestamp Now();
-  static Timestamp AfterSecond(time_t sec);
-  static Timestamp AfterMicroSecond(time_t us);
+  static Timestamp NSecondLater(time_t sec);
+  static Timestamp NMillisecondLater(time_t ms);
+  static Timestamp NMicrosecondLater(time_t us);
 
-  time_t AsMillsecond();
+  int64_t AsMillsecond() const;
+  int64_t AsMicroSecond() const;
   std::string ToString();
 
+  bool operator!=(const Timestamp& other) const;
   bool operator==(const Timestamp& other) const;
   bool operator>(const Timestamp& other) const;
   bool operator<(const Timestamp& other) const;
+  bool operator<=(const Timestamp& other) const;
 
-  inline time_t Second() const {
-    return tv_.tv_sec;
-  }
-  inline time_t MicroSecond() const {
-    return tv_.tv_usec;
-  }
 private:
-  timeval tv_;
+  int64_t microsecond_time_;
 };
 
 }//end base

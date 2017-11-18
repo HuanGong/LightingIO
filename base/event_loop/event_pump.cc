@@ -22,16 +22,17 @@ void EventPump::Run() {
   running_ = true;
 
   while (running_) {
-    //Schedule Timer Task
-    ScheduleTimerTask();
+
+    prefect_timeout_ = timer_queue_.HandleExpiredTimer();
 
     active_events_.clear();
-    //LOG(INFO) << "Start WaitingIO";
-    multiplexer_->WaitingIO(active_events_, /*prefect_timeout_*/ 5000);
-    //LOG(INFO) << "Somthing Happed On IO";
+    LOG(INFO) << "Waiting For Epoll Event With timeout:" << prefect_timeout_ << " ms";
+    multiplexer_->WaitingIO(active_events_, prefect_timeout_);
+
     for (auto& fd_event : active_events_) {
       fd_event->handle_event();
     }
+
   }
 }
 
@@ -43,15 +44,22 @@ QuitClourse EventPump::Quit_Clourse() {
   return std::bind(&EventPump::Quit, this);
 }
 
-void EventPump::ScheduleTimerTask() {
-
-}
-
 void EventPump::InstallFdEvent(FdEvent *fd_event) {
   //fd_event->set_delegate(NULL);
   //fd_event->set_delegate(this);
   multiplexer_->AddFdEvent(fd_event);
 }
 
+void EventPump::RemoveFdEvent(FdEvent* fd_event) {
+  multiplexer_->DelFdEvent(fd_event);
+}
+
+int32_t EventPump::ScheduleTimer(RefTimerEvent& timerevent) {
+  return timer_queue_.AddTimerEvent(timerevent);
+}
+
+bool EventPump::CancelTimer(uint32_t timer_id) {
+  return timer_queue_.CancelTimerEvent(timer_id);
+}
 
 }//end base

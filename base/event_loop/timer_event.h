@@ -7,37 +7,39 @@
 
 namespace base {
 
+typedef std::unique_ptr<QueuedTask> UniqueTimerTask;
+
 class TimerEvent {
 public:
-  typedef std::shared_ptr<TimerEvent> RefTimerEvent;
-  typedef std::unique_ptr<QueuedTask> UniqueTimerTask;
-
-  class Compare {
-  public:
-    bool operator()(const RefTimerEvent& lf, const RefTimerEvent& rt) {
-      return lf->Time() > timeEvent2->Time();
-    }
-  };
-
-public:
-  TimerEvent(Timestamp t, bool once = true);
+  TimerEvent(int64_t ms, bool once = true);
+  TimerEvent(const Timestamp& t, bool once = true);
   ~TimerEvent();
 
-  void SetTimerTask(UniqueTimerTask& task_);
-  void Cancel() {
-    valid_ = false;
-  }
-  void Invoke() {
-    if (!valid_)
-  }
+  const Timestamp& Time() const;
+  Timestamp& MutableTime() { return time_; }
+
+  void Invoke();
+  void SetTimerTask(UniqueTimerTask task);
+
+  bool IsOneShotTimer() const {return once_;}
+  int64_t Interval() const { return interval_;}
 private:
   bool once_;
-  bool valid_;
+
   Timestamp time_;
+  int64_t interval_;
+
   UniqueTimerTask timer_task_;
-}
+};
 
+typedef std::shared_ptr<TimerEvent> RefTimerEvent;
 
+class TimerEventCompare {
+public:
+  bool operator()(const RefTimerEvent& lf, const RefTimerEvent& rt) {
+    return lf->Time() > rt->Time();
+  }
+};
 
 }//end base
 #endif

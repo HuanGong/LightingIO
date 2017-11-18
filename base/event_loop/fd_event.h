@@ -11,6 +11,8 @@ namespace base {
 
 class FdEvent {
 public:
+  typedef std::shared_ptr<FdEvent> RefFdEvent;
+
   /* when a fdevent is changed or be modify be user, we need to notify the poller
      change the events we care about */
   class FdEventDelegate {
@@ -41,11 +43,10 @@ public:
   void set_close_callback(const EventCallback &cb);
 
   int fd() const;
-  //cat set fd after its been add to poller
-  //void set_fd(int fd);
 
   //the things we take care about
   uint32_t events() const;
+
   //current active events
   void set_revents(uint32_t ev);
 

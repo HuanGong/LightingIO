@@ -32,12 +32,14 @@ SET(BASE_SOURCES
   coroutine/coroutine_scheduler.cc
   #new eventloop
   event_loop/fd_event.cc
+  event_loop/timer_event.cc
   event_loop/event_pump.cc
   event_loop/socket_utils.cc
   event_loop/linux_signal.cpp
   event_loop/file_util_linux.cc
   event_loop/io_multiplexer.cc
   event_loop/io_multiplexer_epoll.cc
+  event_loop/timer_task_queue.cc
 )
 
 ADD_LIBRARY(base_shared SHARED
@@ -51,6 +53,7 @@ add_dependencies(base_shared
 )
 TARGET_LINK_LIBRARIES(base_shared
   coro
+  glog
   -levent
   -lpthread
 )
@@ -61,6 +64,14 @@ ADD_EXECUTABLE(messageloop_test
 )
 TARGET_LINK_LIBRARIES(messageloop_test
   coro
+  glog
+  base_shared
+)
+
+ADD_EXECUTABLE(eventloop_test
+  event_loop/test/run_loop_test.cc
+)
+TARGET_LINK_LIBRARIES(eventloop_test
   glog
   base_shared
 )

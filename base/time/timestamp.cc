@@ -1,17 +1,17 @@
 #include "timestamp.h"
 #include <string>
+#include <glog/logging.h>
 
 namespace base {
 
-Timestamp::Timestamp(const timeval tv)
-  : tv_(tv) {
+Timestamp::Timestamp(const timeval tv) {
+  microsecond_time_ = (int64_t)tv.tv_sec * (int64_t)kNumMicrosecsPerSec + tv.tv_usec;
 }
 Timestamp::Timestamp(time_t sec, time_t us) {
-  tv_.tv_sec = sec;
-  tv_.tv_usec = us;
+  microsecond_time_ = sec * kNumMicrosecsPerSec + us;
 }
 Timestamp::Timestamp(const Timestamp& other) {
-  tv_ = other.tv_;
+  microsecond_time_ =  other.microsecond_time_;
 }
 
 //static
@@ -22,7 +22,7 @@ Timestamp Timestamp::Now() {
 }
 
 //static
-Timestamp Timestamp::AfterSecond(time_t sec) {
+Timestamp Timestamp::NSecondLater(time_t sec) {
   timeval tv;
   ::gettimeofday(&tv, NULL);
   tv.tv_sec += sec;
@@ -30,43 +30,47 @@ Timestamp Timestamp::AfterSecond(time_t sec) {
 }
 
 //static
-Timestamp Timestamp::AfterMicroSecond(time_t us) {
+Timestamp Timestamp::NMicrosecondLater(time_t us) {
   timeval tv;
   ::gettimeofday(&tv, NULL);
-
-  time_t sum_usec = tv.tv_usec + us;
-
-  tv.tv_usec = sum_usec % 1000000;
-  tv.tv_sec += (sum_usec - tv.tv_usec) / 1000000;
-
+  tv.tv_usec += us;
   return Timestamp(tv);
 }
 
-time_t Timestamp::AsMillsecond() {
-  return (tv_.tv_sec * 1000) + (tv_.tv_usec / 1000);
+//static
+Timestamp Timestamp::NMillisecondLater(time_t ms) {
+  return NMicrosecondLater(ms * kNumMicrosecsPerMillisec);
+}
+
+int64_t Timestamp::AsMicroSecond() const {
+  return microsecond_time_;
+}
+
+int64_t Timestamp::AsMillsecond() const {
+  return microsecond_time_ / kNumMicrosecsPerMillisec;
 }
 
 std::string Timestamp::ToString() {
-  std::string timestamp = std::to_string(tv_.tv_sec);
-  timestamp += " second";
-  timestamp += std::to_string(tv_.tv_usec);
-  timestamp += " microsecond";
-  return timestamp;
+  return std::to_string(microsecond_time_);
 }
 
 bool Timestamp::operator>(const Timestamp& other) const {
-  if (Second() == other.Second()) {
-    return MicroSecond() > other.MicroSecond();
-  }
-  return Second() > other.MicroSecond();
+  return microsecond_time_ > other.microsecond_time_;
 }
 
 bool Timestamp::operator==(const Timestamp& other) const {
-  return Second() == other.Second();
+  return microsecond_time_ == other.microsecond_time_;
 }
 
 bool Timestamp::operator<(const Timestamp& other) const {
-  return ! ((*this) > other);
+  return microsecond_time_ < other.microsecond_time_;
+}
+bool Timestamp::operator<=(const Timestamp& other) const {
+  return microsecond_time_ <= other.microsecond_time_;
+}
+
+bool Timestamp::operator!=(const Timestamp& other) const {
+  return microsecond_time_ != other.microsecond_time_;
 }
 
 }

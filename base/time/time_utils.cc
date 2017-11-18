@@ -1,20 +1,4 @@
-
 #include "time_utils.h"
-
-//millseconds ms  1000
-//microseconds us 1000000
-//nanoseconds  ns 1000000000
-static const int64_t kNumMillisecsPerSec = INT64_C(1000);
-static const int64_t kNumMicrosecsPerSec = INT64_C(1000000);
-static const int64_t kNumNanosecsPerSec = INT64_C(1000000000);
-
-//
-static const int64_t kNumMicrosecsPerMillisec =
-      kNumMicrosecsPerSec / kNumMillisecsPerSec;
-static const int64_t kNumNanosecsPerMillisec =
-      kNumNanosecsPerSec / kNumMillisecsPerSec;
-static const int64_t kNumNanosecsPerMicrosec =
-        kNumNanosecsPerSec / kNumMicrosecsPerSec;
 
 namespace base {
 
