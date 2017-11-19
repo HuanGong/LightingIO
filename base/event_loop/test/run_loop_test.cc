@@ -30,13 +30,14 @@ bool FdEventTest() {
   int fd[2];
   if (0 == pipe2(fd, O_CLOEXEC | O_NONBLOCK)) {
     std::cout << "Create O_NONBLOCK pipe ok" << std::endl;
+    return false;
   }
   int read_fd = fd[0];
   int write_fd = fd[1];
   std::cout << "read fd" << read_fd << " write fd:" << write_fd << std::endl;
 
   base::FdEvent fd_ev(read_fd, EPOLLIN);
-  fd_ev.set_read_callback([&]() {
+  fd_ev.SetReadCallback([&]() {
     int value = 0;
     int count = read(fd_ev.fd(), (char*)&value, sizeof(int));
     std::cout << "Get " << count << " bytes data, Value:" << value << std::endl;

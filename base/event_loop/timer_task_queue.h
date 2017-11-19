@@ -29,7 +29,7 @@ public:
   uint32_t AddTimerEvent(RefTimerEvent& timer_event);
 
   /*return true if cancel success*/
-  bool CancelTimerEvent(uint32_t timer_index);
+  bool CancelTimerEvent(uint32_t timer_id);
 
   /* return the duration(millsecond) for next timerevent triggle*/
   uint64_t HandleExpiredTimer();

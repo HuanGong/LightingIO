@@ -25,6 +25,7 @@ public:
 
   void InstallFdEvent(FdEvent *fd_event);
   void RemoveFdEvent(FdEvent* fd_event);
+  void UpdateFdEvent(FdEvent* fd_event);
 
   int32_t ScheduleTimer(RefTimerEvent& timerevent);
   bool CancelTimer(uint32_t timer_id);

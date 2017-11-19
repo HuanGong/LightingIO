@@ -16,6 +16,7 @@ public:
 
   int WaitingIO(FdEventList& active_list, int32_t timeout_ms) override;
 private:
+  std::string epollopt_to_string(int opt);
   void epoll_del(int fd, uint32_t events);
   void epoll_add(int fd, uint32_t events);
   void epoll_mod(int fd, uint32_t events);

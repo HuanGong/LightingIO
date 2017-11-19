@@ -30,7 +30,7 @@ void EventPump::Run() {
     multiplexer_->WaitingIO(active_events_, prefect_timeout_);
 
     for (auto& fd_event : active_events_) {
-      fd_event->handle_event();
+      fd_event->HandleEvent();
     }
 
   }

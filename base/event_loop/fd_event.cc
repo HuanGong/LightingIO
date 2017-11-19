@@ -10,42 +10,41 @@ FdEvent::FdEvent(int fd, uint32_t event):
 }
 
 FdEvent::~FdEvent() {
-  //delegate_->DelFdEventFromMultiplexors(this);
 }
 
-void FdEvent::set_delegate(FdEventDelegate* d) {
+void FdEvent::SetDelegate(Delegate* d) {
   delegate_ = d;
 }
 
-uint32_t FdEvent::events() const {
+uint32_t FdEvent::MonitorEvents() const {
   return events_;
 }
 
-void FdEvent::set_read_callback(const EventCallback &cb) {
+void FdEvent::SetReadCallback(const EventCallback &cb) {
   read_callback_ = cb;
 }
 
-void FdEvent::set_write_callback(const EventCallback &cb) {
+void FdEvent::SetWriteCallback(const EventCallback &cb) {
   write_callback_ = cb;
 }
 
-void FdEvent::set_error_callback(const EventCallback &cb) {
+void FdEvent::SetErrorCallback(const EventCallback &cb) {
   error_callback_ = cb;
 }
 
-void FdEvent::set_revents(uint32_t ev){
+void FdEvent::SetRcvEvents(uint32_t ev){
   revents_ = ev;
 }
 
-void FdEvent::update() {
+void FdEvent::Update() {
   if (delegate_) {
-    delegate_->UpdateFdEventToMultiplexors(this);
+    delegate_->UpdateFdEvent(this);
   } else {
     VLOG(1) << "No FdEventDelegate Can update this FdEvent, fd:" << fd();
   }
 }
 
-void FdEvent::set_close_callback(const EventCallback &cb) {
+void FdEvent::SetCloseCallback(const EventCallback &cb) {
   close_callback_ = cb;
 }
 
@@ -53,7 +52,7 @@ int FdEvent::fd() const {
   return fd_;
 }
 
-void FdEvent::handle_event() {
+void FdEvent::HandleEvent() {
   LOG(INFO) << "FdEvent::handle_event:" << revents_;
   if(revents_ & EPOLLIN && read_callback_) {
     VLOG(1) << "EPOLLIN";
@@ -76,6 +75,33 @@ void FdEvent::handle_event() {
   }
   //clear the revents_ avoid invoke twice
   revents_ = 0;
+}
+
+std::string FdEvent::RcvEventAsString() {
+  return events2string(revents_);
+}
+
+std::string FdEvent::MonitorEventAsString() {
+  return events2string(events_);
+}
+std::string FdEvent::events2string(uint32_t events) {
+  std::ostringstream oss;
+  oss << "fd: " << fd_ << ": [";
+  if (events & EPOLLIN)
+    oss << "IN ";
+  if (events & EPOLLPRI)
+    oss << "PRI ";
+  if (events & EPOLLOUT)
+    oss << "OUT ";
+  if (events & EPOLLHUP)
+    oss << "HUP ";
+  if (events & EPOLLRDHUP)
+    oss << "RDHUP ";
+  if (events & EPOLLERR)
+    oss << "ERR ";
+  if (events & POLLNVAL)
+    oss << "NVAL ]";
+  return oss.str().c_str();
 }
 
 } //namespace

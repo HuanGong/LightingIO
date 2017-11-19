@@ -37,7 +37,7 @@ int IoMultiplexerEpoll::WaitingIO(FdEventList& active_list, int32_t timeout_ms) 
 
     assert(pfd_ev->fd() == ep_events_[idx].data.fd);
 
-    pfd_ev->set_revents(ep_events_[idx].events);
+    pfd_ev->SetRcvEvents(ep_events_[idx].events);
 
     active_list.push_back(pfd_ev);
   }
@@ -46,7 +46,7 @@ int IoMultiplexerEpoll::WaitingIO(FdEventList& active_list, int32_t timeout_ms) 
 
 void IoMultiplexerEpoll::AddFdEvent(FdEvent* fd_ev) {
   assert(fd_ev);
-  epoll_add(fd_ev->fd(), fd_ev->events());
+  epoll_add(fd_ev->fd(), fd_ev->MonitorEvents());
   fdev_map_[fd_ev->fd()] = fd_ev;
 }
 
@@ -54,13 +54,13 @@ void IoMultiplexerEpoll::DelFdEvent(FdEvent* fd_ev) {
   assert(fd_ev);
   auto iter = fdev_map_.find(fd_ev->fd());
   assert(iter != fdev_map_.end());
-  epoll_del(fd_ev->fd(), fd_ev->events());
+  epoll_del(fd_ev->fd(), fd_ev->MonitorEvents());
   fdev_map_.erase(iter);
 }
 
 void IoMultiplexerEpoll::UpdateFdEvent(FdEvent* fd_ev) {
   assert(fd_ev);
-  epoll_mod(fd_ev->fd(), fd_ev->events());
+  epoll_mod(fd_ev->fd(), fd_ev->MonitorEvents());
   fdev_map_[fd_ev->fd()] = fd_ev;
 }
 
@@ -79,8 +79,22 @@ void IoMultiplexerEpoll::epoll_ctl(int fd, uint32_t events, int op) {
   ev.events = events;
   int ret = ::epoll_ctl(epoll_fd_, op, fd, &ev);
   if (ret != 0) {
-    LOG(ERROR) << "epoll_ctl failed; epoll_fd_: " << epoll_fd_ << " option:" << op << " monitor fd:" << fd;
+    LOG(ERROR) << "epoll_ctl failed, option:" << epollopt_to_string(op) << fd;
   }
+}
+
+std::string IoMultiplexerEpoll::epollopt_to_string(int opt) {
+  switch(opt) {
+    case EPOLL_CTL_ADD:
+      return "EPOLL_CTL_ADD";
+    case EPOLL_CTL_DEL:
+      return "EPOLL_CTL_DEL";
+    case EPOLL_CTL_MOD:
+      return "EPOLL_CTL_MOD";
+    default:
+      break;
+  }
+  return "BAD CTL OPTION";
 }
 
 }
