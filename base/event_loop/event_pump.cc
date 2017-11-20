@@ -13,6 +13,7 @@ EventPump::EventPump()
 }
 
 EventPump::~EventPump() {
+  multiplexer_.reset();
 }
 
 void EventPump::Run() {
@@ -32,8 +33,8 @@ void EventPump::Run() {
     for (auto& fd_event : active_events_) {
       fd_event->HandleEvent();
     }
-
   }
+  running_ = false;
 }
 
 void EventPump::Quit() {
@@ -52,6 +53,10 @@ void EventPump::InstallFdEvent(FdEvent *fd_event) {
 
 void EventPump::RemoveFdEvent(FdEvent* fd_event) {
   multiplexer_->DelFdEvent(fd_event);
+}
+
+void EventPump::UpdateFdEvent(FdEvent* fd_event) {
+  multiplexer_->UpdateFdEvent(fd_event);
 }
 
 int32_t EventPump::ScheduleTimer(RefTimerEvent& timerevent) {

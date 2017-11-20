@@ -62,6 +62,7 @@ void IoMultiplexerEpoll::UpdateFdEvent(FdEvent* fd_ev) {
   assert(fd_ev);
   epoll_mod(fd_ev->fd(), fd_ev->MonitorEvents());
   fdev_map_[fd_ev->fd()] = fd_ev;
+  LOG(ERROR) << "Update FdEvent to poll system";
 }
 
 void IoMultiplexerEpoll::epoll_del(int fd, uint32_t events) {

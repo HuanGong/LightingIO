@@ -3,6 +3,10 @@
 
 namespace base {
 
+TimerTaskQueue::~TimerTaskQueue() {
+  timer_events_.clear();
+}
+
 uint32_t TimerTaskQueue::AddTimerEvent(RefTimerEvent& timer_event) {
 
   uint32_t timer_id = 0;

@@ -40,6 +40,7 @@ SET(BASE_SOURCES
   event_loop/io_multiplexer.cc
   event_loop/io_multiplexer_epoll.cc
   event_loop/timer_task_queue.cc
+  event_loop/msg_event_loop.cc
 )
 
 ADD_LIBRARY(base_shared SHARED

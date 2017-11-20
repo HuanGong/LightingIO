@@ -38,9 +38,10 @@ void FdEvent::SetRcvEvents(uint32_t ev){
 
 void FdEvent::Update() {
   if (delegate_) {
+    LOG(INFO) << "update fdevent to poll";
     delegate_->UpdateFdEvent(this);
   } else {
-    VLOG(1) << "No FdEventDelegate Can update this FdEvent, fd:" << fd();
+    LOG(INFO) << "No FdEvent::Delegate Can update this FdEvent, fd:" << fd();
   }
 }
 

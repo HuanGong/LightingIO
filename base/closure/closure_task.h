@@ -44,6 +44,7 @@ private:
   Cleanup cleanup_;
 };
 
+
 template <class Closure>
 static std::unique_ptr<QueuedTask> NewClosure(const Closure& closure) {
   return std::unique_ptr<QueuedTask>(new ClosureTask<Closure>(closure));

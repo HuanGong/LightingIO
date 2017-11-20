@@ -23,7 +23,7 @@ public:
 class TimerTaskQueue {
 public:
   TimerTaskQueue() {};
-  ~TimerTaskQueue() {};
+  ~TimerTaskQueue();
 
   /*return the timer_index as identify for cancel*/
   uint32_t AddTimerEvent(RefTimerEvent& timer_event);

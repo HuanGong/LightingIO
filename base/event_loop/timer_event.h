@@ -11,6 +11,10 @@ typedef std::unique_ptr<QueuedTask> UniqueTimerTask;
 
 class TimerEvent {
 public:
+  typedef std::shared_ptr<TimerEvent> RefTimerEvent;
+  static RefTimerEvent CreateOneShotTimer(int64_t ms_later, UniqueTimerTask);
+  static RefTimerEvent CreateRepeatedTimer(int64_t ms_later, UniqueTimerTask);
+
   TimerEvent(int64_t ms, bool once = true);
   TimerEvent(const Timestamp& t, bool once = true);
   ~TimerEvent();

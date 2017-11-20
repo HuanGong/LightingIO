@@ -17,9 +17,7 @@ public:
   class Delegate {
     public:
       virtual ~Delegate() {}
-      virtual void InstallFdEvent(FdEvent *fd_event);
-      virtual void RemoveFdEvent(FdEvent* fd_event);
-      virtual void UpdateFdEvent(FdEvent* fd_event);
+      virtual void UpdateFdEvent(FdEvent* fd_event) = 0;
   };
 
   typedef std::function<void()> EventCallback;

@@ -7,7 +7,7 @@ IoMultiplexer::IoMultiplexer() {
 
 }
 IoMultiplexer::~IoMultiplexer() {
-
+  fdev_map_.clear();
 }
 
 uint32_t IoMultiplexer::WatchingFdCounts() const {

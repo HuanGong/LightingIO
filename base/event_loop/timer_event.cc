@@ -4,6 +4,19 @@
 
 namespace base {
 
+  //static
+RefTimerEvent TimerEvent::CreateOneShotTimer(int64_t ms_later, UniqueTimerTask task) {
+  RefTimerEvent t(std::make_shared<TimerEvent>(ms_later));
+  t->SetTimerTask(std::move(task));
+  return std::move(t);
+}
+
+RefTimerEvent TimerEvent::CreateRepeatedTimer(int64_t ms_later, UniqueTimerTask task) {
+  RefTimerEvent t(std::make_shared<TimerEvent>(ms_later, false));
+  t->SetTimerTask(std::move(task));
+  return std::move(t);
+}
+
 TimerEvent::TimerEvent(const Timestamp& t, bool once)
   : once_(once),
     time_(t),

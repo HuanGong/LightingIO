@@ -7,15 +7,16 @@
 #include <inttypes.h>
 
 #include "timer_task_queue.h"
+#include "fd_event.h"
 
 namespace base {
 
-class FdEvent;
 class IoMultiplexer;
 
 typedef std::function<void()> QuitClourse;
+typedef std::shared_ptr<FdEvent> RefFdEvent;
 
-class EventPump {
+class EventPump : public FdEvent::Delegate {
 public:
   EventPump();
   ~EventPump();
@@ -25,7 +26,8 @@ public:
 
   void InstallFdEvent(FdEvent *fd_event);
   void RemoveFdEvent(FdEvent* fd_event);
-  void UpdateFdEvent(FdEvent* fd_event);
+
+  void UpdateFdEvent(FdEvent* fd_event) override;
 
   int32_t ScheduleTimer(RefTimerEvent& timerevent);
   bool CancelTimer(uint32_t timer_id);
@@ -34,6 +36,9 @@ public:
 
   QuitClourse Quit_Clourse();
 
+  inline FdEvent::Delegate* AsFdEventDelegate() {
+    return this;
+  }
 protected:
   int64_t HandleTimerTask();
 private:
