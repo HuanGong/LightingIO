@@ -138,7 +138,7 @@ MessageLoop2::MessageLoop2()
   : wakeup_pipe_in_(0),
     wakeup_pipe_out_(0) {
 
-  status_.store(ST_STOP);
+  status_.store(ST_INITING);
 
   event_pump_.reset(new EventPump());
 
@@ -155,6 +155,8 @@ MessageLoop2::MessageLoop2()
     std::bind(&MessageLoop2::OnWakeup, this));
 
   event_pump_->InstallFdEvent(wakeup_event_.get());
+
+  status_.store(ST_INITTED);
 }
 
 MessageLoop2::~MessageLoop2() {
@@ -172,6 +174,7 @@ MessageLoop2::~MessageLoop2() {
   }
 
   WaitLoopEnd();
+  status_.store(ST_INITTED);
 
   event_pump_->RemoveFdEvent(wakeup_event_.get());
 
@@ -207,26 +210,25 @@ void MessageLoop2::WaitLoopEnd() {
 }
 
 void MessageLoop2::ThreadMain() {
-  status_.store(ST_STARTED);
   tid_ = std::this_thread::get_id();
   threadlocal_current_ = this;
 
+  status_.store(ST_STARTED);
   LOG(INFO) << "MessageLoop: " << loop_name_ << " Start Runing";
 
   event_pump_->Run();
 
   threadlocal_current_ = NULL;
-  status_.store(ST_STOP);
+  status_.store(ST_INITTED);
 }
 
 void MessageLoop2::PostDelayTask(std::unique_ptr<QueuedTask> task, uint32_t ms) {
-  if (status_ == ST_STOP) {
+  if (status_ != ST_STARTED) {
     LOG(ERROR) << "MessageLoop: " << loop_name_ << " Not Started";
     return;
   }
 
   if (IsInLoopThread()) {
-    //static RefTimerEvent CreateOneShotTimer(int64_t ms_later, UniqueTimerTask);
     RefTimerEvent timer = TimerEvent::CreateOneShotTimer(ms, std::move(task));
     event_pump_->ScheduleTimer(timer);
   } else {
@@ -235,6 +237,11 @@ void MessageLoop2::PostDelayTask(std::unique_ptr<QueuedTask> task, uint32_t ms) 
 }
 
 void MessageLoop2::PostTask(std::unique_ptr<QueuedTask> task) {
+  if (status_ != ST_STARTED) {
+    LOG(ERROR) << "MessageLoop: " << loop_name_ << " Not Started";
+    return;
+  }
+
   CHECK(task.get());
   if (IsInLoopThread()) {
     QueuedTask* task_id = task.get();  // Only used for comparison.
@@ -248,6 +255,7 @@ void MessageLoop2::PostTask(std::unique_ptr<QueuedTask> task) {
       pending_.pop_back();
     }
   } else {
+
     QueuedTask* task_id = task.get();  // Only used for comparison.
     {
       std::unique_lock<std::mutex>  lck(pending_lock_);
@@ -313,6 +321,8 @@ void MessageLoop2::OnWakeup() {
 void MessageLoop2::PostTaskAndReply(std::unique_ptr<QueuedTask> task,
                                    std::unique_ptr<QueuedTask> reply,
                                    MessageLoop2* reply_loop) {
+  CHECK(reply_loop);
+
   std::unique_ptr<QueuedTask> wrapper(new PostAndReplyTask(std::move(task),
                                                            std::move(reply),
                                                            reply_loop,
@@ -335,6 +345,5 @@ void MessageLoop2::PrepareReplyTask(scoped_refptr<ReplyTaskOwnerRef> reply_task)
   std::unique_lock<std::mutex> lck(pending_lock_);
   pending_replies_.push_back(std::move(reply_task));
 }
-
 
 };

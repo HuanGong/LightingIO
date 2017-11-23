@@ -16,7 +16,10 @@ bool MessageLoop2Test();
 bool FdEventTest();
 bool TimerEventTest();
 
-int main() {
+int main(int argc, char** argv) {
+  google::InitGoogleLogging(argv[0]);  // 初始化 glog
+  //google::ParseCommandLineFlags(&argc, &argv, true);  // 初始化 gflags
+
   //FdEventTest();
   //TimerEventTest();
 
@@ -75,19 +78,26 @@ bool MessageLoop2Test() {
   {
     base::MessageLoop2 loop;
     loop.Start();
+    {
+      base::MessageLoop2 reply_loop;
+      reply_loop.Start();
 
-    loop.PostTaskAndReply(
-      base::NewClosure([&](){
-        LOG(INFO) << "PostTaskAndReply task run";
-      }), base::NewClosure([]() {
-        LOG(INFO) << "PostTaskAndReply reply run";
-      }), &loop)
+      loop.PostTaskAndReply(
+        base::NewClosure([&](){
+          LOG(INFO) << "PostTaskAndReply task run";
+        }), base::NewClosure([&]() {
+          LOG(INFO) << "PostTaskAndReply reply run";
+          reply_loop.Pump()->Quit();
+        }), &reply_loop);
+    }
 
     sleep(2);
     loop.PostTask(base::NewClosure([&]() {
       loop.Pump()->Quit();
     }));
     loop.WaitLoopEnd();
+    //reply_loop.WaitLoopEnd();
+
     sleep(1);
   }
 

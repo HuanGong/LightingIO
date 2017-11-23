@@ -52,7 +52,7 @@ ADD_EXECUTABLE(client_main
   client/test_http_client_main.cc
 )
 TARGET_LINK_LIBRARIES(client_main
-  liburlclient.a
+  -llightingio
   -lglog
   -lbase_shared
   -levent

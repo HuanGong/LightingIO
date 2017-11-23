@@ -45,14 +45,13 @@ class MessageLoop2 {
     void WaitLoopEnd();
     bool IsInLoopThread() const;
     void SetLoopName(std::string name);
+    std::string LoopName() {return loop_name_;}
 
     EventPump* Pump() { return event_pump_.get(); }
   private:
     void ThreadMain();
 
     void OnWakeup();  // NOLINT
-    void RunTask(int fd, short flags, void* context);       // NOLINT
-    void RunTimer(int fd, short flags, void* context);      // NOLINT
 
     //struct LoopContext;
     class ReplyTaskOwner;
