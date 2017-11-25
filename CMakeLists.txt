@@ -38,9 +38,10 @@ include_directories(
 )
 
 ADD_SUBDIRECTORY(thirdparty)
+
 ADD_SUBDIRECTORY(base)
+ADD_SUBDIRECTORY(net)
 ADD_SUBDIRECTORY(lighting)
-#ADD_SUBDIRECTORY(net)
 
 ADD_SUBDIRECTORY(example)
 

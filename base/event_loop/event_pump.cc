@@ -27,7 +27,7 @@ void EventPump::Run() {
     prefect_timeout_ = timer_queue_.HandleExpiredTimer();
 
     active_events_.clear();
-    LOG(INFO) << "Waiting For Epoll Event With timeout:" << prefect_timeout_ << " ms";
+
     multiplexer_->WaitingIO(active_events_, prefect_timeout_);
 
     for (auto& fd_event : active_events_) {
@@ -46,8 +46,6 @@ QuitClourse EventPump::Quit_Clourse() {
 }
 
 void EventPump::InstallFdEvent(FdEvent *fd_event) {
-  //fd_event->set_delegate(NULL);
-  //fd_event->set_delegate(this);
   multiplexer_->AddFdEvent(fd_event);
 }
 

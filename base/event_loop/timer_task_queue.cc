@@ -68,7 +68,6 @@ uint64_t TimerTaskQueue::HandleExpiredTimer() {
 
 int64_t TimerTaskQueue::CalculateNextTimerDuration() {
   if (timer_heap_.empty()) {
-    LOG(INFO) << "No Timer TimerEvent Need Schedule Now";
     return 2000;
   }
   const auto& next_enter = timer_heap_.top();
@@ -77,7 +76,7 @@ int64_t TimerTaskQueue::CalculateNextTimerDuration() {
 
   int64_t ms_for_next_timer_task = next_enter.time_.AsMillsecond() - now_ms;
 
-  LOG_IF(ERROR, ms_for_next_timer_task < 0) << "A Bad Waiting Timeout Time";
+  LOG_IF(INFO, ms_for_next_timer_task < 0) << "A Bad Waiting Timeout Time";
   return ms_for_next_timer_task > 0 ? ms_for_next_timer_task : 0;
 }
 

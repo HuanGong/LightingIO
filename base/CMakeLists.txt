@@ -34,7 +34,6 @@ SET(BASE_SOURCES
   event_loop/fd_event.cc
   event_loop/timer_event.cc
   event_loop/event_pump.cc
-  event_loop/socket_utils.cc
   event_loop/linux_signal.cpp
   event_loop/file_util_linux.cc
   event_loop/io_multiplexer.cc
