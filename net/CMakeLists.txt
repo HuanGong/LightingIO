@@ -10,6 +10,7 @@ ADD_LIBRARY(ltnet STATIC
   inet_address.cc
   socket_utils.cc
   service_acceptor.cc
+  io_buffer.cc
 )
 
 TARGET_LINK_LIBRARIES(ltnet

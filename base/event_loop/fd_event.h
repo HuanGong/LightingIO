@@ -79,7 +79,7 @@ private:
 
   DISALLOW_COPY_AND_ASSIGN(FdEvent);
 };
-//export
+typedef std::shared_ptr<FdEvent> RefFdEvent;
 
 } // namespace
 #endif // EVENT_H
