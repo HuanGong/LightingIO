@@ -26,6 +26,12 @@ InetAddress::InetAddress(const struct sockaddr_in& addr)
   : addr_in_(addr) {
 }
 
+//static
+InetAddress InetAddress::FromSocketFd(int fd) {
+  struct sockaddr_in addr = socketutils::GetLocalAddrIn(fd);
+  return InetAddress(addr);
+}
+
 struct sockaddr* InetAddress::AsSocketAddr() {
   return socketutils::sockaddr_cast(&addr_in_);
 }
@@ -45,7 +51,7 @@ std::string InetAddress::PortAsString() {
   return std::to_string(PortAsUInt());
 }
 
-std::string InetAddress::IpPortAsString() {
+std::string InetAddress::IpPortAsString() const {
   return socketutils::SocketAddr2IpPort(socketutils::sockaddr_cast(&addr_in_));
 }
 

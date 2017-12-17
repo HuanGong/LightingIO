@@ -45,27 +45,33 @@ public:
   void SetRcvEvents(uint32_t ev);
 
   void Update();
-  void EnableReading() { events_ |=   EPOLLIN;  Update(); }
-  void EnableWriting() { events_ |=   EPOLLOUT; Update();  }
-  void EnableClosing() { events_ |=   EPOLLRDHUP; Update(); }
-  void EnableError() { events_ |=   EPOLLERR; Update(); }
 
-  void DisableError() { events_ &=  !EPOLLERR; Update();  }
-  void DisableClosing() { events_ &=  !EPOLLRDHUP; Update();  }
-  void DisableReading() { events_ &=  !EPOLLIN; Update();  }
-  void DisableWriting() { events_ &=   !EPOLLOUT; Update();  }
-  void DisableAll() {
-      events_ &= !EPOLLOUT;
-      events_ &= !EPOLLIN;
-      events_ &= !EPOLLRDHUP;
-      events_ &= !EPOLLERR;
-      Update();
+  void EnableReading() {
+    if (!IsReadEnable())
+      update_event(EPOLLIN | EPOLLPRI);
   }
+  void EnableWriting() {
+    if (!IsWriteEnable())
+      update_event(EPOLLOUT);
+  }
+
+  void DisableAll() { events_ = 0; Update();}
+  void DisableReading() { events_ &=  ~(EPOLLIN | EPOLLPRI); Update();  }
+  void DisableWriting() { events_ &=   ~EPOLLOUT; Update(); }
+
+  inline bool IsReadEnable() {return events_ & EPOLLIN; }
+  inline bool IsWriteEnable() {return events_ & EPOLLOUT; }
+
   // for debug
   std::string RcvEventAsString();
   std::string MonitorEventAsString();
 private:
+  inline void update_event(int new_event) {
+    events_ |=  new_event;
+    Update();
+  }
   std::string events2string(uint32_t event);
+
   Delegate* delegate_;
 
   int fd_;

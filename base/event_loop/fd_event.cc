@@ -1,5 +1,6 @@
 #include "fd_event.h"
 #include "glog/logging.h"
+#include "base/base_constants.h"
 
 namespace base {
 
@@ -38,7 +39,7 @@ void FdEvent::SetRcvEvents(uint32_t ev){
 
 void FdEvent::Update() {
   if (delegate_) {
-    LOG(INFO) << "update fdevent to poll";
+    VLOG(GLOG_VTRACE) << "update fdevent to poll, events:" << events_;
     delegate_->UpdateFdEvent(this);
   } else {
     LOG(INFO) << "No FdEvent::Delegate Can update this FdEvent, fd:" << fd();
@@ -54,27 +55,25 @@ int FdEvent::fd() const {
 }
 
 void FdEvent::HandleEvent() {
-  LOG(INFO) << "FdEvent::handle_event:" << revents_;
-  if(revents_ & EPOLLIN && read_callback_) {
-    VLOG(1) << "EPOLLIN";
-    read_callback_();
+  VLOG(GLOG_VTRACE) << "FdEvent::handle_event: " << RcvEventAsString();
+
+  /* in normal case, this caused by peer close fd */
+  if ((revents_ & EPOLLHUP) && !(revents_ & EPOLLIN) && close_callback_) {
+    close_callback_();
   }
 
-  if(revents_ & EPOLLOUT && write_callback_) {
-    VLOG(1) << "EPOLLOUT";
+  if (revents_ & EPOLLOUT && write_callback_) {
     write_callback_();
   }
 
-  if(revents_ & EPOLLERR && error_callback_) {
-    VLOG(1) << "EPOLLERR";
+  if (revents_ & (EPOLLERR | POLLNVAL) && error_callback_) {
     error_callback_();
   }
 
-  if(revents_ & EPOLLRDHUP && close_callback_) {
-    VLOG(1) << "EPOLLRDHUP";
-    close_callback_();
+  if (revents_ & (EPOLLIN | EPOLLRDHUP) && read_callback_) {
+      read_callback_();
   }
-  //clear the revents_ avoid invoke twice
+
   revents_ = 0;
 }
 

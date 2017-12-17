@@ -205,18 +205,39 @@ int GetSocketError(SocketFd sockfd) {
   return optval;
 }
 
-struct sockaddr_in6 GetLocalAddr(int sockfd) {
+struct sockaddr_in GetLocalAddrIn(int sockfd) {
+  struct sockaddr_in localaddr;
+  bzero(&localaddr, sizeof localaddr);
+
+  socklen_t addrlen = static_cast<socklen_t>(sizeof localaddr);
+  if (::getsockname(sockfd, sockaddr_cast(&localaddr), &addrlen) < 0) {
+    LOG(ERROR) << "socketutils::GetLocalAddrIn Call getsockname ERROR";
+  }
+  return localaddr;
+}
+
+struct sockaddr_in6 GetLocalAddrIn6(int sockfd) {
   struct sockaddr_in6 localaddr;
   bzero(&localaddr, sizeof localaddr);
 
   socklen_t addrlen = static_cast<socklen_t>(sizeof localaddr);
   if (::getsockname(sockfd, sockaddr_cast(&localaddr), &addrlen) < 0) {
-    LOG(ERROR) << "socketutils::GetLocalAddr Call getsockname ERROR";
+    LOG(ERROR) << "socketutils::GetLocalAddrIn6 Call getsockname ERROR";
   }
   return localaddr;
 }
 
-struct sockaddr_in6 GetPeerAddr(int sockfd) {
+struct sockaddr_in GetPeerAddrIn(int sockfd) {
+  struct sockaddr_in peeraddr;
+  bzero(&peeraddr, sizeof peeraddr);
+  socklen_t addrlen = static_cast<socklen_t>(sizeof peeraddr);
+  if (::getpeername(sockfd, sockaddr_cast(&peeraddr), &addrlen) < 0) {
+    LOG(ERROR) << "socketutils::GetPeerAddr Failed";
+  }
+  return peeraddr;
+}
+
+struct sockaddr_in6 GetPeerAddrIn6(int sockfd) {
   struct sockaddr_in6 peeraddr;
   bzero(&peeraddr, sizeof peeraddr);
   socklen_t addrlen = static_cast<socklen_t>(sizeof peeraddr);
@@ -227,8 +248,8 @@ struct sockaddr_in6 GetPeerAddr(int sockfd) {
 }
 
 bool IsSelfConnect(int sockfd) {
-  struct sockaddr_in6 localaddr = GetLocalAddr(sockfd);
-  struct sockaddr_in6 peeraddr = GetPeerAddr(sockfd);
+  struct sockaddr_in6 localaddr = GetLocalAddrIn6(sockfd);
+  struct sockaddr_in6 peeraddr = GetPeerAddrIn6(sockfd);
   if (localaddr.sin6_family == AF_INET) {
 
     const struct sockaddr_in* laddr4 = reinterpret_cast<struct sockaddr_in*>(&localaddr);
@@ -263,6 +284,15 @@ bool ReUseSocketPort(SocketFd socket_fd, bool reuse) {
 #else
   LOG(INFO) << "SO_REUSEPORT is not supported."
 #endif
+}
+
+void KeepAlive(SocketFd fd, bool alive) {
+  int optval = alive ? 1 : 0;
+  ::setsockopt(fd,
+               SOL_SOCKET,
+               SO_KEEPALIVE,
+               &optval,
+               static_cast<socklen_t>(sizeof optval));
 }
 
 }} //end net::socketutils

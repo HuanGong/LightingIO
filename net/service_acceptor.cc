@@ -46,7 +46,8 @@ void ServiceAcceptor::SetNewConnectionCallback(const NewConnectionCallback& cb) 
 }
 
 void ServiceAcceptor::HandleCommingConnection() {
-  LOG(INFO) << "New Connection Comming";
+
+  VLOG(GLOG_INFO) << "Accept a New Connection";
 
   struct sockaddr_in client_socket_in;
   int peer_fd = socketutils::AcceptSocket(socket_fd_, &client_socket_in);

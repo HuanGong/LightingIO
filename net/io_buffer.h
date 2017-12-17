@@ -16,9 +16,11 @@ public:
   IOBuffer(const IOBuffer&& r);
   ~IOBuffer();
 
+  int32_t ReadFromSocketFd(int scoket, int *error);
   //IOBuffer Clone();
 
   bool EnsureWritableSize(int32_t len);
+  bool HasALine();
 
   uint8_t* GetRead();
   uint8_t* GetWrite();
@@ -26,13 +28,13 @@ public:
   int32_t CanWriteSize();
 
   void WriteString(const std::string str);
-  void WriteRawData(const uint8_t* data, int32_t len);
+  void WriteRawData(const char* data, int32_t len);
 
   std::string AsString();
 
+  void Consume(int32_t len);
+  void Produce(int32_t len);
 private:
-  void consume(int32_t len);
-  void produce(int32_t len);
 
   int32_t read_index_;
   int32_t write_index_;

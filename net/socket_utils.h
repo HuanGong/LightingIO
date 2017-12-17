@@ -44,13 +44,17 @@ void FromIpPort(const char* ip, uint16_t port, struct sockaddr_in6* addr);
 
 int GetSocketError(SocketFd fd);
 
-struct sockaddr_in6 GetLocalAddr(int sockfd);
-struct sockaddr_in6 GetPeerAddr(int sockfd);
+struct sockaddr_in GetLocalAddrIn(int sockfd);
+struct sockaddr_in6 GetLocalAddrIn6(int sockfd);
+struct sockaddr_in GetPeerAddrIn(int sockfd);
+struct sockaddr_in6 GetPeerAddrIn6(int sockfd);
+
 bool IsSelfConnect(int sockfd);
 
 bool ReUseSocketPort(SocketFd, bool reuse);
 bool ReUseSocketAddress(SocketFd socket_fd, bool reuse);
 
+void KeepAlive(SocketFd, bool alive);
 }}
 #endif
 

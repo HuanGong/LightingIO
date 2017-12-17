@@ -28,6 +28,7 @@ int IoMultiplexerEpoll::WaitingIO(FdEventList& active_list, int32_t timeout_ms) 
     LOG(ERROR) << "epoll_wait return ERROR code:" << turn_active_count;
     return turn_active_count;
   }
+
   for (int idx = 0; idx < turn_active_count; idx++) {
     auto fd_event_pair = fdev_map_.find(ep_events_[idx].data.fd);
 
@@ -79,7 +80,7 @@ void IoMultiplexerEpoll::epoll_ctl(int fd, uint32_t events, int op) {
   ev.events = events;
   int ret = ::epoll_ctl(epoll_fd_, op, fd, &ev);
   if (ret != 0) {
-    LOG(ERROR) << "epoll_ctl failed, option:" << epollopt_to_string(op) << fd;
+    LOG(ERROR) << "epoll_ctl failed, option:" << epollopt_to_string(op) << " fd:" << fd;
   }
 }
 

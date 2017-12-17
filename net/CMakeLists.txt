@@ -7,10 +7,11 @@ SET(CMAKE_C_COMPILER g++)
 ADD_DEFINITIONS(-std=c++11)
 
 ADD_LIBRARY(ltnet STATIC
+  io_buffer.cc
   inet_address.cc
   socket_utils.cc
   service_acceptor.cc
-  io_buffer.cc
+  connection_channel.cc
 )
 
 TARGET_LINK_LIBRARIES(ltnet
