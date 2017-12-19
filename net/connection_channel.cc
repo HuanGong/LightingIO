@@ -49,23 +49,34 @@ void ConnectionChannel::Initialize() {
 
   socketutils::KeepAlive(socket_fd_, true);
 
-  event_pump->InstallFdEvent(fd_event_.get());
-
-  fd_event_->EnableReading();
-  //fd_event_->EnableWriting();
-
-  owner_loop_->PostTask(base::NewClosure(std::bind(&ConnectionChannel::OnStatusChanged,
-                                                   shared_from_this())));
+  auto task = base::NewClosure(std::bind(&ConnectionChannel::OnConnectionReady,
+                                         shared_from_this()));
+  owner_loop_->PostTask(std::move(task));
 }
 
 ConnectionChannel::~ConnectionChannel() {
   VLOG(GLOG_VTRACE) << "ConnectionChannel Gone, Fd:" << socket_fd_ << " status:" << StatusToString();
   CHECK(channel_status_ == DISCONNECTED);
-  socketutils::CloseSocket(socket_fd_)
+  socketutils::CloseSocket(socket_fd_);
 }
 
 void ConnectionChannel::SetChannalName(const std::string name) {
   channal_name_ = name;
+}
+
+void ConnectionChannel::OnConnectionReady() {
+  if (channel_status_ == CONNECTING) {
+
+    base::EventPump* event_pump = owner_loop_->Pump();
+    event_pump->InstallFdEvent(fd_event_.get());
+    fd_event_->EnableReading();
+    //fd_event_->EnableWriting();
+
+    channel_status_ = CONNECTED;
+    OnStatusChanged();
+  } else {
+    LOG(INFO) << "This Connection Status Changed After Constructor";
+  }
 }
 
 void ConnectionChannel::OnStatusChanged() {
@@ -153,10 +164,6 @@ void ConnectionChannel::HandleClose() {
   // after this, it's will destructor if no other obj hold it
   if (closed_callback_) {
     closed_callback_(guard);
-  } else {
-    //TODO Remove This
-    LOG(INFO) << " close fd bz no closed_callback_ set, fd:" << socket_fd_;
-    socketutils::CloseSocket(socket_fd_);
   }
 }
 
@@ -174,8 +181,14 @@ std::string ConnectionChannel::StatusToString() const {
   return "UnKnown";
 }
 
+void ConnectionChannel::ShutdownConnection() {
+
+}
+
 int32_t ConnectionChannel::Send(const char* data, const int32_t len) {
-  if (channel_status_ == DISCONNECTED) {
+  CHECK(owner_loop_->IsInLoopThread());
+
+  if (channel_status_ != CONNECTED) {
     LOG(INFO) <<  "Can't Write Data To a Closed[ing] socket";
     return -1;
   }

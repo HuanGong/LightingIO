@@ -1,5 +1,6 @@
 
 #include "service_acceptor.h"
+#include "base/base_constants.h"
 
 #include "glog/logging.h"
 
@@ -9,6 +10,8 @@ ServiceAcceptor::ServiceAcceptor(base::MessageLoop2* loop, const InetAddress& ad
   : listenning_(false),
     owner_loop_(loop),
     address_(address) {
+
+  CHECK(owner_loop_->IsInLoopThread());
 
   socket_fd_ = socketutils::CreateNonBlockingSocket(address_.SocketFamily());
   //reuse socket addr and port if possible
@@ -20,11 +23,12 @@ ServiceAcceptor::ServiceAcceptor(base::MessageLoop2* loop, const InetAddress& ad
   socket_event_->SetDelegate(owner_loop_->Pump()->AsFdEventDelegate());
   socket_event_->SetReadCallback(
     std::bind(&ServiceAcceptor::HandleCommingConnection, this));
-  owner_loop_->Pump()->InstallFdEvent(socket_event_.get());
+
   //socket_event_->EnableReading();
 }
 
 ServiceAcceptor::~ServiceAcceptor() {
+
   CHECK(owner_loop_->IsInLoopThread());
 
   socket_event_->DisableAll();
@@ -35,9 +39,12 @@ ServiceAcceptor::~ServiceAcceptor() {
 
 bool ServiceAcceptor::StartListen() {
   CHECK(owner_loop_->IsInLoopThread());
+
+  owner_loop_->Pump()->InstallFdEvent(socket_event_.get());
+  socket_event_->EnableReading();
+
   listenning_ = true;
   socketutils::ListenSocket(socket_fd_);
-  socket_event_->EnableReading();
   LOG(INFO) << " Start Listen on:" << address_.IpPortAsString();
 }
 
@@ -47,7 +54,7 @@ void ServiceAcceptor::SetNewConnectionCallback(const NewConnectionCallback& cb) 
 
 void ServiceAcceptor::HandleCommingConnection() {
 
-  VLOG(GLOG_INFO) << "Accept a New Connection";
+  VLOG(GLOG_VINFO) << "Accept a New Connection";
 
   struct sockaddr_in client_socket_in;
   int peer_fd = socketutils::AcceptSocket(socket_fd_, &client_socket_in);

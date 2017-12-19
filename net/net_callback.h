@@ -7,14 +7,22 @@
 namespace net {
 
 class IOBuffer;
+class InetAddress;
+class ServiceAcceptor;
 class ConnectionChannel;
 
+/* ============ connection channel relative =========*/
 typedef std::shared_ptr<ConnectionChannel> RefConnectionChannel;
 
 typedef std::function<void(const RefConnectionChannel&)> DataWritenCallback;
 typedef std::function<void(const RefConnectionChannel&, IOBuffer*)> DataRcvCallback;
 typedef std::function<void(const RefConnectionChannel&)> ConnectionClosedCallback;
 typedef std::function<void(const RefConnectionChannel&)> ConnectionStatusCallback;
+
+/* ============= Service Acceptor relative ===========*/
+typedef std::shared_ptr<ServiceAcceptor> RefServiceAcceptor;
+typedef std::function<void(int/*socket_fd*/, const InetAddress&)> NewConnectionCallback;
+
 
 }
 #endif

@@ -4,13 +4,12 @@
 #include "inet_address.h"
 #include "socket_utils.h"
 
+#include "net_callback.h"
 #include "base/base_micro.h"
 #include "base/event_loop/fd_event.h"
 #include "base/event_loop/msg_event_loop.h"
 
 namespace net {
-
-typedef std::function<void(int, const InetAddress&)> NewConnectionCallback;
 
 class ServiceAcceptor {
 public:
@@ -21,7 +20,7 @@ public:
   bool IsListenning() { return listenning_; }
 
   void SetNewConnectionCallback(const NewConnectionCallback& cb);
-
+  const InetAddress& ListenLocal() const { return address_; };
 private:
   void HandleCommingConnection();
 

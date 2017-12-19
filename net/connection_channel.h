@@ -32,8 +32,6 @@ public:
 
   ~ConnectionChannel();
 
-  void Initialize();
-
   void SetChannalName(const std::string name);
 
   void SetDataHandleCallback(const DataRcvCallback& callback) {
@@ -53,7 +51,11 @@ public:
   std::string StatusToString() const;
   /*return -1 in error, return 0 when success*/
   int32_t Send(const char* data, const int32_t len);
+
+  void ShutdownConnection();
 protected:
+  void Initialize();
+
   void HandleRead();
   void HandleWrite();
   void HandleError();
@@ -65,7 +67,7 @@ private:
                 const InetAddress& loc,
                 const InetAddress& peer,
                 base::MessageLoop2* loop);
-
+  void OnConnectionReady();
 private:
   base::MessageLoop2* owner_loop_;
 
