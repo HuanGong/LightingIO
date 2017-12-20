@@ -10,8 +10,9 @@ int main(int argc, char** argv) {
   int count = 0;
 
   base::MessageLoop2 loop;
+  LOG(INFO) << "Call Start";
   loop.Start();
-  sleep(1);
+  LOG(INFO) << "Started";
 
   std::vector<net::RefConnectionChannel> connections;
 

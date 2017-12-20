@@ -15,6 +15,7 @@
 #include <string>
 #include <sstream>
 #include <functional>
+#include <chrono>
 
 #include <iostream>
 #include "file_util_linux.h"
@@ -60,16 +61,6 @@ private:
   std::unique_ptr<QueuedTask> reply_;
   bool run_task_ = false;
 };
-
-/*
-struct TimerEvent {
-  explicit TimerEvent(std::unique_ptr<QueuedTask> task)
-      : task(std::move(task)) {}
-  ~TimerEvent() { event_del(&ev); }
-  event ev;
-  std::unique_ptr<QueuedTask> task;
-};
-*/
 
 class MessageLoop2::SetTimerTask : public QueuedTask {
  public:
@@ -135,10 +126,12 @@ private:
 };
 
 MessageLoop2::MessageLoop2()
-  : wakeup_pipe_in_(0),
+  : running_(ATOMIC_FLAG_INIT),
+    wakeup_pipe_in_(0),
     wakeup_pipe_out_(0) {
 
   status_.store(ST_INITING);
+  has_join_.store(0);
 
   event_pump_.reset(new EventPump());
 
@@ -151,12 +144,11 @@ MessageLoop2::MessageLoop2()
 
   wakeup_event_ = FdEvent::create(wakeup_pipe_out_, EPOLLIN);
   CHECK(wakeup_event_);
-  wakeup_event_->SetReadCallback(
-    std::bind(&MessageLoop2::OnWakeup, this));
 
-  event_pump_->InstallFdEvent(wakeup_event_.get());
+  wakeup_event_->SetDelegate(event_pump_->AsFdEventDelegate());
+  wakeup_event_->SetReadCallback(std::bind(&MessageLoop2::OnWakeup, this));
 
-  status_.store(ST_INITTED);
+  running_.clear();
 }
 
 MessageLoop2::~MessageLoop2() {
@@ -174,9 +166,7 @@ MessageLoop2::~MessageLoop2() {
   }
 
   WaitLoopEnd();
-  status_.store(ST_INITTED);
-
-  event_pump_->RemoveFdEvent(wakeup_event_.get());
+  status_.store(ST_STOPED);
 
   wakeup_event_.reset();
 
@@ -200,26 +190,51 @@ bool MessageLoop2::IsInLoopThread() const {
 }
 
 void MessageLoop2::Start() {
+  bool run = running_.test_and_set(std::memory_order_acquire);
+  if (run == true) {
+    LOG(ERROR) << " Messageloop Can't Start Twice";
+    return;
+  }
+
   thread_ptr_.reset(new std::thread(std::bind(&MessageLoop2::ThreadMain, this)));
+
+  do {
+    std::this_thread::sleep_for(std::chrono::microseconds(10));
+  } while(status_ != ST_STARTED);
 }
 
 void MessageLoop2::WaitLoopEnd() {
+  int32_t expect = 0, replace = 1;
+  bool has_set = has_join_.compare_exchange_strong(expect, replace);
+  if (has_set == false) {
+    LOG(INFO) << "Thread Has Join by Others";
+    return;
+  }
+
   if (thread_ptr_ && thread_ptr_->joinable()) {
     thread_ptr_->join();
   }
 }
 
 void MessageLoop2::ThreadMain() {
+
   tid_ = std::this_thread::get_id();
   threadlocal_current_ = this;
 
+  event_pump_->InstallFdEvent(wakeup_event_.get());
+
   status_.store(ST_STARTED);
+
+  //delegate_->BeforeLoopRun();
   LOG(INFO) << "MessageLoop: " << loop_name_ << " Start Runing";
 
   event_pump_->Run();
 
+  //delegate_->AfterLoopRun();
+
+  event_pump_->RemoveFdEvent(wakeup_event_.get());
   threadlocal_current_ = NULL;
-  status_.store(ST_INITTED);
+  status_.store(ST_STOPED);
 }
 
 void MessageLoop2::PostDelayTask(std::unique_ptr<QueuedTask> task, uint32_t ms) {

@@ -17,10 +17,9 @@
 namespace base {
 
 enum LoopState {
-  ST_STOP = 0,
   ST_INITING = 1,
-  ST_INITTED = 2,
-  ST_STARTED = 3
+  ST_STARTED = 2,
+  ST_STOPED  = 3
 };
 
 class MessageLoop2 {
@@ -63,6 +62,9 @@ class MessageLoop2 {
 
   private:
     std::atomic_int status_;
+    std::atomic_int has_join_;
+    std::atomic_flag running_;
+
     std::mutex pending_lock_;
 
     std::list<std::unique_ptr<QueuedTask>> pending_;

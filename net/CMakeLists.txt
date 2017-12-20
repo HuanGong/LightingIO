@@ -24,6 +24,16 @@ add_dependencies(ltnet
   base_shared
 )
 
+ADD_EXECUTABLE(reuseport_test
+  test/reuseport_test.cc
+)
+TARGET_LINK_LIBRARIES(reuseport_test
+  -lltnet
+  -lglog
+  -lbase_shared
+  -lpthread
+)
+
 ADD_EXECUTABLE(acceptor_test
   test/acceptor_test.cc
 )

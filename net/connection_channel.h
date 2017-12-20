@@ -33,26 +33,19 @@ public:
   ~ConnectionChannel();
 
   void SetChannalName(const std::string name);
+  void SetOwnerLoop(base::MessageLoop2* owner);
+  void SetDataHandleCallback(const DataRcvCallback& callback);
+  void SetFinishSendCallback(const DataWritenCallback& callback);
+  void SetConnectionCloseCallback(const ConnectionClosedCallback& callback);
+  void SetStatusChangedCallback(const ConnectionStatusCallback& callback);
 
-  void SetDataHandleCallback(const DataRcvCallback& callback) {
-    recv_data_callback_ = callback;
-  }
-  void SetFinishSendCallback(const DataWritenCallback& callback) {
-    finish_write_callback_ = callback;
-  }
-  void SetConnectionCloseCallback(const ConnectionClosedCallback& callback) {
-    closed_callback_ = callback;
-  }
-  void SetStatusChangedCallback(const ConnectionStatusCallback& callback) {
-    status_change_callback_ = callback;
-  }
-
-  inline bool ConnectionStatus() {return channel_status_; }
   std::string StatusToString() const;
   /*return -1 in error, return 0 when success*/
   int32_t Send(const char* data, const int32_t len);
 
   void ShutdownConnection();
+
+  inline bool ConnectionStatus() {return channel_status_; }
 protected:
   void Initialize();
 
@@ -64,11 +57,15 @@ protected:
   void OnStatusChanged();
 private:
   ConnectionChannel(int fd,
-                const InetAddress& loc,
-                const InetAddress& peer,
-                base::MessageLoop2* loop);
+                    const InetAddress& loc,
+                    const InetAddress& peer,
+                    base::MessageLoop2* loop);
   void OnConnectionReady();
 private:
+  /* all the io thing happend in work loop,
+   * and the life cycle managered by ownerloop
+   * */
+  base::MessageLoop2* work_loop_;
   base::MessageLoop2* owner_loop_;
 
   ConnStatus channel_status_;

@@ -28,19 +28,19 @@ ConnectionChannel::ConnectionChannel(int socket_fd,
                                      const InetAddress& loc,
                                      const InetAddress& peer,
                                      base::MessageLoop2* loop)
-  : owner_loop_(loop),
+  : work_loop_(loop),
+    owner_loop_(NULL),
     channel_status_(CONNECTING),
     socket_fd_(socket_fd),
     local_addr_(loc),
     peer_addr_(peer) {
 
   fd_event_ = base::FdEvent::create(socket_fd_, 0);
-  //close_callback_ =
 }
 
 void ConnectionChannel::Initialize() {
   //conside move follow to InitConnection ensure enable_shared_from_this work
-  base::EventPump* event_pump = owner_loop_->Pump();
+  base::EventPump* event_pump = work_loop_->Pump();
   fd_event_->SetDelegate(event_pump->AsFdEventDelegate());
   fd_event_->SetReadCallback(std::bind(&ConnectionChannel::HandleRead, this));
   fd_event_->SetWriteCallback(std::bind(&ConnectionChannel::HandleWrite, this));
@@ -51,23 +51,19 @@ void ConnectionChannel::Initialize() {
 
   auto task = base::NewClosure(std::bind(&ConnectionChannel::OnConnectionReady,
                                          shared_from_this()));
-  owner_loop_->PostTask(std::move(task));
+  work_loop_->PostTask(std::move(task));
 }
 
 ConnectionChannel::~ConnectionChannel() {
   VLOG(GLOG_VTRACE) << "ConnectionChannel Gone, Fd:" << socket_fd_ << " status:" << StatusToString();
-  CHECK(channel_status_ == DISCONNECTED);
+  //CHECK(channel_status_ == DISCONNECTED);
   socketutils::CloseSocket(socket_fd_);
-}
-
-void ConnectionChannel::SetChannalName(const std::string name) {
-  channal_name_ = name;
 }
 
 void ConnectionChannel::OnConnectionReady() {
   if (channel_status_ == CONNECTING) {
 
-    base::EventPump* event_pump = owner_loop_->Pump();
+    base::EventPump* event_pump = work_loop_->Pump();
     event_pump->InstallFdEvent(fd_event_.get());
     fd_event_->EnableReading();
     //fd_event_->EnableWriting();
@@ -146,7 +142,7 @@ void ConnectionChannel::HandleError() {
 
 void ConnectionChannel::HandleClose() {
 
-  CHECK(owner_loop_->IsInLoopThread());
+  CHECK(work_loop_->IsInLoopThread());
   if (channel_status_ == DISCONNECTED) {
     return;
   }
@@ -154,7 +150,7 @@ void ConnectionChannel::HandleClose() {
   channel_status_ = DISCONNECTED;
 
   fd_event_->DisableAll();
-  owner_loop_->Pump()->RemoveFdEvent(fd_event_.get());
+  work_loop_->Pump()->RemoveFdEvent(fd_event_.get());
 
   RefConnectionChannel guard(shared_from_this());
 
@@ -163,7 +159,11 @@ void ConnectionChannel::HandleClose() {
   // normal case, it will remove from connection's ownner
   // after this, it's will destructor if no other obj hold it
   if (closed_callback_) {
-    closed_callback_(guard);
+    if (owner_loop_) {
+      owner_loop_->PostTask(base::NewClosure(std::bind(closed_callback_, guard)));
+    } else {
+      closed_callback_(guard);
+    }
   }
 }
 
@@ -182,16 +182,23 @@ std::string ConnectionChannel::StatusToString() const {
 }
 
 void ConnectionChannel::ShutdownConnection() {
-
+  if (!work_loop_->IsInLoopThread()) {
+    work_loop_->PostTask(base::NewClosure(
+        std::bind(&ConnectionChannel::ShutdownConnection, shared_from_this())));
+    return;
+  }
+  if (!fd_event_->IsWriteEnable()) {
+    socketutils::ShutdownWrite(socket_fd_);
+  }
 }
 
 int32_t ConnectionChannel::Send(const char* data, const int32_t len) {
-  CHECK(owner_loop_->IsInLoopThread());
+  CHECK(work_loop_->IsInLoopThread());
 
-  if (channel_status_ != CONNECTED) {
-    LOG(INFO) <<  "Can't Write Data To a Closed[ing] socket";
-    return -1;
-  }
+  //if (channel_status_ != CONNECTED) {
+    //LOG(INFO) <<  "Can't Write Data To a Closed[ing] socket";
+    //return -1;
+  //}
 
   int32_t n_write = 0;
   int32_t n_remain = len;
@@ -223,10 +230,27 @@ int32_t ConnectionChannel::Send(const char* data, const int32_t len) {
     if (!fd_event_->IsWriteEnable()) {
       fd_event_->EnableWriting();
     }
-
   }
   return n_write;
 }
 
+void ConnectionChannel::SetChannalName(const std::string name) {
+  channal_name_ = name;
+}
+void ConnectionChannel::SetOwnerLoop(base::MessageLoop2* owner) {
+  owner_loop_ = owner;
+}
+void ConnectionChannel::SetDataHandleCallback(const DataRcvCallback& callback) {
+  recv_data_callback_ = callback;
+}
+void ConnectionChannel::SetFinishSendCallback(const DataWritenCallback& callback) {
+  finish_write_callback_ = callback;
+}
+void ConnectionChannel::SetConnectionCloseCallback(const ConnectionClosedCallback& callback) {
+  closed_callback_ = callback;
+}
+void ConnectionChannel::SetStatusChangedCallback(const ConnectionStatusCallback& callback) {
+  status_change_callback_ = callback;
+}
 
 }
