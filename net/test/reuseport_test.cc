@@ -1,10 +1,11 @@
 #include "../service_acceptor.h"
 
 #include "../net_callback.h"
-#include "../connection_channel.h"
-#include <glog/logging.h>
+#include "../tcp_channel.h"
 #include "../socket_utils.h"
+
 #include <functional>
+#include <glog/logging.h>
 
 
 int main(int argc, char** argv) {
@@ -32,10 +33,10 @@ int main(int argc, char** argv) {
     LOG(INFO) << " New Connection from:" << peer.IpPortAsString() << " on loop:" << loop->LoopName();
 
     net::InetAddress local(net::socketutils::GetLocalAddrIn(fd));
-    auto f = net::ConnectionChannel::Create(fd,
-                                            local,
-                                            peer,
-                                            loop);
+    auto f = net::TcpChannel::Create(fd,
+                                     local,
+                                     peer,
+                                     loop);
     int32_t size = f->Send("hello world", sizeof "hello world");
     LOG(INFO) << "N ByteWrite:" << size;
 

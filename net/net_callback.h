@@ -10,17 +10,17 @@ namespace net {
 class IOBuffer;
 class InetAddress;
 class ServiceAcceptor;
-class ConnectionChannel;
+class TcpChannel;
 
 class ProtoService;
 
 /* ============ connection channel relative =========*/
-typedef std::shared_ptr<ConnectionChannel> RefConnectionChannel;
+typedef std::shared_ptr<TcpChannel> RefTcpChannel;
+typedef std::function<void(const RefTcpChannel&)> FinishSendCallback;
+typedef std::function<void(const RefTcpChannel&)> ChannelClosedCallback;
+typedef std::function<void(const RefTcpChannel&)> ChannelStatusCallback;
+typedef std::function<void(const RefTcpChannel&, IOBuffer*)> RcvDataCallback;
 
-typedef std::function<void(const RefConnectionChannel&)> DataWritenCallback;
-typedef std::function<void(const RefConnectionChannel&, IOBuffer*)> DataRcvCallback;
-typedef std::function<void(const RefConnectionChannel&)> ConnectionClosedCallback;
-typedef std::function<void(const RefConnectionChannel&)> ConnectionStatusCallback;
 
 /* ============= Service Acceptor relative ===========*/
 typedef std::shared_ptr<ServiceAcceptor> RefServiceAcceptor;

@@ -1,4 +1,5 @@
 
+
 #include "service_acceptor.h"
 #include "base/base_constants.h"
 
@@ -11,7 +12,7 @@ ServiceAcceptor::ServiceAcceptor(base::MessageLoop2* loop, const InetAddress& ad
     owner_loop_(loop),
     address_(address) {
 
-  CHECK(owner_loop_->IsInLoopThread());
+  //CHECK(owner_loop_->IsInLoopThread());
 
   socket_fd_ = socketutils::CreateNonBlockingSocket(address_.SocketFamily());
   //reuse socket addr and port if possible

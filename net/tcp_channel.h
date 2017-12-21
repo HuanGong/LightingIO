@@ -1,5 +1,5 @@
-#ifndef NET_CHANNAL_CONNECTION_H_
-#define NET_CHANNAL_CONNECTION_H_
+#ifndef NET_TCP_CHANNAL_CONNECTION_H_
+#define NET_TCP_CHANNAL_CONNECTION_H_
 
 #include <memory>
 #include <functional>
@@ -16,28 +16,28 @@
  * */
 namespace net {
 
-class ConnectionChannel : public std::enable_shared_from_this<ConnectionChannel> {
+class TcpChannel : public std::enable_shared_from_this<TcpChannel> {
 public:
   typedef enum {
     CONNECTED = 0,
     CONNECTING = 1,
     DISCONNECTED = 2,
     DISCONNECTING = 3
-  } ConnStatus;
+  } ChannelStatus;
 
-  static RefConnectionChannel Create(int socket_fd,
+  static RefTcpChannel Create(int socket_fd,
                                      const InetAddress& local,
                                      const InetAddress& peer,
                                      base::MessageLoop2* loop);
 
-  ~ConnectionChannel();
-
-  void SetChannalName(const std::string name);
+  ~TcpChannel();
+  const std::string& ChannelName() {return channal_name_;}
+  void SetChannelName(const std::string name);
   void SetOwnerLoop(base::MessageLoop2* owner);
-  void SetDataHandleCallback(const DataRcvCallback& callback);
-  void SetFinishSendCallback(const DataWritenCallback& callback);
-  void SetConnectionCloseCallback(const ConnectionClosedCallback& callback);
-  void SetStatusChangedCallback(const ConnectionStatusCallback& callback);
+  void SetDataHandleCallback(const RcvDataCallback& callback);
+  void SetFinishSendCallback(const FinishSendCallback& callback);
+  void SetCloseCallback(const ChannelClosedCallback& callback);
+  void SetStatusChangedCallback(const ChannelStatusCallback& callback);
 
   std::string StatusToString() const;
   /*return -1 in error, return 0 when success*/
@@ -45,7 +45,7 @@ public:
 
   void ShutdownConnection();
 
-  inline bool ConnectionStatus() {return channel_status_; }
+  inline ChannelStatus ConnectionStatus() {return channel_status_; }
 protected:
   void Initialize();
 
@@ -56,10 +56,10 @@ protected:
 
   void OnStatusChanged();
 private:
-  ConnectionChannel(int fd,
-                    const InetAddress& loc,
-                    const InetAddress& peer,
-                    base::MessageLoop2* loop);
+  TcpChannel(int socket_fd,
+             const InetAddress& loc,
+             const InetAddress& peer,
+             base::MessageLoop2* loop);
   void OnConnectionReady();
 private:
   /* all the io thing happend in work loop,
@@ -68,7 +68,7 @@ private:
   base::MessageLoop2* work_loop_;
   base::MessageLoop2* owner_loop_;
 
-  ConnStatus channel_status_;
+  ChannelStatus channel_status_;
 
   int socket_fd_;
   base::RefFdEvent fd_event_;
@@ -81,11 +81,11 @@ private:
   IOBuffer in_buffer_;
   IOBuffer out_buffer_;
 
-  DataRcvCallback recv_data_callback_;
-  ConnectionClosedCallback closed_callback_;
-  DataWritenCallback finish_write_callback_;
-  ConnectionStatusCallback status_change_callback_;
-  DISALLOW_COPY_AND_ASSIGN(ConnectionChannel);
+  RcvDataCallback recv_data_callback_;
+  ChannelClosedCallback closed_callback_;
+  FinishSendCallback finish_write_callback_;
+  ChannelStatusCallback status_change_callback_;
+  DISALLOW_COPY_AND_ASSIGN(TcpChannel);
 };
 
 }

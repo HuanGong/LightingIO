@@ -1,6 +1,6 @@
 #include "../service_acceptor.h"
 
-#include "../connection_channel.h"
+#include "../tcp_channel.h"
 #include <glog/logging.h>
 #include "../socket_utils.h"
 #include <functional>
@@ -14,16 +14,16 @@ int main(int argc, char** argv) {
   loop.Start();
   LOG(INFO) << "Started";
 
-  std::vector<net::RefConnectionChannel> connections;
+  std::vector<net::RefTcpChannel> connections;
 
   auto new_connection = [&](int fd, const net::InetAddress& peer) {
     LOG(INFO) << " New Connection from:" << peer.IpPortAsString();
 
     net::InetAddress local(net::socketutils::GetLocalAddrIn(fd));
-    auto f = net::ConnectionChannel::Create(fd,
-                                            local,
-                                            peer,
-                                            &loop);
+    auto f = net::TcpChannel::Create(fd,
+                                     local,
+                                     peer,
+                                     &loop);
     connections.push_back(f);
 
     int32_t size = f->Send("const", sizeof "const");

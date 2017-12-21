@@ -8,10 +8,11 @@ ADD_DEFINITIONS(-std=c++11)
 
 ADD_LIBRARY(ltnet STATIC
   io_buffer.cc
+  io_service.cc
+  tcp_channel.cc
   inet_address.cc
   socket_utils.cc
   service_acceptor.cc
-  connection_channel.cc
 )
 
 TARGET_LINK_LIBRARIES(ltnet

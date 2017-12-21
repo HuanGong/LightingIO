@@ -1,22 +1,20 @@
-#include "connection_channel.h"
-#include "base/closure/closure_task.h"
+
+
+#include "tcp_channel.h"
 
 #include "base/base_constants.h"
 #include "glog/logging.h"
+#include "base/closure/closure_task.h"
 
 namespace net {
 
-void DefaultCloseHandle(const RefConnectionChannel& conn) {
-
-}
-
 //static
-RefConnectionChannel ConnectionChannel::Create(int socket_fd,
-                                               const InetAddress& local,
-                                               const InetAddress& peer,
-                                               base::MessageLoop2* loop) {
+RefTcpChannel TcpChannel::Create(int socket_fd,
+                                 const InetAddress& local,
+                                 const InetAddress& peer,
+                                 base::MessageLoop2* loop) {
 
-  RefConnectionChannel conn(new ConnectionChannel(socket_fd,
+  RefTcpChannel conn(new TcpChannel(socket_fd,
                                                   local,
                                                   peer,
                                                   loop));
@@ -24,10 +22,10 @@ RefConnectionChannel ConnectionChannel::Create(int socket_fd,
   return std::move(conn);
 }
 
-ConnectionChannel::ConnectionChannel(int socket_fd,
-                                     const InetAddress& loc,
-                                     const InetAddress& peer,
-                                     base::MessageLoop2* loop)
+TcpChannel::TcpChannel(int socket_fd,
+                       const InetAddress& loc,
+                       const InetAddress& peer,
+                       base::MessageLoop2* loop)
   : work_loop_(loop),
     owner_loop_(NULL),
     channel_status_(CONNECTING),
@@ -38,29 +36,29 @@ ConnectionChannel::ConnectionChannel(int socket_fd,
   fd_event_ = base::FdEvent::create(socket_fd_, 0);
 }
 
-void ConnectionChannel::Initialize() {
+void TcpChannel::Initialize() {
   //conside move follow to InitConnection ensure enable_shared_from_this work
   base::EventPump* event_pump = work_loop_->Pump();
   fd_event_->SetDelegate(event_pump->AsFdEventDelegate());
-  fd_event_->SetReadCallback(std::bind(&ConnectionChannel::HandleRead, this));
-  fd_event_->SetWriteCallback(std::bind(&ConnectionChannel::HandleWrite, this));
-  fd_event_->SetCloseCallback(std::bind(&ConnectionChannel::HandleClose, this));
-  fd_event_->SetErrorCallback(std::bind(&ConnectionChannel::HandleError, this));
+  fd_event_->SetReadCallback(std::bind(&TcpChannel::HandleRead, this));
+  fd_event_->SetWriteCallback(std::bind(&TcpChannel::HandleWrite, this));
+  fd_event_->SetCloseCallback(std::bind(&TcpChannel::HandleClose, this));
+  fd_event_->SetErrorCallback(std::bind(&TcpChannel::HandleError, this));
 
   socketutils::KeepAlive(socket_fd_, true);
 
-  auto task = base::NewClosure(std::bind(&ConnectionChannel::OnConnectionReady,
-                                         shared_from_this()));
-  work_loop_->PostTask(std::move(task));
+  auto task = std::bind(&TcpChannel::OnConnectionReady, shared_from_this());
+  work_loop_->PostTask(base::NewClosure(std::move(task)));
 }
 
-ConnectionChannel::~ConnectionChannel() {
-  VLOG(GLOG_VTRACE) << "ConnectionChannel Gone, Fd:" << socket_fd_ << " status:" << StatusToString();
+TcpChannel::~TcpChannel() {
+  VLOG(GLOG_VTRACE) << "TcpChannel Gone, Fd:" << socket_fd_ << " status:" << StatusToString();
   //CHECK(channel_status_ == DISCONNECTED);
   socketutils::CloseSocket(socket_fd_);
 }
 
-void ConnectionChannel::OnConnectionReady() {
+void TcpChannel::OnConnectionReady() {
+
   if (channel_status_ == CONNECTING) {
 
     base::EventPump* event_pump = work_loop_->Pump();
@@ -71,18 +69,18 @@ void ConnectionChannel::OnConnectionReady() {
     channel_status_ = CONNECTED;
     OnStatusChanged();
   } else {
-    LOG(INFO) << "This Connection Status Changed After Constructor";
+    LOG(INFO) << "This Connection Status Changed After Initialize";
   }
 }
 
-void ConnectionChannel::OnStatusChanged() {
+void TcpChannel::OnStatusChanged() {
   if (status_change_callback_) {
-    RefConnectionChannel guard(shared_from_this());
+    RefTcpChannel guard(shared_from_this());
     status_change_callback_(guard);
   }
 }
 
-void ConnectionChannel::HandleRead() {
+void TcpChannel::HandleRead() {
   int error = 0;
 
   int32_t bytes_read = in_buffer_.ReadFromSocketFd(socket_fd_, &error);
@@ -99,7 +97,7 @@ void ConnectionChannel::HandleRead() {
   }
 }
 
-void ConnectionChannel::HandleWrite() {
+void TcpChannel::HandleWrite() {
 
   if (!fd_event_->IsWriteEnable()) {
     VLOG(GLOG_VTRACE) << "Connection Writen is disabled, fd:" << socket_fd_;
@@ -134,13 +132,13 @@ void ConnectionChannel::HandleWrite() {
   }
 }
 
-void ConnectionChannel::HandleError() {
+void TcpChannel::HandleError() {
   int err = socketutils::GetSocketError(socket_fd_);
   thread_local static char t_err_buff[128];
   LOG(ERROR) << " Socket Error, fd:[" << socket_fd_ << "], error info: [" << strerror_r(err, t_err_buff, sizeof t_err_buff) << " ]";
 }
 
-void ConnectionChannel::HandleClose() {
+void TcpChannel::HandleClose() {
 
   CHECK(work_loop_->IsInLoopThread());
   if (channel_status_ == DISCONNECTED) {
@@ -152,7 +150,7 @@ void ConnectionChannel::HandleClose() {
   fd_event_->DisableAll();
   work_loop_->Pump()->RemoveFdEvent(fd_event_.get());
 
-  RefConnectionChannel guard(shared_from_this());
+  RefTcpChannel guard(shared_from_this());
 
   OnStatusChanged();
 
@@ -167,7 +165,7 @@ void ConnectionChannel::HandleClose() {
   }
 }
 
-std::string ConnectionChannel::StatusToString() const {
+std::string TcpChannel::StatusToString() const {
   switch (channel_status_) {
     case CONNECTED:
       return "CONNECTED";
@@ -181,10 +179,10 @@ std::string ConnectionChannel::StatusToString() const {
   return "UnKnown";
 }
 
-void ConnectionChannel::ShutdownConnection() {
+void TcpChannel::ShutdownConnection() {
   if (!work_loop_->IsInLoopThread()) {
-    work_loop_->PostTask(base::NewClosure(
-        std::bind(&ConnectionChannel::ShutdownConnection, shared_from_this())));
+    auto f = std::bind(&TcpChannel::ShutdownConnection, shared_from_this());
+    work_loop_->PostTask(base::NewClosure(std::move(f)));
     return;
   }
   if (!fd_event_->IsWriteEnable()) {
@@ -192,13 +190,13 @@ void ConnectionChannel::ShutdownConnection() {
   }
 }
 
-int32_t ConnectionChannel::Send(const char* data, const int32_t len) {
+int32_t TcpChannel::Send(const char* data, const int32_t len) {
   CHECK(work_loop_->IsInLoopThread());
 
-  //if (channel_status_ != CONNECTED) {
-    //LOG(INFO) <<  "Can't Write Data To a Closed[ing] socket";
-    //return -1;
-  //}
+  if (channel_status_ != CONNECTED) {
+    LOG(INFO) <<  "Can't Write Data To a Closed[ing] socket" << channel_status_;
+    return -1;
+  }
 
   int32_t n_write = 0;
   int32_t n_remain = len;
@@ -234,22 +232,22 @@ int32_t ConnectionChannel::Send(const char* data, const int32_t len) {
   return n_write;
 }
 
-void ConnectionChannel::SetChannalName(const std::string name) {
+void TcpChannel::SetChannelName(const std::string name) {
   channal_name_ = name;
 }
-void ConnectionChannel::SetOwnerLoop(base::MessageLoop2* owner) {
+void TcpChannel::SetOwnerLoop(base::MessageLoop2* owner) {
   owner_loop_ = owner;
 }
-void ConnectionChannel::SetDataHandleCallback(const DataRcvCallback& callback) {
+void TcpChannel::SetDataHandleCallback(const RcvDataCallback& callback) {
   recv_data_callback_ = callback;
 }
-void ConnectionChannel::SetFinishSendCallback(const DataWritenCallback& callback) {
+void TcpChannel::SetFinishSendCallback(const FinishSendCallback& callback) {
   finish_write_callback_ = callback;
 }
-void ConnectionChannel::SetConnectionCloseCallback(const ConnectionClosedCallback& callback) {
+void TcpChannel::SetCloseCallback(const ChannelClosedCallback& callback) {
   closed_callback_ = callback;
 }
-void ConnectionChannel::SetStatusChangedCallback(const ConnectionStatusCallback& callback) {
+void TcpChannel::SetStatusChangedCallback(const ChannelStatusCallback& callback) {
   status_change_callback_ = callback;
 }
 
