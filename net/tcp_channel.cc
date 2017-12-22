@@ -15,9 +15,9 @@ RefTcpChannel TcpChannel::Create(int socket_fd,
                                  base::MessageLoop2* loop) {
 
   RefTcpChannel conn(new TcpChannel(socket_fd,
-                                                  local,
-                                                  peer,
-                                                  loop));
+                                    local,
+                                    peer,
+                                    loop));
   conn->Initialize();
   return std::move(conn);
 }
@@ -54,6 +54,7 @@ void TcpChannel::Initialize() {
 TcpChannel::~TcpChannel() {
   VLOG(GLOG_VTRACE) << "TcpChannel Gone, Fd:" << socket_fd_ << " status:" << StatusToString();
   //CHECK(channel_status_ == DISCONNECTED);
+  LOG(INFO) << " TcpChannel::~TcpChannel Gone";
   socketutils::CloseSocket(socket_fd_);
 }
 
@@ -179,9 +180,9 @@ std::string TcpChannel::StatusToString() const {
   return "UnKnown";
 }
 
-void TcpChannel::ShutdownConnection() {
+void TcpChannel::ShutdownChannel() {
   if (!work_loop_->IsInLoopThread()) {
-    auto f = std::bind(&TcpChannel::ShutdownConnection, shared_from_this());
+    auto f = std::bind(&TcpChannel::ShutdownChannel, shared_from_this());
     work_loop_->PostTask(base::NewClosure(std::move(f)));
     return;
   }
@@ -190,7 +191,7 @@ void TcpChannel::ShutdownConnection() {
   }
 }
 
-int32_t TcpChannel::Send(const char* data, const int32_t len) {
+int32_t TcpChannel::Send(const uint8_t* data, const int32_t len) {
   CHECK(work_loop_->IsInLoopThread());
 
   if (channel_status_ != CONNECTED) {
@@ -249,6 +250,21 @@ void TcpChannel::SetCloseCallback(const ChannelClosedCallback& callback) {
 }
 void TcpChannel::SetStatusChangedCallback(const ChannelStatusCallback& callback) {
   status_change_callback_ = callback;
+}
+const std::string TcpChannel::StatusAsString() {
+  switch(channel_status_) {
+    case CONNECTING:
+      return "CONNECTING";
+    case CONNECTED:
+      return "ESTABLISHED";
+    case DISCONNECTING:
+      return "DISCONNECTING";
+    case DISCONNECTED:
+      return "DISCONNECTED";
+    default:
+      return "UNKNOWN";
+  }
+  return "UNKNOWN";
 }
 
 }

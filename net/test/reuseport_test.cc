@@ -37,10 +37,10 @@ int main(int argc, char** argv) {
                                      local,
                                      peer,
                                      loop);
-    int32_t size = f->Send("hello world", sizeof "hello world");
+    int32_t size = f->Send((const uint8_t*)"hello world", sizeof "hello world");
     LOG(INFO) << "N ByteWrite:" << size;
 
-    f->ShutdownConnection();
+    f->ShutdownChannel();
   };
 
   // same address can bind multi listener socket_fd

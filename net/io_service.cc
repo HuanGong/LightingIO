@@ -19,6 +19,10 @@ IOService::IOService(const InetAddress addr,
   CHECK(delegate_);
 
   acceptor_.reset(new ServiceAcceptor(work_loop_, addr));
+
+  acceptor_->SetNewConnectionCallback(
+    std::bind(&IOService::HandleNewConnection, this, std::placeholders::_1, std::placeholders::_2));
+
   proto_service_ = delegate_->GetProtocolService(protocol_);
 }
 
@@ -27,7 +31,12 @@ IOService::~IOService() {
 }
 
 void IOService::StartIOService() {
-
+  if (work_loop_->IsInLoopThread()) {
+    acceptor_->StartListen();
+  } else {
+    auto functor = std::bind(&ServiceAcceptor::StartListen, acceptor_);
+    work_loop_->PostTask(base::NewClosure(std::move(functor)));
+  }
 }
 
 void IOService::StopIOService() {
@@ -35,21 +44,20 @@ void IOService::StopIOService() {
 }
 
 void IOService::HandleNewConnection(int local_socket, const InetAddress& peer_addr) {
-
   if (!delegate_) {
-    //LOG(ERROR) << "New Connection Can't Get IOWorkLoop From NULL delegate";
+    LOG(ERROR) << "New Connection Can't Get IOWorkLoop From NULL delegate";
     socketutils::CloseSocket(local_socket);
     return;
   }
   //max connction reached
-  if (delegate_->ReachMaxTcpChannels()) {
+  if (!delegate_->CanCreateNewChannel()) {
     socketutils::CloseSocket(local_socket);
-    //LOG(INFO) << "Max Channels Reached, Current IOservice Has:[" << channel_count_ << "] Channel";
+    LOG(INFO) << "Max Channels Reached, Current IOservice Has:[" << channel_count_ << "] Channel";
     return;
   }
 
   base::MessageLoop2* io_work_loop = delegate_->GetNextIOWorkLoop();
-  //LOG(DEBUG) << " New Connection from:" << peer_addr.IpPortAsString();
+  LOG(INFO) << " New Connection from:" << peer_addr.IpPortAsString();
 
   net::InetAddress local_addr(socketutils::GetLocalAddrIn(local_socket));
   auto new_channel = TcpChannel::Create(local_socket,

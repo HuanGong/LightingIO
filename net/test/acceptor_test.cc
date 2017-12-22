@@ -26,7 +26,7 @@ int main(int argc, char** argv) {
                                      &loop);
     connections.push_back(f);
 
-    int32_t size = f->Send("const", sizeof "const");
+    int32_t size = f->Send((const uint8_t*)"const", sizeof "const");
     LOG(INFO) << "N ByteWrite:" << size;
   };
 

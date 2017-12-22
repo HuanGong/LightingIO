@@ -19,8 +19,8 @@ namespace net {
 class TcpChannel : public std::enable_shared_from_this<TcpChannel> {
 public:
   typedef enum {
-    CONNECTED = 0,
-    CONNECTING = 1,
+    CONNECTING = 0,
+    CONNECTED = 1,
     DISCONNECTED = 2,
     DISCONNECTING = 3
   } ChannelStatus;
@@ -41,11 +41,11 @@ public:
 
   std::string StatusToString() const;
   /*return -1 in error, return 0 when success*/
-  int32_t Send(const char* data, const int32_t len);
+  int32_t Send(const uint8_t* data, const int32_t len);
 
-  void ShutdownConnection();
-
-  inline ChannelStatus ConnectionStatus() {return channel_status_; }
+  void ShutdownChannel();
+  const std::string StatusAsString();
+  inline ChannelStatus Status() {return channel_status_; }
 protected:
   void Initialize();
 

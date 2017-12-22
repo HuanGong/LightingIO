@@ -11,8 +11,7 @@ namespace net {
 
 class IOServiceDelegate {
 public:
-  virtual ~IOServiceDelegate();
-  virtual base::MessageLoop2* GetAcceptorLoop() = 0;
+  virtual ~IOServiceDelegate(){};
   virtual base::MessageLoop2* GetNextIOWorkLoop() = 0;
 
   /* use for couting connection numbers and limit max connections
@@ -20,7 +19,7 @@ public:
   virtual bool IncreaseChannelCount() = 0;
   virtual void DecreaseChannelCount() = 0;
 
-  virtual bool ReachMaxTcpChannels() { return false; }
+  virtual bool CanCreateNewChannel() { return true; }
   virtual RefProtoService GetProtocolService(const std::string protocol) = 0;
 };
 
@@ -54,8 +53,9 @@ private:
   RefServiceAcceptor acceptor_;
 
   base::MessageLoop2* work_loop_;
-  IOServiceDelegate* delegate_;
 
+  /* interface to owner and handler */
+  IOServiceDelegate* delegate_;
   RefProtoService proto_service_;
 
   std::atomic<int64_t> channel_count_;

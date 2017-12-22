@@ -22,13 +22,13 @@ public:
   bool EnsureWritableSize(int32_t len);
   bool HasALine();
 
-  uint8_t* GetRead();
+  const uint8_t* GetRead();
   uint8_t* GetWrite();
   int32_t CanReadSize();
   int32_t CanWriteSize();
 
   void WriteString(const std::string str);
-  void WriteRawData(const char* data, int32_t len);
+  void WriteRawData(const void* data, int32_t len);
 
   std::string AsString();
 

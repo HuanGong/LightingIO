@@ -11,7 +11,7 @@ class IOBuffer;
 class InetAddress;
 class ServiceAcceptor;
 class TcpChannel;
-
+class IOService;
 class ProtoService;
 
 /* ============ connection channel relative =========*/
@@ -30,6 +30,7 @@ typedef std::function<void(int/*socket_fd*/, const InetAddress&)> NewConnectionC
 typedef std::shared_ptr<ProtoService> RefProtoService;
 
 /* ============== io service ====== */
+typedef std::shared_ptr<IOService> RefIOService;
 //typedef std::function<void
 //std::map<std::string/*protocol*/,
 

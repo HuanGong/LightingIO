@@ -83,7 +83,7 @@ bool IOBuffer::EnsureWritableSize(int32_t len) {
   return true;
 }
 
-uint8_t* IOBuffer::GetRead() {
+const uint8_t* IOBuffer::GetRead() {
   return &data_[read_index_];
 }
 uint8_t* IOBuffer::GetWrite() {
@@ -102,7 +102,7 @@ void IOBuffer::WriteString(const std::string str) {
   Produce(str.size());
 }
 
-void IOBuffer::WriteRawData(const char* data, int32_t len) {
+void IOBuffer::WriteRawData(const void* data, int32_t len) {
   EnsureWritableSize(len);
   memcpy(&data_[write_index_], data, len);
   Produce(len);

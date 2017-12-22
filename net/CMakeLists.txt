@@ -10,6 +10,7 @@ ADD_LIBRARY(ltnet STATIC
   io_buffer.cc
   io_service.cc
   tcp_channel.cc
+  proto_service.h
   inet_address.cc
   socket_utils.cc
   service_acceptor.cc
@@ -39,6 +40,17 @@ ADD_EXECUTABLE(acceptor_test
   test/acceptor_test.cc
 )
 TARGET_LINK_LIBRARIES(acceptor_test
+  -lltnet
+  -lglog
+  -lbase_shared
+  -lpthread
+)
+
+ADD_EXECUTABLE(ioservice_test
+  test/io_service_test.cc
+  proto_service.h
+)
+TARGET_LINK_LIBRARIES(ioservice_test
   -lltnet
   -lglog
   -lbase_shared
