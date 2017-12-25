@@ -3,16 +3,20 @@
 #include "glog/logging.h"
 #include "../tcp_channel.h"
 #include "../io_service.h"
+#include "base/event_loop/linux_signal.h"
 
 namespace net {
 
 class TcpProtoService : public ProtoService {
 public:
+  TcpProtoService() :
+    ProtoService("tcp") {
+  }
   ~TcpProtoService() {
   }
 
   void OnStatusChanged(const RefTcpChannel& channel) override {
-    LOG(INFO) << "RefTcpChannel status changed:" << channel->GetChannelStatus();
+    LOG(INFO) << "RefTcpChannel status changed:" << channel->StatusAsString();
   }
   void OnDataFinishSend(const RefTcpChannel& channel) override {
     LOG(INFO) << " RefTcpChannel  data write finished";
@@ -45,6 +49,7 @@ public:
   ~Srv() {
   }
 
+
   void InitWorkLoop() {
     iowork_loop_.SetLoopName("iowork_loop");
     iowork_loop_.Start();
@@ -53,10 +58,19 @@ public:
   }
 
   void Start() {
+    RegisterExitSignal();
+
     ioservice_->StartIOService();
 
     acceptor_loop_.WaitLoopEnd();
   }
+
+  void IOServiceStoped(IOService* ioservice) {
+    LOG(INFO) << " IOService stop ok";
+    CHECK(ioservice_.get() == ioservice);
+    ioservice_.reset();
+    acceptor_loop_.QuitLoop();
+  };
 
   base::MessageLoop2* GetNextIOWorkLoop() {
     return &iowork_loop_;
@@ -74,6 +88,15 @@ public:
     return tcp_protoservice_;
   }
 private:
+  void RegisterExitSignal() {
+    //CHECK(acceptor_loop_.IsInLoopThread());
+    base::Signal::signal(10, std::bind(&Srv::ExitSignalHandle, this));
+  }
+  void ExitSignalHandle() {
+    LOG(INFO) << " ExitSignalHandle quit AcceptorLoop";
+    acceptor_loop_.PostTask(
+      base::NewClosure(std::bind(&IOService::StopIOService, ioservice_)));
+  }
   base::MessageLoop2 iowork_loop_;
   base::MessageLoop2 acceptor_loop_;
 
@@ -86,5 +109,6 @@ private:
 int main() {
   net::Srv s;
   s.Start();
+  //LOG(INFO) << " main is going to end";
   return 0;
 }

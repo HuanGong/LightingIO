@@ -10,10 +10,24 @@ namespace net {
 ServiceAcceptor::ServiceAcceptor(base::MessageLoop2* loop, const InetAddress& address)
   : listenning_(false),
     owner_loop_(loop),
+    socket_fd_(0),
     address_(address) {
-
+  CHECK(owner_loop_);
   //CHECK(owner_loop_->IsInLoopThread());
+  InitListener();
+  //socket_event_->EnableReading();
+}
 
+ServiceAcceptor::~ServiceAcceptor() {
+
+  CHECK(owner_loop_->IsInLoopThread());
+
+  if (socket_fd_) {
+    socketutils::CloseSocket(socket_fd_);
+  }
+}
+
+void ServiceAcceptor::InitListener() {
   socket_fd_ = socketutils::CreateNonBlockingSocket(address_.SocketFamily());
   //reuse socket addr and port if possible
   socketutils::ReUseSocketAddress(socket_fd_, true);
@@ -24,22 +38,17 @@ ServiceAcceptor::ServiceAcceptor(base::MessageLoop2* loop, const InetAddress& ad
   socket_event_->SetDelegate(owner_loop_->Pump()->AsFdEventDelegate());
   socket_event_->SetReadCallback(
     std::bind(&ServiceAcceptor::HandleCommingConnection, this));
-
-  //socket_event_->EnableReading();
-}
-
-ServiceAcceptor::~ServiceAcceptor() {
-
-  CHECK(owner_loop_->IsInLoopThread());
-
-  socket_event_->DisableAll();
-  owner_loop_->Pump()->RemoveFdEvent(socket_event_.get());
-  socket_event_.reset();
-  socketutils::CloseSocket(socket_fd_);
 }
 
 bool ServiceAcceptor::StartListen() {
   CHECK(owner_loop_->IsInLoopThread());
+  if (listenning_) {
+    LOG(INFO) << " Aready Listen on:" << address_.IpPortAsString();
+    return true;
+  }
+  if (!socket_event_) {
+    InitListener();
+  }
 
   owner_loop_->Pump()->InstallFdEvent(socket_event_.get());
   socket_event_->EnableReading();
@@ -47,6 +56,20 @@ bool ServiceAcceptor::StartListen() {
   listenning_ = true;
   socketutils::ListenSocket(socket_fd_);
   LOG(INFO) << " Start Listen on:" << address_.IpPortAsString();
+}
+
+void ServiceAcceptor::StopListen() {
+  CHECK(owner_loop_->IsInLoopThread());
+  if (!listenning_) {
+    return;
+  }
+
+  socket_event_->DisableReading();
+  owner_loop_->Pump()->RemoveFdEvent(socket_event_.get());
+  socket_event_.reset();
+  socketutils::CloseSocket(socket_fd_);
+  socket_fd_ = 0;
+  LOG(INFO) << " Stop Listen on:" << address_.IpPortAsString();
 }
 
 void ServiceAcceptor::SetNewConnectionCallback(const NewConnectionCallback& cb) {

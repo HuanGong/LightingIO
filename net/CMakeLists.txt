@@ -7,6 +7,7 @@ SET(CMAKE_C_COMPILER g++)
 ADD_DEFINITIONS(-std=c++11)
 
 ADD_LIBRARY(ltnet STATIC
+  server.cc
   io_buffer.cc
   io_service.cc
   tcp_channel.cc
@@ -14,6 +15,7 @@ ADD_LIBRARY(ltnet STATIC
   inet_address.cc
   socket_utils.cc
   service_acceptor.cc
+  url_string_utils.cc
 )
 
 TARGET_LINK_LIBRARIES(ltnet
@@ -51,6 +53,16 @@ ADD_EXECUTABLE(ioservice_test
   proto_service.h
 )
 TARGET_LINK_LIBRARIES(ioservice_test
+  -lltnet
+  -lglog
+  -lbase_shared
+  -lpthread
+)
+
+ADD_EXECUTABLE(common_server
+  test/common_server_test.cc
+)
+TARGET_LINK_LIBRARIES(common_server
   -lltnet
   -lglog
   -lbase_shared

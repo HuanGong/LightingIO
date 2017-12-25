@@ -40,12 +40,15 @@ class MessageLoop2 {
     bool PostTaskAndReply(std::unique_ptr<QueuedTask> task,
                           std::unique_ptr<QueuedTask> reply);
 
+    bool InstallSigHandler(int, const SigHandler);
+
     void Start();
     void WaitLoopEnd();
     bool IsInLoopThread() const;
     void SetLoopName(std::string name);
     std::string LoopName() {return loop_name_;}
 
+    void QuitLoop();
     EventPump* Pump() { return event_pump_.get(); }
   private:
     void ThreadMain();
@@ -78,6 +81,8 @@ class MessageLoop2 {
     int wakeup_pipe_out_ = -1;
     RefFdEvent wakeup_event_;
     std::unique_ptr<EventPump> event_pump_;
+
+    std::map<int, SigHandler> sig_handlers_;
 };
 
 } //end namespace

@@ -9,18 +9,24 @@
 
 namespace net {
 
+class IOService;
+
 class IOServiceDelegate {
 public:
   virtual ~IOServiceDelegate(){};
   virtual base::MessageLoop2* GetNextIOWorkLoop() = 0;
 
-  /* use for couting connection numbers and limit max connections
-   * return false when reach max connections, otherwise return true*/
+  /* use for couting connection numbers and limit
+   * max connections; return false when reach limits,
+   * otherwise return true*/
   virtual bool IncreaseChannelCount() = 0;
   virtual void DecreaseChannelCount() = 0;
 
   virtual bool CanCreateNewChannel() { return true; }
   virtual RefProtoService GetProtocolService(const std::string protocol) = 0;
+
+  virtual void IOServiceStarted(const IOService* ioservice) {};
+  virtual void IOServiceStoped(const IOService* ioservice) {};
 };
 
 class IOService {
@@ -38,6 +44,8 @@ public:
   void StartIOService();
   void StopIOService();
 
+  base::MessageLoop2* AcceptorLoop() { return work_loop_; }
+  const std::string& IOServiceName() const {return service_name_;}
 private:
   /* create a new connection channel */
   void HandleNewConnection(int, const InetAddress&);
@@ -48,7 +56,7 @@ private:
   void StoreConnection(const RefTcpChannel connetion);
   void RemoveConncetion(const RefTcpChannel connection);
 
-  bool as_dispatcher_;
+  //bool as_dispatcher_;
   std::string protocol_;
   RefServiceAcceptor acceptor_;
 
@@ -60,6 +68,8 @@ private:
 
   std::atomic<int64_t> channel_count_;
   std::map<std::string, RefTcpChannel> connections_;
+  std::string service_name_;
+  bool is_stopping_;
 };
 
 }

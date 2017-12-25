@@ -57,5 +57,7 @@ static std::unique_ptr<QueuedTask> NewClosure(const Closure& closure,
       new ClosureTaskWithCleanup<Closure, Cleanup>(closure, cleanup));
 }
 
+typedef std::function<void()> SigHandler;
+
 }// end namespace
 #endif

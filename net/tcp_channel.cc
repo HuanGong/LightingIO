@@ -52,10 +52,12 @@ void TcpChannel::Initialize() {
 }
 
 TcpChannel::~TcpChannel() {
-  VLOG(GLOG_VTRACE) << "TcpChannel Gone, Fd:" << socket_fd_ << " status:" << StatusToString();
+  VLOG(GLOG_VTRACE) << "TcpChannel Gone, Fd:" << socket_fd_ << " status:" << StatusAsString();
   //CHECK(channel_status_ == DISCONNECTED);
   LOG(INFO) << " TcpChannel::~TcpChannel Gone";
-  socketutils::CloseSocket(socket_fd_);
+  if (socket_fd_ != -1) {
+    socketutils::CloseSocket(socket_fd_);
+  }
 }
 
 void TcpChannel::OnConnectionReady() {
@@ -70,6 +72,12 @@ void TcpChannel::OnConnectionReady() {
     channel_status_ = CONNECTED;
     OnStatusChanged();
   } else {
+
+    fd_event_.reset();
+    if (socket_fd_ > 0) {
+      socketutils::CloseSocket(socket_fd_);
+      socket_fd_ = -1;
+    }
     LOG(INFO) << "This Connection Status Changed After Initialize";
   }
 }
@@ -130,6 +138,9 @@ void TcpChannel::HandleWrite() {
 
   if (out_buffer_.CanReadSize() == 0) { //all data writen
     fd_event_->DisableWriting();
+    if (schedule_shutdown_) {
+      socketutils::ShutdownWrite(socket_fd_);
+    }
   }
 }
 
@@ -140,17 +151,16 @@ void TcpChannel::HandleError() {
 }
 
 void TcpChannel::HandleClose() {
-
   CHECK(work_loop_->IsInLoopThread());
+
   if (channel_status_ == DISCONNECTED) {
     return;
   }
 
-  channel_status_ = DISCONNECTED;
-
   fd_event_->DisableAll();
   work_loop_->Pump()->RemoveFdEvent(fd_event_.get());
 
+  channel_status_ = DISCONNECTED;
   RefTcpChannel guard(shared_from_this());
 
   OnStatusChanged();
@@ -166,20 +176,6 @@ void TcpChannel::HandleClose() {
   }
 }
 
-std::string TcpChannel::StatusToString() const {
-  switch (channel_status_) {
-    case CONNECTED:
-      return "CONNECTED";
-    case DISCONNECTING:
-      return "DISCONNECTING";
-    case DISCONNECTED:
-      return "DISCONNECTED";
-    default:
-      return "UnKnown";
-  }
-  return "UnKnown";
-}
-
 void TcpChannel::ShutdownChannel() {
   if (!work_loop_->IsInLoopThread()) {
     auto f = std::bind(&TcpChannel::ShutdownChannel, shared_from_this());
@@ -187,8 +183,21 @@ void TcpChannel::ShutdownChannel() {
     return;
   }
   if (!fd_event_->IsWriteEnable()) {
+    channel_status_ = DISCONNECTING;
     socketutils::ShutdownWrite(socket_fd_);
+  } else {
+    schedule_shutdown_ = true;
   }
+}
+
+void TcpChannel::ForceShutdown() {
+  if (!work_loop_->IsInLoopThread()) {
+    auto f = std::bind(&TcpChannel::ForceShutdown, shared_from_this());
+    work_loop_->PostTask(base::NewClosure(std::move(f)));
+    return;
+  }
+  // asume the thing done!
+  HandleClose();
 }
 
 int32_t TcpChannel::Send(const uint8_t* data, const int32_t len) {

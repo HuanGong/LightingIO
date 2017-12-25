@@ -27,6 +27,8 @@ public:
   int32_t CanReadSize();
   int32_t CanWriteSize();
 
+  const uint8_t* FindCRLF() const;
+
   void WriteString(const std::string str);
   void WriteRawData(const void* data, int32_t len);
 

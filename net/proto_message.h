@@ -11,7 +11,6 @@ public:
   /*decode ByteBuffer to special protocol,http redis raw etc*/
   virtual bool Decode() {};
 private:
-
 };
 
 }

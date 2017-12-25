@@ -11,18 +11,20 @@ IOService::IOService(const InetAddress addr,
                      const std::string protocol,
                      base::MessageLoop2* workloop,
                      IOServiceDelegate* delegate)
-  : as_dispatcher_(true),
+  : //as_dispatcher_(true),
     protocol_(protocol),
     work_loop_(workloop),
-    delegate_(delegate) {
+    delegate_(delegate),
+    is_stopping_(false) {
 
   CHECK(delegate_);
-
+  service_name_ = addr.IpPortAsString();
   acceptor_.reset(new ServiceAcceptor(work_loop_, addr));
-
-  acceptor_->SetNewConnectionCallback(
-    std::bind(&IOService::HandleNewConnection, this, std::placeholders::_1, std::placeholders::_2));
-
+  acceptor_->SetNewConnectionCallback(std::bind(&IOService::HandleNewConnection,
+                                                this,
+                                                std::placeholders::_1,
+                                                std::placeholders::_2));
+  //TODO: consider move this to start
   proto_service_ = delegate_->GetProtocolService(protocol_);
 }
 
@@ -31,19 +33,41 @@ IOService::~IOService() {
 }
 
 void IOService::StartIOService() {
-  if (work_loop_->IsInLoopThread()) {
-    acceptor_->StartListen();
-  } else {
+  if (!work_loop_->IsInLoopThread()) {
     auto functor = std::bind(&ServiceAcceptor::StartListen, acceptor_);
     work_loop_->PostTask(base::NewClosure(std::move(functor)));
+    return;
+  }
+
+  acceptor_->StartListen();
+  delegate_->IOServiceStarted(this);
+}
+
+/* step1: close the acceptor */
+void IOService::StopIOService() {
+  if (!work_loop_->IsInLoopThread()) {
+    auto functor = std::bind(&ServiceAcceptor::StopListen, acceptor_);
+    work_loop_->PostTask(base::NewClosure(std::move(functor)));
+    return;
+  }
+
+  //sync
+  acceptor_->StopListen();
+
+  is_stopping_ = true;
+
+  //async
+  for (auto& pair : connections_) {
+    pair.second->ForceShutdown();
+  }
+
+  if (connections_.size() == 0) {
+    delegate_->IOServiceStoped(this);
   }
 }
 
-void IOService::StopIOService() {
-
-}
-
 void IOService::HandleNewConnection(int local_socket, const InetAddress& peer_addr) {
+  CHECK(work_loop_->IsInLoopThread());
   if (!delegate_) {
     LOG(ERROR) << "New Connection Can't Get IOWorkLoop From NULL delegate";
     socketutils::CloseSocket(local_socket);
@@ -52,19 +76,24 @@ void IOService::HandleNewConnection(int local_socket, const InetAddress& peer_ad
   //max connction reached
   if (!delegate_->CanCreateNewChannel()) {
     socketutils::CloseSocket(local_socket);
-    LOG(INFO) << "Max Channels Reached, Current IOservice Has:[" << channel_count_ << "] Channel";
+    LOG(INFO) << "Max Channels Limit, Current Has:[" << channel_count_ << "] Channels";
     return;
   }
 
   base::MessageLoop2* io_work_loop = delegate_->GetNextIOWorkLoop();
+  if (!io_work_loop) {
+    socketutils::CloseSocket(local_socket);
+    return;
+  }
   LOG(INFO) << " New Connection from:" << peer_addr.IpPortAsString();
 
   net::InetAddress local_addr(socketutils::GetLocalAddrIn(local_socket));
   auto new_channel = TcpChannel::Create(local_socket,
-                                               local_addr,
-                                               peer_addr,
-                                               io_work_loop);
-  new_channel->SetChannelName("test");
+                                        local_addr,
+                                        peer_addr,
+                                        io_work_loop);
+  new_channel->SetChannelName(peer_addr.IpPortAsString());
+
   new_channel->SetOwnerLoop(work_loop_);
   new_channel->SetCloseCallback(std::bind(&IOService::OnChannelClosed,
                                           this,
@@ -89,21 +118,19 @@ void IOService::HandleNewConnection(int local_socket, const InetAddress& peer_ad
   //if (work_loop_->IsInLoopThread()) {
     //StoreConnection(f);
   //}
-  work_loop_->PostTask(base::NewClosure(
-      std::bind(&IOService::StoreConnection, this, new_channel)));
-
-  //f->ShutdownConnection();
+  //work_loop_->PostTask(base::NewClosure(
+      //std::bind(&IOService::StoreConnection, this, new_channel)));
+  StoreConnection(new_channel);
 }
 
 void IOService::OnChannelClosed(const RefTcpChannel& connection) {
-  if (work_loop_->IsInLoopThread()) {
-    RemoveConncetion(connection);
-  } else {
+  if (!work_loop_->IsInLoopThread()) {
     work_loop_->PostTask(base::NewClosure(
         std::bind(&IOService::RemoveConncetion, this, connection)));
+    return;
   }
+  RemoveConncetion(connection);
 }
-
 
 void IOService::StoreConnection(const RefTcpChannel connection) {
   CHECK(work_loop_->IsInLoopThread());
@@ -124,6 +151,9 @@ void IOService::RemoveConncetion(const RefTcpChannel connection) {
 
   if (delegate_) {
     delegate_->DecreaseChannelCount();
+    if (is_stopping_) {
+      delegate_->IOServiceStoped(this);
+    }
   }
 }
 

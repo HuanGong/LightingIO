@@ -26,9 +26,9 @@ public:
   } ChannelStatus;
 
   static RefTcpChannel Create(int socket_fd,
-                                     const InetAddress& local,
-                                     const InetAddress& peer,
-                                     base::MessageLoop2* loop);
+                              const InetAddress& local,
+                              const InetAddress& peer,
+                              base::MessageLoop2* loop);
 
   ~TcpChannel();
   const std::string& ChannelName() {return channal_name_;}
@@ -39,13 +39,12 @@ public:
   void SetCloseCallback(const ChannelClosedCallback& callback);
   void SetStatusChangedCallback(const ChannelStatusCallback& callback);
 
-  std::string StatusToString() const;
   /*return -1 in error, return 0 when success*/
   int32_t Send(const uint8_t* data, const int32_t len);
 
+  void ForceShutdown();
   void ShutdownChannel();
   const std::string StatusAsString();
-  inline ChannelStatus Status() {return channel_status_; }
 protected:
   void Initialize();
 
@@ -68,6 +67,7 @@ private:
   base::MessageLoop2* work_loop_;
   base::MessageLoop2* owner_loop_;
 
+  bool schedule_shutdown_;
   ChannelStatus channel_status_;
 
   int socket_fd_;

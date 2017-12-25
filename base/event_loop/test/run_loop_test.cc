@@ -10,6 +10,7 @@
 #include "../event_pump.h"
 #include "../timer_event.h"
 #include "../msg_event_loop.h"
+#include "../linux_signal.h"
 
 
 bool MessageLoop2Test();
@@ -17,13 +18,33 @@ bool FdEventTest();
 bool TimerEventTest();
 
 int main(int argc, char** argv) {
-  google::InitGoogleLogging(argv[0]);  // 初始化 glog
+  //google::InitGoogleLogging(argv[0]);  // 初始化 glog
   //google::ParseCommandLineFlags(&argc, &argv, true);  // 初始化 gflags
 
   //FdEventTest();
   //TimerEventTest();
+  //static void signal(int sig, const std::function<void()>& handler);
 
-  MessageLoop2Test();
+  LOG(INFO) << "Signal 9 install";
+  base::Signal::signal(9, [](){
+    LOG(INFO) << "Signal 9 triggled , i can do something here";
+    std::cout << "get sinale 9" << std::endl;;
+    exit(0);
+  });
+  LOG(INFO) << "Signal 2 install";
+  base::Signal::signal(2, [](){
+    std::cout << "get sinale 2" << std::endl;;
+    LOG(INFO) << "Signal 2 ctrl-c triggled , i can do something here";
+  });
+  LOG(INFO) << "Signal 10 install";
+  base::Signal::signal(10, [](){
+    std::cout << "get sinale 10" << std::endl;;
+    LOG(INFO) << "Signal 10 customer signal triggled , i can do something here";
+  });
+  while(1) {
+    sleep(10);
+  }
+  //MessageLoop2Test();
   return 0;
 }
 

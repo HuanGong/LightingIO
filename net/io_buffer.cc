@@ -10,7 +10,9 @@
 #include <sys/uio.h>
 #include <sys/ioctl.h>
 
+const static char kCRLF[] = "\r\n";
 static const int32_t kWarningBufferSize = 64 * 1024 * 1024;
+
 namespace net {
 
 IOBuffer::IOBuffer(int32_t init_size) :
@@ -127,5 +129,11 @@ void IOBuffer::Produce(int32_t len) {
 bool IOBuffer::HasALine() {
   return NULL !=  memchr(GetRead(), '\n', CanReadSize());
 }
+
+const uint8_t* FindCRLF() const {
+  const uint8_t* res = std::search(GetRead(), GetWrite(), kCRLF, kCRLF+2);
+  return res == GetRead() ? NULL : res;
+}
+
 
 }

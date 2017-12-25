@@ -16,6 +16,7 @@
 #include <sstream>
 #include <functional>
 #include <chrono>
+#include <map>
 
 #include <iostream>
 #include "file_util_linux.h"
@@ -199,7 +200,7 @@ void MessageLoop2::Start() {
   thread_ptr_.reset(new std::thread(std::bind(&MessageLoop2::ThreadMain, this)));
 
   do {
-    std::this_thread::sleep_for(std::chrono::microseconds(10));
+    std::this_thread::sleep_for(std::chrono::microseconds(1));
   } while(status_ != ST_STARTED);
 }
 
@@ -232,6 +233,7 @@ void MessageLoop2::ThreadMain() {
 
   //delegate_->AfterLoopRun();
 
+  LOG(INFO) << "MessageLoop: " << loop_name_ << " Stop Runing";
   event_pump_->RemoveFdEvent(wakeup_event_.get());
   threadlocal_current_ = NULL;
   status_.store(ST_STOPED);
@@ -359,6 +361,23 @@ void MessageLoop2::PrepareReplyTask(scoped_refptr<ReplyTaskOwnerRef> reply_task)
   DCHECK(reply_task);
   std::unique_lock<std::mutex> lck(pending_lock_);
   pending_replies_.push_back(std::move(reply_task));
+}
+
+bool MessageLoop2::InstallSigHandler(int sig, const SigHandler handler) {
+  if (status_ != ST_STARTED) return false;
+
+  if (!IsInLoopThread()) {
+    PostTask(NewClosure(std::bind([&](int s, const SigHandler h){
+      sig_handlers_.insert(std::make_pair(s, h));
+    }, sig, handler)));
+  } else {
+    sig_handlers_.insert(std::make_pair(sig, handler));
+  }
+  return true;
+}
+
+void MessageLoop2::QuitLoop() {
+  event_pump_->Quit();
 }
 
 };

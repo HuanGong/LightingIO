@@ -17,11 +17,13 @@ public:
   ~ServiceAcceptor();
 
   bool StartListen();
+  void StopListen();
   bool IsListenning() { return listenning_; }
 
   void SetNewConnectionCallback(const NewConnectionCallback& cb);
   const InetAddress& ListenLocal() const { return address_; };
 private:
+  void InitListener();
   void HandleCommingConnection();
 
   bool listenning_;
