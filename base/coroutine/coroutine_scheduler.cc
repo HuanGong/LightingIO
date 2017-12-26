@@ -46,6 +46,7 @@ void CoroScheduler::DeleteLater(Coroutine* finished) {
   trash_can_.push_back(finished);
   ScheduleCoro(coro_deleter_);
 }
+
 CoroScheduler::CoroScheduler(MessageLoop* loop)
   : main_coro_(nullptr),
     schedule_loop_(loop) {
