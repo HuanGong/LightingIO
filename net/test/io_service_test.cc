@@ -1,5 +1,5 @@
 
-#include "../proto_service.h"
+#include "../protocol/proto_service.h"
 #include "glog/logging.h"
 #include "../tcp_channel.h"
 #include "../io_service.h"
@@ -13,6 +13,10 @@ public:
     ProtoService("tcp") {
   }
   ~TcpProtoService() {
+  }
+
+  virtual void SetMessageHandler(ProtoMessageHandler) {
+    ;
   }
 
   void OnStatusChanged(const RefTcpChannel& channel) override {

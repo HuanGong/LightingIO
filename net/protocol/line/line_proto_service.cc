@@ -14,7 +14,8 @@ LineProtoService::~LineProtoService() {
 void LineProtoService::OnStatusChanged(const RefTcpChannel& channel) {
   LOG(INFO) << "RefTcpChannel status changed:" << channel->StatusAsString();
 }
-void LineProtoService::SetMessageHandler(ProtoMessageHandler channel) {
+void LineProtoService::SetMessageHandler(ProtoMessageHandler handler) {
+  message_handler_ = handler;
 }
 void LineProtoService::OnDataFinishSend(const RefTcpChannel& channel) {
   LOG(INFO) << "RefTcpChannel status changed:" << channel->StatusAsString();
@@ -30,7 +31,6 @@ void LineProtoService::OnDataRecieved(const RefTcpChannel& channel, IOBuffer* bu
   std::string line(start, len);
   buf->Consume(len + 2/*lenth of /r/n*/);
 }
-
 
 
 }//end of file

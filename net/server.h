@@ -48,7 +48,7 @@ public:
 
   void Initialize();
   /* formart scheme://ip:port http://0.0.0.0:5005 */
-  bool RegisterService(const std::string server);
+  bool RegisterService(const std::string, ProtoMessageHandler);
 
   void RunAllService();
 public: //override from ioservicedelegate

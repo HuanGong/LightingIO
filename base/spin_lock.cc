@@ -1,5 +1,7 @@
 
+#include <thread>
 #include "spin_lock.h"
+
 namespace base {
 
 SpinLock::SpinLock( void ) {

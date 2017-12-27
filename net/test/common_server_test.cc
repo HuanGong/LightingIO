@@ -1,7 +1,8 @@
 #include "../server.h"
 #include <glog/logging.h>
-#include "../proto_service.h"
+#include "../protocol/proto_service.h"
 #include "../tcp_channel.h"
+#include <functional>
 
 namespace net {
 
@@ -11,6 +12,10 @@ public:
     ProtoService("tcp") {
   }
   ~TcpProtoService() {}
+
+  void SetMessageHandler(ProtoMessageHandler handler) {
+    message_handler_ = handler;
+  }
   void OnStatusChanged(const RefTcpChannel& channel) override {
     LOG(INFO) << "RefTcpChannel status changed:" << channel->StatusAsString();
   }
@@ -23,8 +28,11 @@ public:
     if (size > 0) {
       buffer->Consume(size);
     }
+
     //channel->ShutdownChannel();
   }
+private:
+  ProtoMessageHandler message_handler_;
 };
 
 class Application: public SrvDelegate {
@@ -43,12 +51,18 @@ private:
 
 }//end namespace
 
+void handler(net::RefProtocolMessage message) {
+
+}
+
 int main() {
 
   //net::SrvDelegate delegate;
   net::Application app;
   net::Server server((net::SrvDelegate*)&app);
-  server.RegisterService("tcp://0.0.0.0:5005");
+
+  server.RegisterService("tcp://0.0.0.0:5005",
+                         std::bind(handler, std::placeholders::_1));
   server.RunAllService();
 
   LOG(INFO) << __FUNCTION__ << " program end";

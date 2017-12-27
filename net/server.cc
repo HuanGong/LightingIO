@@ -27,26 +27,31 @@ void Server::Initialize() {
 
   InitIOServiceLoop();
 
-  delegate_->RegisterProtoService(proto_services_);
-
   base::Signal::signal(SERVER_EXIT_SIG,
                        std::bind(&Server::ExitServerSignalHandler, this));
 }
 
   /* formart scheme://ip:port http://0.0.0.0:5005 */
-bool Server::RegisterService(const std::string server) {
+bool Server::RegisterService(const std::string server, ProtoMessageHandler handler) {
   url::SchemeIpPort sch_ip_port;
   if (!url::ParseSchemeIpPortString(server, sch_ip_port)) {
     LOG(ERROR) << "argument format error,eg [scheme://xx.xx.xx.xx:port]";
     return false;
   }
 
-  RefProtoService proto_servie = proto_services_[sch_ip_port.scheme];
+  if (!ProtoServiceFactory::Instance().HasProtoServiceCreator(sch_ip_port.scheme)) {
+    LOG(ERROR) << "No ProtoServiceCreator Find for protocol scheme:" << sch_ip_port.scheme;
+    return false;
+  }
+
+  /*
+  RefProtoService proto_servie = ProtoServiceFactory::Instance().Create(sch_ip_port.scheme);
   if (!proto_servie) {
     LOG(ERROR) << "No ProtoService Find, scheme:" << sch_ip_port.scheme;
     return false;
   }
-  //delegate_->SetProtoMessageHandler(proto_servie);
+  */
+
   if (0 == ioservice_loops_.size()) {
     LOG(ERROR) << "No Loops Find For IOSerivce";
     return false;
@@ -62,6 +67,7 @@ bool Server::RegisterService(const std::string server) {
 }
 
 void Server::RunAllService() {
+
   for (auto& server : ioservices_) {
     server->StartIOService();
   }

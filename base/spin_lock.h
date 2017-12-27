@@ -10,7 +10,7 @@ namespace base {
 class SpinLock {
 public:
   SpinLock();
-  void lock()
+  void lock();
   bool try_lock();
   void unlock();
 private:

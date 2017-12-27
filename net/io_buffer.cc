@@ -9,8 +9,9 @@
 #include <cerrno>
 #include <sys/uio.h>
 #include <sys/ioctl.h>
+#include <algorithm>
 
-const static char kCRLF[] = "\r\n";
+static const char kCRLF[] = "\r\n";
 static const int32_t kWarningBufferSize = 64 * 1024 * 1024;
 
 namespace net {
@@ -85,6 +86,13 @@ bool IOBuffer::EnsureWritableSize(int32_t len) {
   return true;
 }
 
+uint8_t* IOBuffer::MutableRead() {
+  return &data_[read_index_];
+}
+uint8_t* IOBuffer::MutableWrite() {
+  return &data_[write_index_];
+}
+
 const uint8_t* IOBuffer::GetRead() {
   return &data_[read_index_];
 }
@@ -130,8 +138,9 @@ bool IOBuffer::HasALine() {
   return NULL !=  memchr(GetRead(), '\n', CanReadSize());
 }
 
-const uint8_t* FindCRLF() const {
-  const uint8_t* res = std::search(GetRead(), GetWrite(), kCRLF, kCRLF+2);
+const uint8_t* IOBuffer::FindCRLF() {
+
+  const uint8_t* res = std::search(MutableRead(), MutableWrite(), kCRLF, kCRLF+2);
   return res == GetRead() ? NULL : res;
 }
 

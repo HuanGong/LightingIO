@@ -10,9 +10,10 @@ public:
   LineProtoService();
   ~LineProtoService();
 
+  void SetMessageHandler(ProtoMessageHandler) override;
+
   // override from ProtoService
   void OnStatusChanged(const RefTcpChannel&) override;
-  void SetMessageHandler(ProtoMessageHandler) override;
   void OnDataFinishSend(const RefTcpChannel&) override;
   void OnDataRecieved(const RefTcpChannel&, IOBuffer*) override;
 protected:

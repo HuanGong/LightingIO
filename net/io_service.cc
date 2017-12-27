@@ -2,8 +2,8 @@
 
 #include "io_service.h"
 #include "glog/logging.h"
-#include "proto_service.h"
 #include "tcp_channel.h"
+#include "protocol/proto_service.h"
 
 namespace net {
 
@@ -98,6 +98,11 @@ void IOService::HandleNewConnection(int local_socket, const InetAddress& peer_ad
   new_channel->SetCloseCallback(std::bind(&IOService::OnChannelClosed,
                                           this,
                                           std::placeholders::_1));
+
+  RefProtoService proto_servie =
+    ProtoServiceFactory::Instance().Create(protocol_);
+
+  /*
   RcvDataCallback data_cb = std::bind(&ProtoService::OnDataRecieved,
                                       proto_service_,
                                       std::placeholders::_1,
@@ -113,6 +118,7 @@ void IOService::HandleNewConnection(int local_socket, const InetAddress& peer_ad
                                                proto_service_,
                                                std::placeholders::_1);
   new_channel->SetFinishSendCallback(std::move(finish_writen));
+  */
 
   /* for uniform logic just post task to owner handle this*/
   //if (work_loop_->IsInLoopThread()) {

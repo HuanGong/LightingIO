@@ -13,6 +13,7 @@ class ServiceAcceptor;
 class TcpChannel;
 class IOService;
 class ProtoService;
+class ProtocolMessage;
 
 /* ============ connection channel relative =========*/
 typedef std::shared_ptr<TcpChannel> RefTcpChannel;
@@ -33,7 +34,7 @@ typedef std::shared_ptr<ProtoService> RefProtoService;
 typedef std::shared_ptr<IOService> RefIOService;
 //typedef std::function<void
 //std::map<std::string/*protocol*/,
-typedef std::shared_prt<ProtocolMessage> RefProtocolMessage;
+typedef std::shared_ptr<ProtocolMessage> RefProtocolMessage;
 typedef std::unique_ptr<ProtocolMessage> OwnedProtocolMessage;
 
 typedef std::function<void(const RefProtocolMessage)> ProtoMessageHandler;

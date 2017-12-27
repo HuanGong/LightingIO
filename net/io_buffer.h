@@ -27,7 +27,7 @@ public:
   int32_t CanReadSize();
   int32_t CanWriteSize();
 
-  const uint8_t* FindCRLF() const;
+  const uint8_t* FindCRLF();
 
   void WriteString(const std::string str);
   void WriteRawData(const void* data, int32_t len);
@@ -37,6 +37,8 @@ public:
   void Consume(int32_t len);
   void Produce(int32_t len);
 private:
+  uint8_t* MutableRead();
+  uint8_t* MutableWrite();
 
   int32_t read_index_;
   int32_t write_index_;
