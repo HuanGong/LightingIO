@@ -47,7 +47,7 @@ public:
   base::MessageLoop2* AcceptorLoop() { return work_loop_; }
   const std::string& IOServiceName() const {return service_name_;}
 
-  void SetMessageRequestHandler(ProtoMessageHandler handler);
+  void SetProtoMessageHandler(ProtoMessageHandler handler);
 private:
   /* create a new connection channel */
   void HandleNewConnection(int, const InetAddress&);
@@ -66,7 +66,7 @@ private:
 
   /* interface to owner and handler */
   IOServiceDelegate* delegate_;
-  RefProtoService proto_service_;
+  //RefProtoService proto_service_;
 
   // install this callback to protoservice
   ProtoMessageHandler message_handler_;

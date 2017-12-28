@@ -1,13 +1,13 @@
 #ifndef _NET_LINE_PROTO_MESSAGE_H
 #define _NET_LINE_PROTO_MESSAGE_H
 
-#include "net/proto_message.h"
+#include "protocol/proto_message.h"
 
 namespace net {
 class LineMessage : public ProtocolMessage {
 public:
   LineMessage(ProtoMsgType t);
-
+  ~LineMessage();
   std::string& MutableBody();
   const std::string& Body() const;
 private:

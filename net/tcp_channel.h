@@ -38,6 +38,7 @@ public:
   void SetFinishSendCallback(const FinishSendCallback& callback);
   void SetCloseCallback(const ChannelClosedCallback& callback);
   void SetStatusChangedCallback(const ChannelStatusCallback& callback);
+  void SetProtoService(RefProtoService proto_service);
 
   /*return -1 in error, return 0 when success*/
   int32_t Send(const uint8_t* data, const int32_t len);
@@ -80,6 +81,8 @@ private:
 
   IOBuffer in_buffer_;
   IOBuffer out_buffer_;
+
+  RefProtoService proto_service_;
 
   RcvDataCallback recv_data_callback_;
   ChannelClosedCallback closed_callback_;

@@ -260,6 +260,11 @@ void TcpChannel::SetCloseCallback(const ChannelClosedCallback& callback) {
 void TcpChannel::SetStatusChangedCallback(const ChannelStatusCallback& callback) {
   status_change_callback_ = callback;
 }
+
+void TcpChannel::SetProtoService(RefProtoService proto_service) {
+  proto_service_ = proto_service;
+}
+
 const std::string TcpChannel::StatusAsString() {
   switch(channel_status_) {
     case CONNECTING:

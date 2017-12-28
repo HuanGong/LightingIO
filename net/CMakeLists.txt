@@ -16,6 +16,10 @@ ADD_LIBRARY(ltnet STATIC
   service_acceptor.cc
   url_string_utils.cc
   protocol/proto_message.cc
+  protocol/proto_service.cc
+  protocol/proto_service_factory.cc
+  protocol/line/line_message.cc
+  protocol/line/line_proto_service.cc
 )
 
 TARGET_LINK_LIBRARIES(ltnet

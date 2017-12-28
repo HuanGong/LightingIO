@@ -1,7 +1,7 @@
 #ifndef NET_LINE_PROTO_SERVICE_H
 #define NET_LINE_PROTO_SERVICE_H
 
-#include "net/proto_service.h"
+#include "protocol/proto_service.h"
 
 namespace net {
 
@@ -10,16 +10,10 @@ public:
   LineProtoService();
   ~LineProtoService();
 
-  void SetMessageHandler(ProtoMessageHandler) override;
-
   // override from ProtoService
   void OnStatusChanged(const RefTcpChannel&) override;
   void OnDataFinishSend(const RefTcpChannel&) override;
   void OnDataRecieved(const RefTcpChannel&, IOBuffer*) override;
-protected:
-
-private:
-  ProtoMessageHandler message_handler_;
 };
 
 }

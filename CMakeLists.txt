@@ -25,6 +25,9 @@ LINK_DIRECTORIES(
 include_directories(
   ${CMAKE_SOURCE_DIR}
   ${CMAKE_SOURCE_DIR}/base
+  #net
+  ${CMAKE_SOURCE_DIR}/net
+
   ${CMAKE_SOURCE_DIR}/thirdparty
   ${CMAKE_BINARY_DIR}/thirdparty
   #glog

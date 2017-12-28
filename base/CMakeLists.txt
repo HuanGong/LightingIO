@@ -42,6 +42,8 @@ SET(BASE_SOURCES
   event_loop/msg_event_loop.cc
   #spin lock
   spin_lock.cc
+  #memory
+  memory/lazy_instance.cc
 )
 
 ADD_LIBRARY(base_shared SHARED

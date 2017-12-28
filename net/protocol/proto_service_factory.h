@@ -20,7 +20,7 @@ public:
   // not thread safe,
   // this can cover the default protoservice or add new protocol support
   void RegisterCreator(const std::string, ProtoserviceCreator);
-  bool HasProtoServiceCreator();
+  bool HasProtoServiceCreator(const std::string&);
 private:
   void InitInnerDefault();
   std::map<std::string, ProtoserviceCreator> creators_;

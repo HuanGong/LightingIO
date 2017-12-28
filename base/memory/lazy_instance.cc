@@ -20,6 +20,7 @@
 #endif
 
 namespace base {
+
 namespace internal {
 typedef LazyInstanceState::AtomicType AtomicType;
 #if defined(__GNUC__)
@@ -82,4 +83,5 @@ void LazyInstanceState::doneConstructing() {
     storeRelease(&mState, STATE_DONE);
 }
 }  // namespace internal
+
 }  // namespace base

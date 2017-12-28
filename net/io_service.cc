@@ -4,6 +4,7 @@
 #include "glog/logging.h"
 #include "tcp_channel.h"
 #include "protocol/proto_service.h"
+#include "protocol/proto_service_factory.h"
 
 namespace net {
 
@@ -25,7 +26,7 @@ IOService::IOService(const InetAddress addr,
                                                 std::placeholders::_1,
                                                 std::placeholders::_2));
   //TODO: consider move this to start
-  proto_service_ = delegate_->GetProtocolService(protocol_);
+  //proto_service_ = delegate_->GetProtocolService(protocol_);
 }
 
 IOService::~IOService() {
@@ -99,8 +100,13 @@ void IOService::HandleNewConnection(int local_socket, const InetAddress& peer_ad
                                           this,
                                           std::placeholders::_1));
 
-  RefProtoService proto_servie =
+  RefProtoService proto_service =
     ProtoServiceFactory::Instance().Create(protocol_);
+
+  // set a coro_handler function ?
+  proto_service->SetMessageHandler(message_handler_);
+
+  new_channel->SetProtoService(proto_service);
 
   /*
   RcvDataCallback data_cb = std::bind(&ProtoService::OnDataRecieved,
@@ -161,6 +167,10 @@ void IOService::RemoveConncetion(const RefTcpChannel connection) {
       delegate_->IOServiceStoped(this);
     }
   }
+}
+
+void IOService::SetProtoMessageHandler(ProtoMessageHandler handler) {
+  message_handler_ = handler;
 }
 
 }// endnamespace net
