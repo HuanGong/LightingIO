@@ -26,7 +26,7 @@ SET(BASE_SOURCES
   time/time_utils.cc
   utils/ns_convertor.cc
   #messageloop
-  message_loop/message_loop.cc
+  #message_loop/message_loop.cc
   #coroutine
   coroutine/coroutine.cc
   coroutine/coroutine_scheduler.cc
@@ -63,14 +63,14 @@ TARGET_LINK_LIBRARIES(base_shared
 )
 
 #messageloop test
-ADD_EXECUTABLE(messageloop_test
-  message_loop/messageloop_test.cc
-)
-TARGET_LINK_LIBRARIES(messageloop_test
-  coro
-  glog
-  base_shared
-)
+#ADD_EXECUTABLE(messageloop_test
+#  message_loop/messageloop_test.cc
+#)
+#TARGET_LINK_LIBRARIES(messageloop_test
+#  coro
+#  glog
+#  base_shared
+#)
 
 ADD_EXECUTABLE(eventloop_test
   event_loop/test/run_loop_test.cc
