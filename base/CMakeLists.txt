@@ -80,3 +80,12 @@ TARGET_LINK_LIBRARIES(eventloop_test
   base_shared
 )
 
+ADD_EXECUTABLE(coro2_test
+  coroutine/test_main.cc
+)
+TARGET_LINK_LIBRARIES(coro2_test
+  glog
+  coro
+  base_shared
+)
+
