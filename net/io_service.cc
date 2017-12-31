@@ -25,8 +25,6 @@ IOService::IOService(const InetAddress addr,
                                                 this,
                                                 std::placeholders::_1,
                                                 std::placeholders::_2));
-  //TODO: consider move this to start
-  //proto_service_ = delegate_->GetProtocolService(protocol_);
 }
 
 IOService::~IOService() {
@@ -102,7 +100,7 @@ void IOService::HandleNewConnection(int local_socket, const InetAddress& peer_ad
 
   RefProtoService proto_service =
     ProtoServiceFactory::Instance().Create(protocol_);
-
+  proto_service->SetMessageDispatcher(delegate_->MessageDispatcher());
   // set a coro_handler function ?
   proto_service->SetMessageHandler(message_handler_);
 

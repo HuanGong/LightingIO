@@ -5,6 +5,8 @@
 
 #include "net_callback.h"
 #include "service_acceptor.h"
+#include "dispatcher/workload_dispatcher.h"
+
 #include "base/event_loop/msg_event_loop.h"
 
 namespace net {
@@ -23,7 +25,8 @@ public:
   virtual void DecreaseChannelCount() = 0;
 
   virtual bool CanCreateNewChannel() { return true; }
-  virtual RefProtoService GetProtocolService(const std::string protocol) = 0;
+
+  virtual WorkLoadDispatcher* MessageDispatcher() {return NULL;}
 
   virtual void IOServiceStarted(const IOService* ioservice) {};
   virtual void IOServiceStoped(const IOService* ioservice) {};
@@ -49,6 +52,7 @@ public:
 
   void SetProtoMessageHandler(ProtoMessageHandler handler);
 private:
+  //void HandleProtoMessage(RefProtocolMessage message);
   /* create a new connection channel */
   void HandleNewConnection(int, const InetAddress&);
 

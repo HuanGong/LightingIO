@@ -8,8 +8,10 @@
 #include <inttypes.h>
 #include "net_callback.h"
 #include "io_service.h"
-#include "event_loop/msg_event_loop.h"
+#include "dispatcher/coro_dispatcher.h"
+
 #include "glog/logging.h"
+#include "event_loop/msg_event_loop.h"
 
 namespace net {
 
@@ -24,12 +26,6 @@ class Server;
 class SrvDelegate {
 public:
   virtual ~SrvDelegate() {};
-
-  /*add new or modify default protocol service*/
-  virtual void RegisterProtoService(ProtoserviceMap& map) {
-    LOG(INFO) << "base class RegisterProtoService be called";
-  };
-  virtual void SetProtoMessageHandler(RefProtoService& proto_service) {};
 
   virtual bool SharedLoopsForIO() {return false;};
   /* return n {n > 0} will create n loop using for acceptor,
@@ -55,7 +51,10 @@ public: //override from ioservicedelegate
   bool IncreaseChannelCount() override;
   void DecreaseChannelCount() override;
   base::MessageLoop2* GetNextIOWorkLoop() override;
-  RefProtoService GetProtocolService(const std::string protocol) override;
+
+  WorkLoadDispatcher* MessageDispatcher() override {
+    return &dispatcher_;
+  };
 
   bool CanCreateNewChannel() { return true;}
   void IOServiceStarted(const IOService* ioservice) override;
@@ -67,13 +66,14 @@ private:
 
   bool quit_;
   SrvDelegate* delegate_;
-  ProtoserviceMap proto_services_;
   std::vector<RefIOService> ioservices_;
 
   std::vector<RefMessageLoop> ioworker_loops_;
   std::vector<RefMessageLoop> ioservice_loops_;
 
   std::atomic<uint64_t> comming_connections_;
+
+  CoroWlDispatcher dispatcher_;
 };
 
 

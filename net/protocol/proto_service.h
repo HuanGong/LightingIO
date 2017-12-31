@@ -2,6 +2,7 @@
 #define _NET_PROTOCOL_SERVICE_H_H
 
 #include "../net_callback.h"
+#include "dispatcher/workload_dispatcher.h"
 
 namespace net {
 /* a stateless encoder/decoder and
@@ -11,16 +12,18 @@ public:
   ProtoService(const std::string proto);
   virtual ~ProtoService();
 
-  virtual void SetMessageHandler(ProtoMessageHandler);
+  void SetMessageHandler(ProtoMessageHandler);
+  void SetMessageDispatcher(WorkLoadDispatcher*);
   virtual void OnStatusChanged(const RefTcpChannel&) = 0;
   virtual void OnDataFinishSend(const RefTcpChannel&) = 0;
   virtual void OnDataRecieved(const RefTcpChannel&, IOBuffer*) = 0;
 
   const std::string& Protocol() {return protocol_;};
 protected:
-  void InvokeMessageHandler(RefProtocolMessage);
+  bool InvokeMessageHandler(RefProtocolMessage);
   //void HandleMessage();
   std::string protocol_;
+  WorkLoadDispatcher* dispatcher_;
   ProtoMessageHandler message_handler_;
 };
 

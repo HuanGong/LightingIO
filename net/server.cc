@@ -45,14 +45,6 @@ bool Server::RegisterService(const std::string server, ProtoMessageHandler handl
     return false;
   }
 
-  /*
-  RefProtoService proto_servie = ProtoServiceFactory::Instance().Create(sch_ip_port.scheme);
-  if (!proto_servie) {
-    LOG(ERROR) << "No ProtoService Find, scheme:" << sch_ip_port.scheme;
-    return false;
-  }
-  */
-
   if (0 == ioservice_loops_.size()) {
     LOG(ERROR) << "No Loops Find For IOSerivce";
     return false;
@@ -62,6 +54,7 @@ bool Server::RegisterService(const std::string server, ProtoMessageHandler handl
   net::InetAddress listenner_addr(sch_ip_port.ip, sch_ip_port.port);
 
   RefIOService s(new IOService(listenner_addr, sch_ip_port.scheme, loop.get(), this));
+  s->SetProtoMessageHandler(handler);
 
   ioservices_.push_back(std::move(s));
   return true;
@@ -90,10 +83,6 @@ void Server::DecreaseChannelCount() {
 
 base::MessageLoop2* Server::GetNextIOWorkLoop() {
   return ioworker_loops_[comming_connections_%ioworker_loops_.size()].get();
-}
-
-RefProtoService Server::GetProtocolService(const std::string protocol) {
-  return proto_services_[protocol];
 }
 
 void Server::IOServiceStarted(const IOService* s) {

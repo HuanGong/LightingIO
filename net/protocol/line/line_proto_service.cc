@@ -2,6 +2,7 @@
 #include "glog/logging.h"
 #include "io_buffer.h"
 #include "tcp_channel.h"
+#include "line_message.h"
 
 namespace net {
 
@@ -26,8 +27,13 @@ void LineProtoService::OnDataRecieved(const RefTcpChannel& channel, IOBuffer* bu
   }
   const uint8_t* start = buf->GetRead();
   int32_t len = line_crlf - start;
-  std::string line((const char*)start, len);
+
+  std::shared_ptr<LineMessage> msg = std::make_shared<LineMessage>(ProtoMsgType::kInRequest);
+  std::string& body = msg->MutableBody();
+  body.assign((const char*)start, len);
+
   buf->Consume(len + 2/*lenth of /r/n*/);
+  InvokeMessageHandler(msg);
 }
 
 

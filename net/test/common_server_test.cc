@@ -3,6 +3,7 @@
 #include "../protocol/proto_service.h"
 #include "../tcp_channel.h"
 #include <functional>
+#include "../protocol/line/line_message.h"
 
 namespace net {
 
@@ -38,21 +39,14 @@ private:
 class Application: public SrvDelegate {
 public:
   ~Application() {
-    tcp_.reset();
-  }
-  void RegisterProtoService(ProtoserviceMap& map) override {
-    LOG(INFO) << __FUNCTION__ << " enter";
-    tcp_.reset(new TcpProtoService());
-    map["tcp"] = tcp_;
   }
 private:
-  std::shared_ptr<ProtoService> tcp_;
 };
 
 }//end namespace
 
 void handler(net::RefProtocolMessage message) {
-
+  LOG(INFO) << "I got a ProtoMessage In my Handler";
 }
 
 int main() {
@@ -61,7 +55,7 @@ int main() {
   net::Application app;
   net::Server server((net::SrvDelegate*)&app);
 
-  server.RegisterService("tcp://0.0.0.0:5005",
+  server.RegisterService("line://0.0.0.0:5005",
                          std::bind(handler, std::placeholders::_1));
   server.RunAllService();
 

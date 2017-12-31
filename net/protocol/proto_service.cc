@@ -1,10 +1,12 @@
 
 #include "proto_service.h"
 #include "proto_message.h"
+#include "glog/logging.h"
 
 namespace net {
 ProtoService::ProtoService(const std::string proto) :
-  protocol_(proto) {
+  protocol_(proto),
+  dispatcher_(NULL) {
 
 }
 ProtoService::~ProtoService() {};
@@ -13,9 +15,15 @@ void ProtoService::SetMessageHandler(ProtoMessageHandler handler) {
   message_handler_ = handler;
 }
 
-void ProtoService::InvokeMessageHandler(RefProtocolMessage msg) {
-  if (message_handler_) {
-    message_handler_(msg);
+void ProtoService::SetMessageDispatcher(WorkLoadDispatcher* wld) {
+  dispatcher_ = wld;
+}
+
+bool ProtoService::InvokeMessageHandler(RefProtocolMessage msg) {
+  if (dispatcher_ && message_handler_) {
+    dispatcher_->Dispatch(message_handler_, msg);
+  } else {
+    LOG(ERROR) << "Bad Message Handler";
   }
 }
 

@@ -5,6 +5,7 @@
 #include "base/base_constants.h"
 #include "glog/logging.h"
 #include "base/closure/closure_task.h"
+#include "protocol/proto_service.h"
 
 namespace net {
 
@@ -83,9 +84,12 @@ void TcpChannel::OnConnectionReady() {
 }
 
 void TcpChannel::OnStatusChanged() {
+  RefTcpChannel guard(shared_from_this());
   if (status_change_callback_) {
-    RefTcpChannel guard(shared_from_this());
     status_change_callback_(guard);
+  }
+  if (proto_service_) {
+    proto_service_->OnStatusChanged(guard);
   }
 }
 
@@ -97,6 +101,9 @@ void TcpChannel::HandleRead() {
   if (bytes_read > 0) {
     if ( recv_data_callback_ ) {
       recv_data_callback_(shared_from_this(), &in_buffer_);
+    }
+    if (proto_service_) {
+      proto_service_->OnDataRecieved(shared_from_this(), &in_buffer_);
     }
   } else if (0 == bytes_read) { //read eof
     HandleClose();
@@ -130,6 +137,9 @@ void TcpChannel::HandleWrite() {
       //callback this may write data again
       if (finish_write_callback_) {
         finish_write_callback_(shared_from_this());
+      }
+      if (proto_service_) {
+        proto_service_->OnDataFinishSend(shared_from_this());
       }
     }
   } else {
