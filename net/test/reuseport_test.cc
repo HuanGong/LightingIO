@@ -53,13 +53,14 @@ int main(int argc, char** argv) {
 
     l->PostTask(base::NewClosure([=, &acceptors]() {
 
-      net::RefServiceAcceptor acceptor(new net::ServiceAcceptor(l, addr));
-      acceptor->SetNewConnectionCallback(std::bind(new_connection, std::placeholders::_1, std::placeholders::_2));
+      net::RefServiceAcceptor acceptor(new net::ServiceAcceptor(l->Pump(), addr));
+      acceptor->SetNewConnectionCallback(std::bind(new_connection,
+                                                   std::placeholders::_1,
+                                                   std::placeholders::_2));
       acceptor->StartListen();
       acceptors.push_back(std::move(acceptor));
 
     }));
-
   }
 
   for (base::MessageLoop2* l : loops) {

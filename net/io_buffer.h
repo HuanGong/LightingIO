@@ -29,7 +29,7 @@ public:
 
   const uint8_t* FindCRLF();
 
-  void WriteString(const std::string str);
+  void WriteString(const std::string& str);
   void WriteRawData(const void* data, int32_t len);
 
   std::string AsString();

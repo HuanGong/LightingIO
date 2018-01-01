@@ -49,14 +49,28 @@ bool Server::RegisterService(const std::string server, ProtoMessageHandler handl
     LOG(ERROR) << "No Loops Find For IOSerivce";
     return false;
   }
-  RefMessageLoop loop = ioservice_loops_[ioservices_.size() % ioservice_loops_.size()];
 
   net::InetAddress listenner_addr(sch_ip_port.ip, sch_ip_port.port);
+#ifdef NET_ENABLE_REUSER_PORT
+  for (auto& ref_loop : ioservice_loops_) {
+
+    RefIOService s(new IOService(listenner_addr,
+                                 sch_ip_port.scheme,
+                                 ref_loop.get(),
+                                 this));
+
+    s->SetProtoMessageHandler(handler);
+
+    ioservices_.push_back(std::move(s));
+  }
+#else
+  RefMessageLoop loop = ioservice_loops_[ioservices_.size() % ioservice_loops_.size()];
 
   RefIOService s(new IOService(listenner_addr, sch_ip_port.scheme, loop.get(), this));
   s->SetProtoMessageHandler(handler);
 
   ioservices_.push_back(std::move(s));
+#endif
   return true;
 }
 
@@ -88,8 +102,20 @@ base::MessageLoop2* Server::GetNextIOWorkLoop() {
 void Server::IOServiceStarted(const IOService* s) {
   LOG(INFO) << "IOService " << s->IOServiceName() << " Started .......";
 };
+
+//TODO: not thread safe
 void Server::IOServiceStoped(const IOService* s) {
   LOG(INFO) << "IOService " << s->IOServiceName() << " Stoped .......";
+  auto iter = ioservices_.begin();
+  for (iter;iter != ioservices_.end(); iter++) {
+    if (iter->get() == s) {
+      ioservices_.erase(iter);
+      break;
+    }
+  }
+  if (0 == ioservices_.size()) {
+    quit_ = true;
+  }
 };
 
 

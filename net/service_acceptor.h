@@ -13,7 +13,8 @@ namespace net {
 
 class ServiceAcceptor {
 public:
-  ServiceAcceptor(base::MessageLoop2* loop, const InetAddress& address);
+  //TODO: consider using eventpump replace loop
+  ServiceAcceptor(base::EventPump*, const InetAddress&);
   ~ServiceAcceptor();
 
   bool StartListen();
@@ -27,7 +28,7 @@ private:
   void HandleCommingConnection();
 
   bool listenning_;
-  base::MessageLoop2* owner_loop_;
+  base::EventPump* event_pump_;
 
   int socket_fd_;
   base::FdEvent::RefFdEvent socket_event_;

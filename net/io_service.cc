@@ -14,13 +14,13 @@ IOService::IOService(const InetAddress addr,
                      IOServiceDelegate* delegate)
   : //as_dispatcher_(true),
     protocol_(protocol),
-    work_loop_(workloop),
+    acceptor_loop_(workloop),
     delegate_(delegate),
     is_stopping_(false) {
 
   CHECK(delegate_);
   service_name_ = addr.IpPortAsString();
-  acceptor_.reset(new ServiceAcceptor(work_loop_, addr));
+  acceptor_.reset(new ServiceAcceptor(acceptor_loop_->Pump(), addr));
   acceptor_->SetNewConnectionCallback(std::bind(&IOService::HandleNewConnection,
                                                 this,
                                                 std::placeholders::_1,
@@ -32,9 +32,9 @@ IOService::~IOService() {
 }
 
 void IOService::StartIOService() {
-  if (!work_loop_->IsInLoopThread()) {
+  if (!acceptor_loop_->IsInLoopThread()) {
     auto functor = std::bind(&ServiceAcceptor::StartListen, acceptor_);
-    work_loop_->PostTask(base::NewClosure(std::move(functor)));
+    acceptor_loop_->PostTask(base::NewClosure(std::move(functor)));
     return;
   }
 
@@ -44,9 +44,9 @@ void IOService::StartIOService() {
 
 /* step1: close the acceptor */
 void IOService::StopIOService() {
-  if (!work_loop_->IsInLoopThread()) {
+  if (!acceptor_loop_->IsInLoopThread()) {
     auto functor = std::bind(&ServiceAcceptor::StopListen, acceptor_);
-    work_loop_->PostTask(base::NewClosure(std::move(functor)));
+    acceptor_loop_->PostTask(base::NewClosure(std::move(functor)));
     return;
   }
 
@@ -66,7 +66,7 @@ void IOService::StopIOService() {
 }
 
 void IOService::HandleNewConnection(int local_socket, const InetAddress& peer_addr) {
-  CHECK(work_loop_->IsInLoopThread());
+  CHECK(acceptor_loop_->IsInLoopThread());
   if (!delegate_) {
     LOG(ERROR) << "New Connection Can't Get IOWorkLoop From NULL delegate";
     socketutils::CloseSocket(local_socket);
@@ -93,7 +93,7 @@ void IOService::HandleNewConnection(int local_socket, const InetAddress& peer_ad
                                         io_work_loop);
   new_channel->SetChannelName(peer_addr.IpPortAsString());
 
-  new_channel->SetOwnerLoop(work_loop_);
+  new_channel->SetOwnerLoop(acceptor_loop_);
   new_channel->SetCloseCallback(std::bind(&IOService::OnChannelClosed,
                                           this,
                                           std::placeholders::_1));
@@ -101,7 +101,7 @@ void IOService::HandleNewConnection(int local_socket, const InetAddress& peer_ad
   RefProtoService proto_service =
     ProtoServiceFactory::Instance().Create(protocol_);
   proto_service->SetMessageDispatcher(delegate_->MessageDispatcher());
-  // set a coro_handler function ?
+
   proto_service->SetMessageHandler(message_handler_);
 
   new_channel->SetProtoService(proto_service);
@@ -125,17 +125,17 @@ void IOService::HandleNewConnection(int local_socket, const InetAddress& peer_ad
   */
 
   /* for uniform logic just post task to owner handle this*/
-  //if (work_loop_->IsInLoopThread()) {
+  //if (acceptor_loop_->IsInLoopThread()) {
     //StoreConnection(f);
   //}
-  //work_loop_->PostTask(base::NewClosure(
+  //acceptor_loop_->PostTask(base::NewClosure(
       //std::bind(&IOService::StoreConnection, this, new_channel)));
   StoreConnection(new_channel);
 }
 
 void IOService::OnChannelClosed(const RefTcpChannel& connection) {
-  if (!work_loop_->IsInLoopThread()) {
-    work_loop_->PostTask(base::NewClosure(
+  if (!acceptor_loop_->IsInLoopThread()) {
+    acceptor_loop_->PostTask(base::NewClosure(
         std::bind(&IOService::RemoveConncetion, this, connection)));
     return;
   }
@@ -143,7 +143,7 @@ void IOService::OnChannelClosed(const RefTcpChannel& connection) {
 }
 
 void IOService::StoreConnection(const RefTcpChannel connection) {
-  CHECK(work_loop_->IsInLoopThread());
+  CHECK(acceptor_loop_->IsInLoopThread());
   connections_[connection->ChannelName()] = connection;
 
   channel_count_.store(connections_.size());
@@ -154,7 +154,7 @@ void IOService::StoreConnection(const RefTcpChannel connection) {
 }
 
 void IOService::RemoveConncetion(const RefTcpChannel connection) {
-  CHECK(work_loop_->IsInLoopThread());
+  CHECK(acceptor_loop_->IsInLoopThread());
   connections_.erase(connection->ChannelName());
 
   channel_count_.store(connections_.size());

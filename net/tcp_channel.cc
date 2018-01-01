@@ -154,6 +154,39 @@ void TcpChannel::HandleWrite() {
   }
 }
 
+void TcpChannel::Send(RefProtocolMessage& message) {
+  CHECK(work_loop_->IsInLoopThread());
+
+  if (!message) {
+    LOG(ERROR) << "Bad ProtoMessage, ChannelInfo:" << ChannelName()
+               << " Status:" << StatusAsString();
+  }
+  if (channel_status_ != ChannelStatus::CONNECTED) {
+    LOG(ERROR) << "Channel Is Broken, ChannelInfo:" << ChannelName()
+               << " Status:" << StatusAsString();
+  }
+  CHECK(proto_service_);
+
+  if (out_buffer_.CanReadSize()) { //append to out_buffer_
+
+    bool success = proto_service_->EncodeMessageToBuffer(message.get(), &out_buffer_);
+    LOG_IF(ERROR, !success) << "Send Failed For Message Encode Failed";
+    if (!fd_event_->IsWriteEnable()) {
+      fd_event_->EnableWriting();
+    }
+
+  } else { //out_buffer_ empty, try write directly
+
+    IOBuffer buffer;
+    bool success = proto_service_->EncodeMessageToBuffer(message.get(), &buffer);
+    LOG_IF(ERROR, !success) << "Send Failed For Message Encode Failed";
+    if (success) {
+      Send(buffer.GetRead(), buffer.CanReadSize());
+    }
+
+  }
+}
+
 void TcpChannel::HandleError() {
   int err = socketutils::GetSocketError(socket_fd_);
   thread_local static char t_err_buff[128];
@@ -289,6 +322,10 @@ const std::string TcpChannel::StatusAsString() {
       return "UNKNOWN";
   }
   return "UNKNOWN";
+}
+
+base::MessageLoop2* TcpChannel::IOLoop() const {
+  return work_loop_;
 }
 
 }

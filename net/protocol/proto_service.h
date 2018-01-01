@@ -14,10 +14,13 @@ public:
 
   void SetMessageHandler(ProtoMessageHandler);
   void SetMessageDispatcher(WorkLoadDispatcher*);
+
   virtual void OnStatusChanged(const RefTcpChannel&) = 0;
   virtual void OnDataFinishSend(const RefTcpChannel&) = 0;
   virtual void OnDataRecieved(const RefTcpChannel&, IOBuffer*) = 0;
 
+  virtual bool EncodeMessageToBuffer(const ProtocolMessage* msg, IOBuffer* out_buffer);
+  virtual bool DecodeBufferToMessage(IOBuffer* buffer, ProtocolMessage* out_msg);
   const std::string& Protocol() {return protocol_;};
 protected:
   bool InvokeMessageHandler(RefProtocolMessage);

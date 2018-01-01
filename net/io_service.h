@@ -47,7 +47,7 @@ public:
   void StartIOService();
   void StopIOService();
 
-  base::MessageLoop2* AcceptorLoop() { return work_loop_; }
+  base::MessageLoop2* AcceptorLoop() { return acceptor_loop_; }
   const std::string& IOServiceName() const {return service_name_;}
 
   void SetProtoMessageHandler(ProtoMessageHandler handler);
@@ -66,7 +66,7 @@ private:
   std::string protocol_;
   RefServiceAcceptor acceptor_;
 
-  base::MessageLoop2* work_loop_;
+  base::MessageLoop2* acceptor_loop_;
 
   /* interface to owner and handler */
   IOServiceDelegate* delegate_;

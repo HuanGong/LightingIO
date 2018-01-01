@@ -9,7 +9,7 @@ namespace base {
 EventPump::EventPump()
   : running_(false),
     prefect_timeout_(1) {
-    multiplexer_.reset(new base::IoMultiplexerEpoll());
+  multiplexer_.reset(new base::IoMultiplexerEpoll());
 }
 
 EventPump::~EventPump() {
@@ -17,6 +17,9 @@ EventPump::~EventPump() {
 }
 
 void EventPump::Run() {
+
+  tid_ = std::this_thread::get_id();
+
   //sigpipe
   Signal::signal(SIGPIPE, []() { LOG(ERROR) << "sigpipe."; });
 
@@ -39,6 +42,10 @@ void EventPump::Run() {
 
 void EventPump::Quit() {
   running_ = false;
+}
+
+bool EventPump::IsInLoopThread() const {
+  return tid_ == std::this_thread::get_id();
 }
 
 QuitClourse EventPump::Quit_Clourse() {

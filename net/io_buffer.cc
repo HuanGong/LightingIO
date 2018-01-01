@@ -106,7 +106,7 @@ inline int32_t IOBuffer::CanWriteSize() {
   return data_.size() - write_index_;
 }
 
-void IOBuffer::WriteString(const std::string str) {
+void IOBuffer::WriteString(const std::string& str) {
   EnsureWritableSize(str.size());
   memcpy(&data_[write_index_], str.data(), str.size());
   Produce(str.size());

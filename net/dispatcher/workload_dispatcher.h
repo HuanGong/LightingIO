@@ -10,7 +10,7 @@ public:
   WorkLoadDispatcher() {};
   virtual ~WorkLoadDispatcher() {};
 
-  virtual bool Dispatch(ProtoMessageHandler, RefProtocolMessage) = 0;
+  virtual bool Dispatch(ProtoMessageHandler&, RefProtocolMessage&) = 0;
 
 };
 

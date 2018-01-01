@@ -73,7 +73,6 @@ class MessageLoop2 {
     std::list<std::unique_ptr<QueuedTask>> pending_;
     std::list<scoped_refptr<ReplyTaskOwnerRef>> pending_replies_;
 
-    std::thread::id tid_;
     std::string loop_name_;
     std::unique_ptr<std::thread> thread_ptr_;
 

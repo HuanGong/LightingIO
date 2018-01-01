@@ -17,6 +17,8 @@ class ProtocolMessage;
 
 /* ============ connection channel relative =========*/
 typedef std::shared_ptr<TcpChannel> RefTcpChannel;
+typedef std::weak_ptr<TcpChannel> WeakPtrTcpChannel;
+
 typedef std::function<void(const RefTcpChannel&)> FinishSendCallback;
 typedef std::function<void(const RefTcpChannel&)> ChannelClosedCallback;
 typedef std::function<void(const RefTcpChannel&)> ChannelStatusCallback;
@@ -37,7 +39,7 @@ typedef std::shared_ptr<IOService> RefIOService;
 typedef std::shared_ptr<ProtocolMessage> RefProtocolMessage;
 typedef std::unique_ptr<ProtocolMessage> OwnedProtocolMessage;
 
-typedef std::function<void(const RefProtocolMessage)> ProtoMessageHandler;
+typedef std::function<void(const RefProtocolMessage/*request*/)> ProtoMessageHandler;
 
 }
 #endif

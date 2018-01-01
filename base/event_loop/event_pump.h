@@ -5,6 +5,7 @@
 #include <memory>
 #include <map>
 #include <inttypes.h>
+#include <thread>
 
 #include "timer_task_queue.h"
 #include "fd_event.h"
@@ -29,18 +30,17 @@ public:
 
   void UpdateFdEvent(FdEvent* fd_event) override;
 
-  int32_t ScheduleTimer(RefTimerEvent& timerevent);
   bool CancelTimer(uint32_t timer_id);
-
-  bool Running() { return running_; }
+  int32_t ScheduleTimer(RefTimerEvent& timerevent);
 
   QuitClourse Quit_Clourse();
+  bool IsInLoopThread() const;
 
-  inline FdEvent::Delegate* AsFdEventDelegate() {
-    return this;
-  }
+  bool Running() { return running_; }
+  inline FdEvent::Delegate* AsFdEventDelegate() {return this;}
 protected:
   int64_t HandleTimerTask();
+
 private:
   bool running_;
   int32_t prefect_timeout_;
@@ -49,6 +49,7 @@ private:
   std::unique_ptr<IoMultiplexer> multiplexer_;
 
   TimerTaskQueue timer_queue_;
+  std::thread::id tid_;
 };
 
 }

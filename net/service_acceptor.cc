@@ -7,21 +7,19 @@
 
 namespace net {
 
-ServiceAcceptor::ServiceAcceptor(base::MessageLoop2* loop, const InetAddress& address)
+ServiceAcceptor::ServiceAcceptor(base::EventPump* pump, const InetAddress& address)
   : listenning_(false),
-    owner_loop_(loop),
+    event_pump_(pump),
     socket_fd_(0),
     address_(address) {
-  CHECK(owner_loop_);
-  //CHECK(owner_loop_->IsInLoopThread());
+  CHECK(event_pump_);
+  //CHECK(event_pump_->IsInLoopThread());
   InitListener();
   //socket_event_->EnableReading();
 }
 
 ServiceAcceptor::~ServiceAcceptor() {
-
-  CHECK(owner_loop_->IsInLoopThread());
-
+  //CHECK(event_pump_->IsInLoopThread());
   if (socket_fd_) {
     socketutils::CloseSocket(socket_fd_);
   }
@@ -35,13 +33,13 @@ void ServiceAcceptor::InitListener() {
   socketutils::BindSocketFd(socket_fd_, address_.AsSocketAddr());
 
   socket_event_ = base::FdEvent::create(socket_fd_, 0);
-  socket_event_->SetDelegate(owner_loop_->Pump()->AsFdEventDelegate());
+  socket_event_->SetDelegate(event_pump_->AsFdEventDelegate());
   socket_event_->SetReadCallback(
     std::bind(&ServiceAcceptor::HandleCommingConnection, this));
 }
 
 bool ServiceAcceptor::StartListen() {
-  CHECK(owner_loop_->IsInLoopThread());
+  CHECK(event_pump_->IsInLoopThread());
   if (listenning_) {
     LOG(INFO) << " Aready Listen on:" << address_.IpPortAsString();
     return true;
@@ -50,7 +48,7 @@ bool ServiceAcceptor::StartListen() {
     InitListener();
   }
 
-  owner_loop_->Pump()->InstallFdEvent(socket_event_.get());
+  event_pump_->InstallFdEvent(socket_event_.get());
   socket_event_->EnableReading();
 
   listenning_ = true;
@@ -59,13 +57,13 @@ bool ServiceAcceptor::StartListen() {
 }
 
 void ServiceAcceptor::StopListen() {
-  CHECK(owner_loop_->IsInLoopThread());
+  CHECK(event_pump_->IsInLoopThread());
   if (!listenning_) {
     return;
   }
 
   socket_event_->DisableReading();
-  owner_loop_->Pump()->RemoveFdEvent(socket_event_.get());
+  event_pump_->RemoveFdEvent(socket_event_.get());
   socket_event_.reset();
   socketutils::CloseSocket(socket_fd_);
   socket_fd_ = 0;

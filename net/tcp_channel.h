@@ -40,7 +40,9 @@ public:
   void SetStatusChangedCallback(const ChannelStatusCallback& callback);
   void SetProtoService(RefProtoService proto_service);
 
-  /*return -1 in error, return 0 when success*/
+  /* send a protocol*/
+  void Send(RefProtocolMessage& message);
+  /* return -1 in error, return 0 when success*/
   int32_t Send(const uint8_t* data, const int32_t len);
 
   void ForceShutdown();
@@ -55,6 +57,7 @@ protected:
   void HandleClose();
 
   void OnStatusChanged();
+  base::MessageLoop2* IOLoop() const;
 private:
   TcpChannel(int socket_fd,
              const InetAddress& loc,

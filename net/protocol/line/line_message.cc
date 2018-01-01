@@ -5,6 +5,7 @@ namespace net {
 
 LineMessage::LineMessage(ProtoMsgType t)
   : ProtocolMessage("line") {
+  SetMessageType(t);
 }
 
 LineMessage::~LineMessage() {

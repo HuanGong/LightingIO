@@ -10,8 +10,10 @@ public:
   CoroWlDispatcher();
   ~CoroWlDispatcher();
 
-  bool Dispatch(ProtoMessageHandler, RefProtocolMessage) override;
+  bool Dispatch(ProtoMessageHandler&, RefProtocolMessage&) override;
+
 private:
+  void DispachToCoroAndReply(ProtoMessageHandler, RefProtocolMessage);
 };
 
 }

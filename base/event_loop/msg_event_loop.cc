@@ -187,7 +187,7 @@ void MessageLoop2::SetLoopName(std::string name) {
 }
 
 bool MessageLoop2::IsInLoopThread() const {
-  return tid_ == std::this_thread::get_id();
+  return event_pump_ && event_pump_->IsInLoopThread();
 }
 
 void MessageLoop2::Start() {
@@ -219,7 +219,6 @@ void MessageLoop2::WaitLoopEnd() {
 
 void MessageLoop2::ThreadMain() {
 
-  tid_ = std::this_thread::get_id();
   threadlocal_current_ = this;
 
   event_pump_->InstallFdEvent(wakeup_event_.get());

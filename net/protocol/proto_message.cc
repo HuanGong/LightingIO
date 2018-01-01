@@ -22,4 +22,27 @@ const std::string& ProtocolMessage::Protocol() const {
   return proto_;
 }
 
+void ProtocolMessage::SetIOContextWeakChannel(const RefTcpChannel& channel) {
+  io_context_.channel = channel;
+}
+void ProtocolMessage::SetIOContextWeakChannel(WeakPtrTcpChannel& channel) {
+  io_context_.channel = channel;
+}
+
+void ProtocolMessage::SetResponse(RefProtocolMessage&& response) {
+  if (type_ == ProtoMsgType::kInReponse ||
+      type_ == ProtoMsgType::kOutResponse) {
+    return;
+  }
+  response_ = response;
+}
+
+void ProtocolMessage::SetResponse(RefProtocolMessage& response) {
+  if (type_ == ProtoMsgType::kInReponse ||
+      type_ == ProtoMsgType::kOutResponse) {
+    return;
+  }
+  response_ = response;
+}
+
 }//end namespace

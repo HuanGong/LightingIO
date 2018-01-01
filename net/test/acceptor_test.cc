@@ -34,7 +34,7 @@ int main(int argc, char** argv) {
   loop.PostTask(base::NewClosure([&]() {
 
     net::InetAddress addr(5005);
-    acceptor = new net::ServiceAcceptor(&loop, addr);
+    acceptor = new net::ServiceAcceptor(loop.Pump(), addr);
 
     acceptor->SetNewConnectionCallback(std::bind(new_connection, std::placeholders::_1, std::placeholders::_2));
     acceptor->StartListen();
