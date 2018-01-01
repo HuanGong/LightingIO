@@ -3,9 +3,8 @@
 
 namespace net {
 
-LineMessage::LineMessage(ProtoMsgType t)
-  : ProtocolMessage("line") {
-  SetMessageType(t);
+LineMessage::LineMessage(IODirectionType t)
+  : ProtocolMessage(t, "line") {
 }
 
 LineMessage::~LineMessage() {

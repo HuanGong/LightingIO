@@ -3,19 +3,20 @@
 
 namespace net {
 
-ProtocolMessage::ProtocolMessage(const std::string protocol)
-  : proto_(protocol) {
+ProtocolMessage::ProtocolMessage(IODirectionType direction, const std::string protocol)
+  : proto_(protocol),
+    direction_(direction) {
 }
 
 ProtocolMessage::~ProtocolMessage() {
 }
 
-void ProtocolMessage::SetMessageType(ProtoMsgType t) {
-  type_ = t;
+void ProtocolMessage::SetMessageDirection(IODirectionType t) {
+  direction_ = t;
 }
 
-const ProtoMsgType ProtocolMessage::MessageType() const {
-  return type_;
+const IODirectionType ProtocolMessage::MessageDirection() const {
+  return direction_;
 }
 
 const std::string& ProtocolMessage::Protocol() const {
@@ -30,16 +31,16 @@ void ProtocolMessage::SetIOContextWeakChannel(WeakPtrTcpChannel& channel) {
 }
 
 void ProtocolMessage::SetResponse(RefProtocolMessage&& response) {
-  if (type_ == ProtoMsgType::kInReponse ||
-      type_ == ProtoMsgType::kOutResponse) {
+  if (direction_ == IODirectionType::kInReponse ||
+      direction_ == IODirectionType::kOutResponse) {
     return;
   }
   response_ = response;
 }
 
 void ProtocolMessage::SetResponse(RefProtocolMessage& response) {
-  if (type_ == ProtoMsgType::kInReponse ||
-      type_ == ProtoMsgType::kOutResponse) {
+  if (direction_ == IODirectionType::kInReponse ||
+      direction_ == IODirectionType::kOutResponse) {
     return;
   }
   response_ = response;

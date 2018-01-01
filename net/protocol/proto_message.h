@@ -12,7 +12,7 @@ typedef enum {
   kInReponse = 2,
   kOutRequest = 3,
   kOutResponse = 4
-} ProtoMsgType;
+} IODirectionType;
 
 typedef struct {
   WeakPtrTcpChannel channel;
@@ -24,13 +24,13 @@ typedef struct {
 
 class ProtocolMessage {
 public:
-  ProtocolMessage(const std::string protocol);
+  ProtocolMessage(IODirectionType, const std::string);
   virtual ~ProtocolMessage();
 
   const std::string& Protocol() const;
 
-  void SetMessageType(ProtoMsgType t);
-  const ProtoMsgType MessageType() const;
+  void SetMessageDirection(IODirectionType t);
+  const IODirectionType MessageDirection() const;
 
   IOContext& GetIOCtx() {return io_context_;}
   WorkContext& GetWorkCtx() {return work_context_;}
@@ -47,7 +47,7 @@ private:
   // Work Context
 
   std::string proto_;
-  ProtoMsgType type_;
+  IODirectionType direction_;
   RefProtocolMessage response_;
 };
 

@@ -6,7 +6,7 @@
 namespace net {
 class LineMessage : public ProtocolMessage {
 public:
-  LineMessage(ProtoMsgType t);
+  LineMessage(IODirectionType t);
   ~LineMessage();
   std::string& MutableBody();
   const std::string& Body() const;

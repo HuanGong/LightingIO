@@ -29,7 +29,7 @@ void LineProtoService::OnDataRecieved(const RefTcpChannel& channel, IOBuffer* bu
 
   {
     std::shared_ptr<LineMessage> msg =
-      std::make_shared<LineMessage>(ProtoMsgType::kInRequest);
+      std::make_shared<LineMessage>(IODirectionType::kInRequest);
     msg->SetIOContextWeakChannel(channel);
 
     const uint8_t* start = buf->GetRead();
@@ -67,7 +67,7 @@ bool LineProtoService::EncodeMessageToBuffer(const ProtocolMessage* msg, IOBuffe
     return false;
   }
   const LineMessage* line_msg = static_cast<const LineMessage*>(msg);
-  out_buffer->EnsureWritableSize(line_msg.Body().size()+2);
+  out_buffer->EnsureWritableSize(line_msg->Body().size() + 2);
   out_buffer->WriteString(line_msg->Body());
   out_buffer->WriteRawData("\r\n", 2);
   return true;
