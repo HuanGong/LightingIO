@@ -27,10 +27,13 @@ class SrvDelegate {
 public:
   virtual ~SrvDelegate() {};
 
-  virtual bool SharedLoopsForIO() {return false;};
-  /* return n {n > 0} will create n loop using for acceptor,
-   * return 0 or negtive value will using the IOWorker Loop Randomly*/
+  virtual bool HandleRequstInIO() {return false;}
+  /* WorkLoop Handle request/response from IOWorkerLoop*/
+  virtual int GetWorkerLoopCount() {return std::thread::hardware_concurrency();}
+
+  /* IOService Using for Handle New Comming Connections */
   virtual int GetIOServiceLoopCount() { return 1;}
+  //IOWorkLoop handle socket IO and the encode/decode to requestmessage or responsemessage
   virtual int GetIOWorkerLoopCount() {return std::thread::hardware_concurrency();};
 
   virtual void BeforeServerRun() {};
@@ -42,24 +45,26 @@ public:
   Server(SrvDelegate* delegate);
   ~Server();
 
-  void Initialize();
-  /* formart scheme://ip:port http://0.0.0.0:5005 */
+  /* formart scheme://ip:port eg: http://0.0.0.0:5005 */
   bool RegisterService(const std::string, ProtoMessageHandler);
 
   void RunAllService();
+
 public: //override from ioservicedelegate
   bool IncreaseChannelCount() override;
   void DecreaseChannelCount() override;
   base::MessageLoop2* GetNextIOWorkLoop() override;
 
   WorkLoadDispatcher* MessageDispatcher() override {
-    return &dispatcher_;
+    return dispatcher_.get();
   };
 
   bool CanCreateNewChannel() { return true;}
   void IOServiceStarted(const IOService* ioservice) override;
   void IOServiceStoped(const IOService* ioservice) override;
 private:
+  void Initialize();
+
   void InitIOWorkerLoop();
   void InitIOServiceLoop();
   void ExitServerSignalHandler();
@@ -73,7 +78,7 @@ private:
 
   std::atomic<uint64_t> comming_connections_;
 
-  CoroWlDispatcher dispatcher_;
+  std::shared_ptr<CoroWlDispatcher> dispatcher_;
 };
 
 

@@ -139,9 +139,11 @@ bool IOBuffer::HasALine() {
 }
 
 const uint8_t* IOBuffer::FindCRLF() {
-
+  if (!CanReadSize()) {
+    return NULL;
+  }
   const uint8_t* res = std::search(MutableRead(), MutableWrite(), kCRLF, kCRLF+2);
-  return res == GetRead() ? NULL : res;
+  return res == GetWrite() ? NULL : res;
 }
 
 

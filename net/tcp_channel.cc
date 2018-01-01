@@ -262,8 +262,13 @@ int32_t TcpChannel::Send(const uint8_t* data, const int32_t len) {
 
       n_remain = len - n_write;
 
-      if (n_remain == 0 && finish_write_callback_) { //finish all
-        finish_write_callback_(shared_from_this());
+      if (n_remain == 0) { //finish all
+        if (proto_service_) {
+          proto_service_->OnDataFinishSend(shared_from_this());
+        }
+        if (finish_write_callback_) {
+          finish_write_callback_(shared_from_this());
+        }
       }
     } else { //n_write < 0
       n_write = 0;
@@ -326,6 +331,9 @@ const std::string TcpChannel::StatusAsString() {
 
 base::MessageLoop2* TcpChannel::IOLoop() const {
   return work_loop_;
+}
+bool TcpChannel::InIOLoop() const {
+  return work_loop_->IsInLoopThread();
 }
 
 }

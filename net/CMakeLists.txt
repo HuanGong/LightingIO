@@ -22,6 +22,7 @@ ADD_LIBRARY(ltnet STATIC
   protocol/line/line_proto_service.cc
   #dispatcher
   dispatcher/coro_dispatcher.cc
+  dispatcher/workload_dispatcher.cc
 )
 
 TARGET_LINK_LIBRARIES(ltnet

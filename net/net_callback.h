@@ -15,6 +15,7 @@ class IOService;
 class ProtoService;
 class ProtocolMessage;
 
+
 /* ============ connection channel relative =========*/
 typedef std::shared_ptr<TcpChannel> RefTcpChannel;
 typedef std::weak_ptr<TcpChannel> WeakPtrTcpChannel;

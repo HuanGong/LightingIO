@@ -17,7 +17,7 @@ void LineProtoService::OnStatusChanged(const RefTcpChannel& channel) {
   LOG(INFO) << "RefTcpChannel status changed:" << channel->StatusAsString();
 }
 void LineProtoService::OnDataFinishSend(const RefTcpChannel& channel) {
-  LOG(INFO) << "RefTcpChannel status changed:" << channel->StatusAsString();
+  LOG(INFO) << "RefTcpChannel Send Finished:" << channel->StatusAsString();
 }
 
 void LineProtoService::OnDataRecieved(const RefTcpChannel& channel, IOBuffer* buf) {
@@ -67,6 +67,7 @@ bool LineProtoService::EncodeMessageToBuffer(const ProtocolMessage* msg, IOBuffe
     return false;
   }
   const LineMessage* line_msg = static_cast<const LineMessage*>(msg);
+  out_buffer->EnsureWritableSize(line_msg.Body().size()+2);
   out_buffer->WriteString(line_msg->Body());
   out_buffer->WriteRawData("\r\n", 2);
   return true;

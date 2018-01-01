@@ -7,12 +7,13 @@ namespace net {
 
 class CoroWlDispatcher : public WorkLoadDispatcher {
 public:
-  CoroWlDispatcher();
+  CoroWlDispatcher(bool no_proxy);
   ~CoroWlDispatcher();
 
   bool Dispatch(ProtoMessageHandler&, RefProtocolMessage&) override;
 
 private:
+  void Reply(RefTcpChannel channel, RefProtocolMessage request);
   void DispachToCoroAndReply(ProtoMessageHandler, RefProtocolMessage);
 };
 

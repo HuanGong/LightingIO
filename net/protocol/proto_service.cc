@@ -19,7 +19,6 @@ void ProtoService::SetMessageDispatcher(WorkLoadDispatcher* wld) {
   dispatcher_ = wld;
 }
 
-
 bool ProtoService::EncodeMessageToBuffer(const ProtocolMessage* msg, IOBuffer* out_buffer) {
   return false;
 }
@@ -30,9 +29,11 @@ bool ProtoService::DecodeBufferToMessage(IOBuffer* buffer, ProtocolMessage* out_
 bool ProtoService::InvokeMessageHandler(RefProtocolMessage msg) {
   if (dispatcher_ && message_handler_) {
     dispatcher_->Dispatch(message_handler_, msg);
-  } else {
-    LOG(ERROR) << "Bad Message Handler";
+    return true;
   }
+  LOG_IF(ERROR, !message_handler_) << "Bad Message Handler";
+  LOG_IF(ERROR, !dispatcher_) << " NO MessageDispatcher For This [" << protocol_ << "] ProtoService";
+  return false;
 }
 
 }// end namespace

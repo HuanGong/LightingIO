@@ -12,8 +12,7 @@ IOService::IOService(const InetAddress addr,
                      const std::string protocol,
                      base::MessageLoop2* workloop,
                      IOServiceDelegate* delegate)
-  : //as_dispatcher_(true),
-    protocol_(protocol),
+  : protocol_(protocol),
     acceptor_loop_(workloop),
     delegate_(delegate),
     is_stopping_(false) {
@@ -91,6 +90,8 @@ void IOService::HandleNewConnection(int local_socket, const InetAddress& peer_ad
                                         local_addr,
                                         peer_addr,
                                         io_work_loop);
+
+  //Is peer_addr.IpPortAsString Is unique?
   new_channel->SetChannelName(peer_addr.IpPortAsString());
 
   new_channel->SetOwnerLoop(acceptor_loop_);
@@ -100,6 +101,7 @@ void IOService::HandleNewConnection(int local_socket, const InetAddress& peer_ad
 
   RefProtoService proto_service =
     ProtoServiceFactory::Instance().Create(protocol_);
+
   proto_service->SetMessageDispatcher(delegate_->MessageDispatcher());
 
   proto_service->SetMessageHandler(message_handler_);
@@ -124,12 +126,6 @@ void IOService::HandleNewConnection(int local_socket, const InetAddress& peer_ad
   new_channel->SetFinishSendCallback(std::move(finish_writen));
   */
 
-  /* for uniform logic just post task to owner handle this*/
-  //if (acceptor_loop_->IsInLoopThread()) {
-    //StoreConnection(f);
-  //}
-  //acceptor_loop_->PostTask(base::NewClosure(
-      //std::bind(&IOService::StoreConnection, this, new_channel)));
   StoreConnection(new_channel);
 }
 

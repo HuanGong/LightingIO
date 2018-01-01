@@ -15,11 +15,16 @@ Server::Server(SrvDelegate* delegate)
 
   CHECK(delegate_);
   comming_connections_.store(0);
+
+  bool no_proxy = delegate_->HandleRequstInIO();
+  dispatcher_.reset(new CoroWlDispatcher(no_proxy));
+  if (false == no_proxy) {
+    dispatcher_->InitWorkLoop(delegate_->GetWorkerLoopCount());
+  }
   Initialize();
 }
 
 Server::~Server() {
-
 }
 
 void Server::Initialize() {
@@ -32,7 +37,6 @@ void Server::Initialize() {
                        std::bind(&Server::ExitServerSignalHandler, this));
 }
 
-  /* formart scheme://ip:port http://0.0.0.0:5005 */
 bool Server::RegisterService(const std::string server, ProtoMessageHandler handler) {
   url::SchemeIpPort sch_ip_port;
   if (!url::ParseSchemeIpPortString(server, sch_ip_port)) {
@@ -51,6 +55,7 @@ bool Server::RegisterService(const std::string server, ProtoMessageHandler handl
   }
 
   net::InetAddress listenner_addr(sch_ip_port.ip, sch_ip_port.port);
+
 #ifdef NET_ENABLE_REUSER_PORT
   for (auto& ref_loop : ioservice_loops_) {
 
@@ -71,10 +76,13 @@ bool Server::RegisterService(const std::string server, ProtoMessageHandler handl
 
   ioservices_.push_back(std::move(s));
 #endif
+
   return true;
 }
 
 void Server::RunAllService() {
+
+  dispatcher_->StartDispatcher();
 
   for (auto& server : ioservices_) {
     server->StartIOService();
@@ -96,7 +104,11 @@ void Server::DecreaseChannelCount() {
 }
 
 base::MessageLoop2* Server::GetNextIOWorkLoop() {
+#ifdef NET_ENABLE_REUSER_PORT
   return ioworker_loops_[comming_connections_%ioworker_loops_.size()].get();
+#else
+  return base::MessageLoop2::Current();
+#endif
 }
 
 void Server::IOServiceStarted(const IOService* s) {
@@ -132,6 +144,10 @@ void Server::InitIOWorkerLoop() {
 }
 
 void Server::InitIOServiceLoop() {
+#ifdef NET_ENABLE_REUSER_PORT
+  ioservice_loops_ = ioworker_loops_;
+  LOG(INFO) << "Server Use IOWrokerLoop Handle New Connection...";
+#else
   const static std::string name_prefix("IOServiceLoop:");
   int count = delegate_->GetIOServiceLoopCount();
   for (int i = 0; i < count; i++) {
@@ -141,6 +157,7 @@ void Server::InitIOServiceLoop() {
     ioservice_loops_.push_back(std::move(loop));
   }
   LOG(INFO) << "Server Create [" << ioservice_loops_.size() << "] loops Accept new connection";
+#endif
 }
 
 void Server::ExitServerSignalHandler() {

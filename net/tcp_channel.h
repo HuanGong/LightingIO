@@ -48,6 +48,8 @@ public:
   void ForceShutdown();
   void ShutdownChannel();
   const std::string StatusAsString();
+  bool InIOLoop() const;
+  base::MessageLoop2* IOLoop() const;
 protected:
   void Initialize();
 
@@ -57,7 +59,6 @@ protected:
   void HandleClose();
 
   void OnStatusChanged();
-  base::MessageLoop2* IOLoop() const;
 private:
   TcpChannel(int socket_fd,
              const InetAddress& loc,
