@@ -1,53 +1,31 @@
 cmake_minimum_required(VERSION 2.8)
 
+project(LightingIO)
+
 find_program(CCACHE_FOUND ccache)
 if(CCACHE_FOUND)
   set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
   set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
 endif(CCACHE_FOUND)
 
-project(LightingIO)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 
-# set default LIBRARY_OUTPUT_PATH to build/lib
-SET(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
-# set default EXECUTABLE_OUTPUT_PATH to build/bin
-SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
+set(CMAKE_CONFIG_DIR ${CMAKE_SOURCE_DIR}/cmake_config)
 
+include(${CMAKE_CONFIG_DIR}/include_path.cmake)
+include(${CMAKE_CONFIG_DIR}/googletest.cmake)
 
 # add a default linked path to build/lib
-LINK_DIRECTORIES(
-  ${CMAKE_BINARY_DIR}/lib
-  ${CMAKE_BINARY_DIR}/thirdparty/libevent/lib
-)
-
-# top level include dir
-include_directories(
-  ${CMAKE_SOURCE_DIR}
-  ${CMAKE_SOURCE_DIR}/base
-  #net
-  ${CMAKE_SOURCE_DIR}/net
-
-  ${CMAKE_SOURCE_DIR}/thirdparty
-  ${CMAKE_BINARY_DIR}/thirdparty
-  #glog
-  ${CMAKE_BINARY_DIR}/thirdparty/glog
-  ${CMAKE_SOURCE_DIR}/thirdparty/glog/src
-  #libevent
-  ${CMAKE_BINARY_DIR}/thirdparty/libevent/include
-  ${CMAKE_SOURCE_DIR}/thirdparty/libevent/include
-  #coro
-  ${CMAKE_BINARY_DIR}/thirdparty/libcoro
-)
+LINK_DIRECTORIES(${CMAKE_BINARY_DIR}/lib)
 
 ADD_SUBDIRECTORY(thirdparty)
-
 ADD_SUBDIRECTORY(base)
 ADD_SUBDIRECTORY(net)
 #ADD_SUBDIRECTORY(lighting)
-
 ADD_SUBDIRECTORY(example)
-
 
 
 MESSAGE(STATUS "This is BINARY dir " ${LightingIO_BINARY_DIR})

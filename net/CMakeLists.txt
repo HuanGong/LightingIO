@@ -20,6 +20,8 @@ ADD_LIBRARY(ltnet STATIC
   protocol/proto_service_factory.cc
   protocol/line/line_message.cc
   protocol/line/line_proto_service.cc
+  protocol/http/http_message.cc
+  protocol/http/http_proto_service.cc
   #dispatcher
   dispatcher/coro_dispatcher.cc
   dispatcher/workload_dispatcher.cc

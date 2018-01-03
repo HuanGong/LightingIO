@@ -53,12 +53,11 @@ ADD_LIBRARY(base_shared SHARED
 add_dependencies(base_shared
   glog
   coro
-  event_shared
 )
+
 TARGET_LINK_LIBRARIES(base_shared
   coro
   glog
-  -levent
   -lpthread
 )
 
