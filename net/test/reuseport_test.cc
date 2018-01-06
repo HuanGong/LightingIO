@@ -36,7 +36,8 @@ int main(int argc, char** argv) {
     auto f = net::TcpChannel::Create(fd,
                                      local,
                                      peer,
-                                     loop);
+                                     loop,
+                                     true);
     int32_t size = f->Send((const uint8_t*)"hello world", sizeof "hello world");
     LOG(INFO) << "N ByteWrite:" << size;
 

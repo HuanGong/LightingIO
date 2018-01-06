@@ -8,15 +8,16 @@ if(CCACHE_FOUND)
   set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
 endif(CCACHE_FOUND)
 
+set(CMAKE_CONFIG_DIR ${CMAKE_SOURCE_DIR}/cmake_config)
+
+include(${CMAKE_CONFIG_DIR}/include_path.cmake)
+#include(${CMAKE_CONFIG_DIR}/googletest.cmake)
+
+
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-
-set(CMAKE_CONFIG_DIR ${CMAKE_SOURCE_DIR}/cmake_config)
-
-include(${CMAKE_CONFIG_DIR}/include_path.cmake)
-include(${CMAKE_CONFIG_DIR}/googletest.cmake)
 
 # add a default linked path to build/lib
 LINK_DIRECTORIES(${CMAKE_BINARY_DIR}/lib)

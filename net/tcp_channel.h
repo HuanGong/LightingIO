@@ -28,7 +28,8 @@ public:
   static RefTcpChannel Create(int socket_fd,
                               const InetAddress& local,
                               const InetAddress& peer,
-                              base::MessageLoop2* loop);
+                              base::MessageLoop2* loop,
+                              bool is_service_channel);
 
   ~TcpChannel();
   const std::string& ChannelName() {return channal_name_;}
@@ -50,6 +51,7 @@ public:
   const std::string StatusAsString();
   bool InIOLoop() const;
   base::MessageLoop2* IOLoop() const;
+  bool IsServicerChannel() const;
 protected:
   void Initialize();
 
@@ -63,7 +65,8 @@ private:
   TcpChannel(int socket_fd,
              const InetAddress& loc,
              const InetAddress& peer,
-             base::MessageLoop2* loop);
+             base::MessageLoop2* loop,
+             bool service_channel);
   void OnConnectionReady();
 private:
   /* all the io thing happend in work loop,
@@ -80,6 +83,8 @@ private:
 
   InetAddress local_addr_;
   InetAddress peer_addr_;
+  /*indicate channel type: client or server type*/
+  const bool is_service_channel_;
 
   std::string channal_name_;
 

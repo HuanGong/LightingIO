@@ -19,10 +19,10 @@ void ProtoService::SetMessageDispatcher(WorkLoadDispatcher* wld) {
   dispatcher_ = wld;
 }
 
-bool ProtoService::EncodeMessageToBuffer(const ProtocolMessage* msg, IOBuffer* out_buffer) {
+bool ProtoService::EncodeToBuffer(const ProtocolMessage* msg, IOBuffer* out_buffer) {
   return false;
 }
-bool ProtoService::DecodeBufferToMessage(IOBuffer* buffer, ProtocolMessage* out_msg) {
+bool ProtoService::DecodeToMessage(IOBuffer* buffer, ProtocolMessage* out_msg) {
   return false;
 }
 

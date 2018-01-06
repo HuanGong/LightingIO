@@ -405,6 +405,8 @@ int http_should_keep_alive(const http_parser *parser);
 /* Returns a string version of the HTTP method. */
 const char *http_method_str(enum http_method m);
 
+const char *http_status_desc(uint16_t code);
+
 /* Return a string name of the given error */
 const char *http_errno_name(enum http_errno err);
 

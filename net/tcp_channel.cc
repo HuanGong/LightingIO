@@ -13,12 +13,14 @@ namespace net {
 RefTcpChannel TcpChannel::Create(int socket_fd,
                                  const InetAddress& local,
                                  const InetAddress& peer,
-                                 base::MessageLoop2* loop) {
+                                 base::MessageLoop2* loop,
+                                 bool service_channel) {
 
   RefTcpChannel conn(new TcpChannel(socket_fd,
                                     local,
                                     peer,
-                                    loop));
+                                    loop,
+                                    service_channel));
   conn->Initialize();
   return std::move(conn);
 }
@@ -26,13 +28,16 @@ RefTcpChannel TcpChannel::Create(int socket_fd,
 TcpChannel::TcpChannel(int socket_fd,
                        const InetAddress& loc,
                        const InetAddress& peer,
-                       base::MessageLoop2* loop)
+                       base::MessageLoop2* loop,
+                       bool is_service_channel)
   : work_loop_(loop),
     owner_loop_(NULL),
     channel_status_(CONNECTING),
     socket_fd_(socket_fd),
     local_addr_(loc),
-    peer_addr_(peer) {
+    peer_addr_(peer),
+    is_service_channel_(is_service_channel) {
+
 
   fd_event_ = base::FdEvent::create(socket_fd_, 0);
 }
@@ -169,7 +174,7 @@ void TcpChannel::Send(RefProtocolMessage& message) {
 
   if (out_buffer_.CanReadSize()) { //append to out_buffer_
 
-    bool success = proto_service_->EncodeMessageToBuffer(message.get(), &out_buffer_);
+    bool success = proto_service_->EncodeToBuffer(message.get(), &out_buffer_);
     LOG_IF(ERROR, !success) << "Send Failed For Message Encode Failed";
     if (!fd_event_->IsWriteEnable()) {
       fd_event_->EnableWriting();
@@ -178,7 +183,7 @@ void TcpChannel::Send(RefProtocolMessage& message) {
   } else { //out_buffer_ empty, try write directly
 
     IOBuffer buffer;
-    bool success = proto_service_->EncodeMessageToBuffer(message.get(), &buffer);
+    bool success = proto_service_->EncodeToBuffer(message.get(), &buffer);
     LOG_IF(ERROR, !success) << "Send Failed For Message Encode Failed";
     if (success) {
       Send(buffer.GetRead(), buffer.CanReadSize());
@@ -334,6 +339,9 @@ base::MessageLoop2* TcpChannel::IOLoop() const {
 }
 bool TcpChannel::InIOLoop() const {
   return work_loop_->IsInLoopThread();
+}
+bool TcpChannel::IsServicerChannel() const {
+  return is_service_channel_;
 }
 
 }

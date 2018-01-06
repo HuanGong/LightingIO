@@ -23,7 +23,8 @@ int main(int argc, char** argv) {
     auto f = net::TcpChannel::Create(fd,
                                      local,
                                      peer,
-                                     &loop);
+                                     &loop,
+                                     true);
     connections.push_back(f);
 
     int32_t size = f->Send((const uint8_t*)"const", sizeof "const");

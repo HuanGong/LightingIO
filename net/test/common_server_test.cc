@@ -4,6 +4,7 @@
 #include "../tcp_channel.h"
 #include <functional>
 #include "../protocol/line/line_message.h"
+#include "../protocol/http/http_request.h"
 
 namespace net {
 
@@ -27,14 +28,21 @@ void handler(net::RefProtocolMessage message) {
   linemsg->SetResponse(std::move(res));
 }
 
+void http_handler(net::RefProtocolMessage message) {
+  net::HttpRequest* httpmsg = static_cast<net::HttpRequest*>(message.get());
+  LOG(INFO) << "I Got HttpRequest:" << httpmsg->MessageDebug();
+}
+
 int main() {
 
   //net::SrvDelegate delegate;
   net::Application app;
   net::Server server((net::SrvDelegate*)&app);
 
-  server.RegisterService("line://0.0.0.0:5005",
-                         std::bind(handler, std::placeholders::_1));
+  //server.RegisterService("line://0.0.0.0:5005",
+  //                       std::bind(handler, std::placeholders::_1));
+  server.RegisterService("http://0.0.0.0:5006",
+                         std::bind(http_handler, std::placeholders::_1));
   server.RunAllService();
 
   LOG(INFO) << __FUNCTION__ << " program end";

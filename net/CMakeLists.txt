@@ -1,12 +1,7 @@
-include_directories(${LightingIO_SOURCE_DIR})
-
-include_directories(${LIBEVENT_PATH}/include)
-include_directories(${LIBEVENT_OUT_PATH}/include)
-
 SET(CMAKE_C_COMPILER g++)
 ADD_DEFINITIONS(-std=c++11)
 
-ADD_LIBRARY(ltnet STATIC
+set(LTNET_SOURCE
   server.cc
   io_buffer.cc
   io_service.cc
@@ -15,25 +10,35 @@ ADD_LIBRARY(ltnet STATIC
   socket_utils.cc
   service_acceptor.cc
   url_string_utils.cc
+  #protocol
   protocol/proto_message.cc
   protocol/proto_service.cc
   protocol/proto_service_factory.cc
   protocol/line/line_message.cc
   protocol/line/line_proto_service.cc
-  protocol/http/http_message.cc
+  protocol/http/http_request.cc
+  protocol/http/http_response.cc
+  protocol/http/http_constants.cc
   protocol/http/http_proto_service.cc
   #dispatcher
   dispatcher/coro_dispatcher.cc
   dispatcher/workload_dispatcher.cc
 )
 
+#ADD_LIBRARY(ltnet STATIC
+ADD_LIBRARY(ltnet SHARED
+  ${LTNET_SOURCE}
+)
+
 TARGET_LINK_LIBRARIES(ltnet
   -lglog
+  -lhttp_parser
   -lbase_shared
   -lpthread
 )
 add_dependencies(ltnet
   glog
+  http_parser
   base_shared
 )
 

@@ -175,6 +175,11 @@ static const char *method_strings[] =
 #undef XX
   };
 
+static const char* status_strings[] = {
+#define XX(num, name, string) #string,
+  HTTP_STATUS_MAP(XX)
+#undef XX
+};
 
 /* Tokens as defined by rfc 2616. Also lowercases them.
  *        token       = 1*<any CHAR except CTLs or separators>
@@ -2071,6 +2076,9 @@ http_should_keep_alive (const http_parser *parser)
   return !http_message_needs_eof(parser);
 }
 
+const char *http_status_desc(uint16_t code) {
+  return ELEM_AT(status_strings, code, "UNKNOWN STATUS");
+}
 
 const char *
 http_method_str (enum http_method m)

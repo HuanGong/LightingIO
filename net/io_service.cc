@@ -89,7 +89,8 @@ void IOService::HandleNewConnection(int local_socket, const InetAddress& peer_ad
   auto new_channel = TcpChannel::Create(local_socket,
                                         local_addr,
                                         peer_addr,
-                                        io_work_loop);
+                                        io_work_loop,
+                                        true);
 
   //Is peer_addr.IpPortAsString Is unique?
   new_channel->SetChannelName(peer_addr.IpPortAsString());

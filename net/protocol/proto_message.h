@@ -11,7 +11,8 @@ typedef enum {
   kInRequest = 1,
   kInReponse = 2,
   kOutRequest = 3,
-  kOutResponse = 4
+  kOutResponse = 4,
+  kUnknownType = 5
 } IODirectionType;
 
 typedef struct {

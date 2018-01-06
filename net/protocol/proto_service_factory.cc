@@ -2,6 +2,7 @@
 #include "memory/lazy_instance.h"
 #include "proto_service_factory.h"
 #include "line/line_proto_service.h"
+#include "http/http_proto_service.h"
 
 namespace net {
 
@@ -36,6 +37,9 @@ bool ProtoServiceFactory::HasProtoServiceCreator(const std::string& proto) {
 void ProtoServiceFactory::InitInnerDefault() {
   creators_.insert(std::make_pair("line", []()->RefProtoService {
     return RefProtoService(new LineProtoService);
+  }));
+  creators_.insert(std::make_pair("http", []()->RefProtoService {
+    return RefProtoService(new HttpProtoService);
   }));
 }
 
