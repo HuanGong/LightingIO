@@ -35,7 +35,6 @@ void CoroScheduler::OnNewCoroBorn(RefCoroutine& coro) {
 }
 
 void CoroScheduler::GcCoroutine(Coroutine* die) {
-  LOG(INFO) << __FUNCTION__;
   CHECK(current_.get() == die && die->Status() == CoroState::kDone);
 
   intptr_t id = die->Identifier();

@@ -15,7 +15,6 @@ public:
   }
 private:
 };
-
 }//end namespace
 
 void handler(net::RefProtocolMessage message) {
@@ -36,9 +35,10 @@ void http_handler(net::RefProtocolMessage message) {
 
   LOG(INFO) << "I Got HttpRequest:" << httpmsg->MessageDebug() << " \n Raw: \n" << oss.str();
   net::RefHttpResponse response = std::make_shared<net::HttpResponse>(net::IODirectionType::kOutResponse);
-  response->SetResponseCode(200);
-
+  response->SetResponseCode(404);
+  response->SetKeepAlive(false);
   response->MutableBody() = "Nice to meet your,I'm LightingIO\n";
+
   httpmsg->SetResponse(std::move(response));
 }
 

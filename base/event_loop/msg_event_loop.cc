@@ -301,13 +301,13 @@ void MessageLoop2::OnWakeup() {
     case kRunTask: {
       std::unique_ptr<QueuedTask> task;
       DCHECK(!pending_.empty());
-      {
+      if (!pending_.empty()) {
         std::unique_lock<std::mutex> lck(pending_lock_);
         task = std::move(pending_.front());
         pending_.pop_front();
+        DCHECK(task.get());
       }
-      DCHECK(task.get());
-      if (!task->Run()) {
+      if (task && !task->Run()) {
         task.release();
       }
       break;

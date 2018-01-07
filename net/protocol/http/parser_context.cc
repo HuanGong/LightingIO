@@ -47,11 +47,11 @@ int ReqParseContext::OnHttpRequestBegin(http_parser* parser) {
   CHECK(context);
 
   if (context->current_) {
+    context->reset();
     LOG(ERROR) << "Something Wrong, Current Should Be Null";
   }
   context->current_ = (std::make_shared<HttpRequest>(IODirectionType::kInRequest));
 
-  LOG(INFO) << __FUNCTION__ ;
   return 0;
 }
 
@@ -61,12 +61,10 @@ int ReqParseContext::OnUrlParsed(http_parser* parser, const char *url_start, siz
 
   context->current_->url_.append(url_start, url_len);
 
-  LOG(INFO) << __FUNCTION__ << " url :" << context->current_->url_;
   return 0;
 }
 
 int ReqParseContext::OnStatusCodeParsed(http_parser* parser, const char *start, size_t len) {
-  LOG(INFO) << __FUNCTION__ << " Parse Request Should Not Reached";
   return 0;
 }
 
@@ -110,8 +108,6 @@ int ReqParseContext::OnHeaderFinishParsed(http_parser* parser) {
   context->half_header.second.clear();
   context->last_is_header_value = false;
 
-  LOG(INFO) << __FUNCTION__ << "Finished header Parse";
-
   return 0;
 }
 
@@ -129,7 +125,7 @@ int ReqParseContext::OnHttpRequestEnd(http_parser* parser) {
 
   int type = parser->type;
   if (type == HTTP_REQUEST) {
-    LOG(ERROR) << __FUNCTION__ << " Not A HTTP REQUEST";
+    LOG(ERROR) << __FUNCTION__ << " Not A HTTP REQUEST, type is:" << type;
   }
 
   context->current_->SetMessageDirection(IODirectionType::kInRequest);
@@ -146,7 +142,6 @@ int ReqParseContext::OnHttpRequestEnd(http_parser* parser) {
 
   context->current_.reset();
 
-  LOG(INFO) << __FUNCTION__ ;
   return 0;
 }
 

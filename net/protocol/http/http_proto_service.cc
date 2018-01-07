@@ -51,12 +51,12 @@ HttpProtoService::~HttpProtoService() {
 }
 
 void HttpProtoService::OnStatusChanged(const RefTcpChannel& channel) {
-  LOG(INFO) << __FUNCTION__ ;
+  LOG(INFO) << __FUNCTION__ << channel->ChannelName() << " status:" << channel->StatusAsString();
 }
 
 void HttpProtoService::OnDataFinishSend(const RefTcpChannel& channel) {
   LOG(INFO) << __FUNCTION__ ;
-  //channel->ShutdownChannel();
+  channel->ShutdownChannel();
 }
 
 void HttpProtoService::OnDataRecieved(const RefTcpChannel& channel, IOBuffer* buf) {;
@@ -115,9 +115,9 @@ bool HttpProtoService::ParseHttpRequest(const RefTcpChannel& channel, IOBuffer* 
 
   buf->Consume(nparsed);
 
-  LOG(ERROR) << "recv:" << buf->AsString()
-             << "\n nparsed: " << nparsed
-             << "\n buffer_size:" << buffer_size;
+  //LOG(ERROR) << "recv:" << buf->AsString()
+  //           << "\n nparsed: " << nparsed
+  //           << "\n buffer_size:" << buffer_size;
 
   if (parser->upgrade) {
     LOG(ERROR) << " Not Supported Now";
