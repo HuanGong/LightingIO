@@ -41,11 +41,12 @@ void HttpResponse::InsertHeader(const std::string& k, const std::string& v) {
   headers_.insert(std::make_pair(k, v));
 }
 
-bool HttpResponse::ToResponseRawData(std::ostringstream& oss) {
+bool HttpResponse::ToResponseRawData(std::ostringstream& oss) const {
 
   //status line
-  oss << "HTTP/" << http_major_ << "." << http_minor_ << HttpConstant::kBlankSpace
-      << status_code_ << HttpConstant::kBlankSpace << StatusCodeInfo() << HttpConstant::kCRCN;
+  oss << "HTTP/" << (int)http_major_ << "." << (int)http_minor_ << HttpConstant::kBlankSpace
+      << status_code_ << HttpConstant::kBlankSpace
+      << HttpConstant::StatusCodeCStr(status_code_) << HttpConstant::kCRCN;
 
   //headers part
   for (const auto& header : Headers()) {
@@ -53,7 +54,7 @@ bool HttpResponse::ToResponseRawData(std::ostringstream& oss) {
   }
 
   if (!HasHeaderField(HttpConstant::kConnection)) {
-    oss << "Connection: " << (keepalive_ ? "Keep-Alive" : " Close")  << "kCRCN";
+    oss << "Connection:" << (keepalive_ ? "Keep-Alive" : "Close")  << HttpConstant::kCRCN;
   }
 
   if (!HasHeaderField(HttpConstant::kContentLength)) {
@@ -61,7 +62,7 @@ bool HttpResponse::ToResponseRawData(std::ostringstream& oss) {
   }
 
   if (!HasHeaderField(HttpConstant::kContentType)) {
-    oss << HttpConstant::kContentType << ":" << "text/html" << HttpConstant::kCRCN;
+    oss << HttpConstant::kContentType << ":" << "text/plain" << HttpConstant::kCRCN;
   }
 
   // body
@@ -112,6 +113,10 @@ void HttpResponse::SetKeepAlive(bool alive) {
 
 uint16_t HttpResponse::ResponseCode() const {
   return status_code_;
+}
+
+void HttpResponse::SetResponseCode(uint16_t code) {
+  status_code_ = code;
 }
 
 std::string HttpResponse::StatusCodeInfo() const {

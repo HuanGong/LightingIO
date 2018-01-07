@@ -11,6 +11,9 @@ struct HttpConstant {
   static const std::string kConnection;
   static const std::string kContentType;
   static const std::string kContentLength;
+  static const std::string kBadRequest;
+
+  static const char* StatusCodeCStr(int32_t code);
 };
 
 } //end net::HttpConstant

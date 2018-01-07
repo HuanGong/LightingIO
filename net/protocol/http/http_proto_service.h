@@ -3,8 +3,8 @@
 
 #include <vector>
 #include <string>
-#include "http_request.h"
 #include "net_callback.h"
+#include "parser_context.h"
 #include "protocol/proto_service.h"
 #include "http_parser/http_parser.h"
 
@@ -30,17 +30,6 @@ public:
   HttpProtoService();
   ~HttpProtoService();
 
-  static int OnHttpRequestBegin(http_parser* parser);
-  static int OnUrlParsed(http_parser* parser, const char *url_start, size_t url_len);
-  static int OnStatusCodeParsed(http_parser* parser, const char *start, size_t len);
-  static int OnHeaderFieldParsed(http_parser* parser, const char *header_start, size_t len);
-  static int OnHeaderValueParsed(http_parser* parser, const char *value_start, size_t len);
-  static int OnHeaderFinishParsed(http_parser* parser);
-  static int OnBodyParsed(http_parser* parser, const char *body_start, size_t len);
-  static int OnHttpRequestEnd(http_parser* parser);
-  static int OnChunkHeader(http_parser* parser);
-  static int OnChunkFinished(http_parser* parser);
-
   // override from ProtoService
   void OnStatusChanged(const RefTcpChannel&) override;
   void OnDataFinishSend(const RefTcpChannel&) override;
@@ -51,12 +40,14 @@ public:
   bool EncodeToBuffer(const ProtocolMessage* msg, IOBuffer* out_buffer);
 private:
   //bool EncodeHttpResponse(const HttpResponse*, IOBU* out_buffer);
-  bool EncodeHttpRequest(const HttpRequest* msg, IOBuffer* out_buffer);
+  bool ParseHttpRequest(const RefTcpChannel&, IOBuffer*);
+  bool ParseHttpResponse(const RefTcpChannel&, IOBuffer*);
 private:
+  ReqParseContext* request_context_;
+  ResParseContext* response_context_;
 
-  http_parser parser_;
-  HttpParseContext parse_context_;
-  static http_parser_settings parser_settings_;
+  static http_parser_settings req_parser_settings_;
+  static http_parser_settings res_parser_settings_;
 };
 
 }

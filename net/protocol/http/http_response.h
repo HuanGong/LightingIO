@@ -32,13 +32,14 @@ public:
   void SetKeepAlive(bool alive);
 
   const std::string MessageDebug();
-  bool ToResponseRawData(std::ostringstream& oss);
+  bool ToResponseRawData(std::ostringstream& oss) const;
 
   uint16_t ResponseCode() const;
   void SetResponseCode(uint16_t code);
   std::string StatusCodeInfo() const;
 private:
   friend class HttpProtoService;
+  friend class ResParseContext;
 
   const char* DirectionTypeStr();
 

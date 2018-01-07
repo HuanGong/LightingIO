@@ -71,11 +71,11 @@ const std::string& HttpRequest::Method() const {
   return method_;
 }
 
-const bool HttpRequest::ToRequestRawData(std::ostringstream& oss) {
+const bool HttpRequest::ToRequestRawData(std::ostringstream& oss) const {
 
   //request line
   oss << method_ << HttpConstant::kBlankSpace << url_ << HttpConstant::kBlankSpace
-    << "HTTP/" << http_major_ << "." << http_minor_ << HttpConstant::kCRCN;
+      << "HTTP/" << (int)http_major_ << "." << (int)http_minor_ << HttpConstant::kCRCN;
 
   // header part
   for (const auto& header : Headers()) {
@@ -83,7 +83,7 @@ const bool HttpRequest::ToRequestRawData(std::ostringstream& oss) {
   }
 
   if (!HasHeaderField(HttpConstant::kConnection)) {
-    oss << "Connection: " << (keepalive_ ? "Keep-Alive" : " Close")  << HttpConstant::kCRCN;
+    oss << "Connection:" << (keepalive_ ? "Keep-Alive" : "Close")  << HttpConstant::kCRCN;
   }
 
   if (!HasHeaderField(HttpConstant::kContentLength)) {
@@ -91,7 +91,7 @@ const bool HttpRequest::ToRequestRawData(std::ostringstream& oss) {
   }
 
   if (!HasHeaderField(HttpConstant::kContentType)) {
-    oss << HttpConstant::kContentType << ":" << "text/html" << HttpConstant::kCRCN;
+    oss << HttpConstant::kContentType << ":" << "text/plain" << HttpConstant::kCRCN;
   }
   //body
   oss << HttpConstant::kCRCN << body_;

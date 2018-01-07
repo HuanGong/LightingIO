@@ -19,6 +19,7 @@ set(LTNET_SOURCE
   protocol/http/http_request.cc
   protocol/http/http_response.cc
   protocol/http/http_constants.cc
+  protocol/http/parser_context.cc
   protocol/http/http_proto_service.cc
   #dispatcher
   dispatcher/coro_dispatcher.cc

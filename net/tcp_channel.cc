@@ -185,7 +185,8 @@ void TcpChannel::Send(RefProtocolMessage& message) {
     IOBuffer buffer;
     bool success = proto_service_->EncodeToBuffer(message.get(), &buffer);
     LOG_IF(ERROR, !success) << "Send Failed For Message Encode Failed";
-    if (success) {
+    if (success && buffer.CanReadSize()) {
+      LOG(INFO) << "Send Data:\n" << buffer.AsString();
       Send(buffer.GetRead(), buffer.CanReadSize());
     }
 

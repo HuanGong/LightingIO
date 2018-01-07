@@ -40,12 +40,13 @@ public:
   void SetKeepAlive(bool alive);
 
   const std::string MessageDebug();
-  const bool ToRequestRawData(std::ostringstream& oss);
+  const bool ToRequestRawData(std::ostringstream& oss) const;
 private:
   void ParseUrlToParams();
   const char* DirectionTypeStr();
 private:
   friend class HttpProtoService;
+  friend class ReqParseContext;
 
   bool keepalive_;
 
