@@ -262,7 +262,10 @@ void MessageLoop2::PostTask(std::unique_ptr<QueuedTask> task) {
   if (IsInLoopThread()) {
     QueuedTask* task_id = task.get();  // Only used for comparison.
 
-    pending_.push_back(std::move(task));
+    {
+      std::unique_lock<std::mutex>  lck(pending_lock_);
+      pending_.push_back(std::move(task));
+    }
 
     char message = kRunTask;
     if (write(wakeup_pipe_in_, &message, sizeof(message)) != sizeof(message)) {

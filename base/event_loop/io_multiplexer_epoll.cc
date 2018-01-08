@@ -25,8 +25,9 @@ int IoMultiplexerEpoll::WaitingIO(FdEventList& active_list, int32_t timeout_ms) 
                                        timeout_ms);
 
   if (turn_active_count < 0) {//error
-    LOG(ERROR) << "epoll_wait return ERROR code:" << turn_active_count;
-    return turn_active_count;
+    int32_t err = errno;
+    LOG(ERROR) << "epoll_wait ERROR" << strerror(err);
+    return 0;
   }
 
   for (int idx = 0; idx < turn_active_count; idx++) {
