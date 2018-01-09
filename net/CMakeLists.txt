@@ -38,13 +38,15 @@ TARGET_LINK_LIBRARIES(ltnet
   -lpthread
 )
 add_dependencies(ltnet
-  glog
   http_parser
   base_shared
 )
 
 ADD_EXECUTABLE(reuseport_test
   test/reuseport_test.cc
+)
+add_dependencies(reuseport_test
+  ltnet
 )
 TARGET_LINK_LIBRARIES(reuseport_test
   -lltnet
@@ -56,6 +58,9 @@ TARGET_LINK_LIBRARIES(reuseport_test
 ADD_EXECUTABLE(acceptor_test
   test/acceptor_test.cc
 )
+add_dependencies(acceptor_test
+  ltnet
+)
 TARGET_LINK_LIBRARIES(acceptor_test
   -lltnet
   -lglog
@@ -66,6 +71,9 @@ TARGET_LINK_LIBRARIES(acceptor_test
 ADD_EXECUTABLE(ioservice_test
   test/io_service_test.cc
 )
+add_dependencies(ioservice_test
+  ltnet
+)
 TARGET_LINK_LIBRARIES(ioservice_test
   -lltnet
   -lglog
@@ -75,6 +83,9 @@ TARGET_LINK_LIBRARIES(ioservice_test
 
 ADD_EXECUTABLE(common_server
   test/common_server_test.cc
+)
+add_dependencies(common_server
+  ltnet
 )
 TARGET_LINK_LIBRARIES(common_server
   -lltnet

@@ -2,15 +2,10 @@ cmake_minimum_required(VERSION 2.8)
 
 project(LightingIO)
 
-find_program(CCACHE_FOUND ccache)
-if(CCACHE_FOUND)
-  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
-  set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
-endif(CCACHE_FOUND)
-
 set(CMAKE_CONFIG_DIR ${CMAKE_SOURCE_DIR}/cmake_config)
 
 include(${CMAKE_CONFIG_DIR}/include_path.cmake)
+include(${CMAKE_CONFIG_DIR}/package_deps.cmake)
 #include(${CMAKE_CONFIG_DIR}/googletest.cmake)
 
 
@@ -22,7 +17,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 # add a default linked path to build/lib
 LINK_DIRECTORIES(${CMAKE_BINARY_DIR}/lib)
 
-find_package (glog)
 
 ADD_SUBDIRECTORY(thirdparty)
 ADD_SUBDIRECTORY(base)

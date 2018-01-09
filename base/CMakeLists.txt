@@ -51,7 +51,6 @@ ADD_LIBRARY(base_shared SHARED
 )
 
 add_dependencies(base_shared
-  glog
   coro
 )
 
