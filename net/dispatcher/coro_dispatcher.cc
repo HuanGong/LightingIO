@@ -29,6 +29,8 @@ bool CoroWlDispatcher::Dispatch(ProtoMessageHandler& handler, RefProtocolMessage
     return false;
   }
   VLOG(GLOG_VTRACE) << "CoroWlDispatcher Going Dispatch work";
+
+#if 1
   if (HandleWorkInIOLoop()) {
     DispachToCoroAndReply(handler, message);
     return true;
@@ -40,6 +42,7 @@ bool CoroWlDispatcher::Dispatch(ProtoMessageHandler& handler, RefProtocolMessage
                                             handler,
                                             message)));
 
+#endif
   return true;
 }
 
@@ -47,9 +50,10 @@ bool CoroWlDispatcher::Dispatch(ProtoMessageHandler& handler, RefProtocolMessage
 void CoroWlDispatcher::DispachToCoroAndReply(ProtoMessageHandler functor,
                                              RefProtocolMessage request) {
 
-  auto coro_functor = std::bind(functor, request);
+  //auto coro_functor = std::bind(functor, request);
+  //base::CoroScheduler::CreateAndSchedule(base::NewCoroTask(std::move(coro_functor)));
 
-  base::CoroScheduler::CreateAndSchedule(base::NewCoroTask(std::move(coro_functor)));
+  functor(request);
 
   RefProtocolMessage response = request->Response();
   if (response.get()) {
@@ -67,12 +71,16 @@ void CoroWlDispatcher::DispachToCoroAndReply(ProtoMessageHandler functor,
       channel->IOLoop()->PostTask(base::NewClosure(std::move(func_reply)));
     }
   }
-  VLOG(GLOG_VTRACE) << "Request Has Been Handled";
+  //VLOG(GLOG_VTRACE) << "Request Has Been Handled";
 }
 
 // run in io loop
 void CoroWlDispatcher::Reply(RefTcpChannel channel, RefProtocolMessage request) {
   CHECK(channel.get());
+  if (!channel.get()) {
+    LOG(INFO) << "A Bad Channel Can't Send Response";
+    return;
+  }
 
   RefProtocolMessage response = request->Response();
   if (response.get()) {

@@ -124,8 +124,10 @@ int ReqParseContext::OnHttpRequestEnd(http_parser* parser) {
   ReqParseContext* context = (ReqParseContext*)parser->data;
 
   int type = parser->type;
-  if (type == HTTP_REQUEST) {
-    LOG(ERROR) << __FUNCTION__ << " Not A HTTP REQUEST, type is:" << type;
+  if (type != HTTP_REQUEST) {
+    LOG(ERROR) << __FUNCTION__ << "ReqParseContext Parse A NONE-REQUEST Content";
+    context->reset();
+    return -1;
   }
 
   context->current_->SetMessageDirection(IODirectionType::kInRequest);

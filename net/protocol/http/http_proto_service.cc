@@ -55,12 +55,17 @@ void HttpProtoService::OnStatusChanged(const RefTcpChannel& channel) {
 }
 
 void HttpProtoService::OnDataFinishSend(const RefTcpChannel& channel) {
-  LOG(INFO) << __FUNCTION__ ;
-  channel->ShutdownChannel();
+  LOG(INFO) << __FUNCTION__ << channel->ChannelName();
+  //if (channel->ChannelStatus() ==  DISCONNECTED) {
+    channel->ShutdownChannel();
+  //}
 }
 
 void HttpProtoService::OnDataRecieved(const RefTcpChannel& channel, IOBuffer* buf) {;
   static const std::string kBadRequest = "HTTP/1.1 400 Bad Request\r\n\r\n";
+
+  LOG(ERROR) << " OnDataRecieved n bytes:" << buf->CanReadSize() << " From:" << channel->ChannelName();
+
   bool success = false;
   if (channel->IsServicerChannel()) {// parse Request
     success = ParseHttpRequest(channel, buf);
@@ -108,6 +113,8 @@ bool HttpProtoService::ParseHttpRequest(const RefTcpChannel& channel, IOBuffer* 
   size_t buffer_size = buf->CanReadSize();
   const char* buffer_start = (const char*)buf->GetRead();
   http_parser* parser = request_context_->Parser();
+
+
   size_t nparsed = http_parser_execute(parser,
                                        &req_parser_settings_,
                                        buffer_start,

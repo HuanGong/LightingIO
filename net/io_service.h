@@ -2,7 +2,7 @@
 #define _NET_IO_SERVICE_H_H
 
 #include <atomic>
-
+#include <unordered_map>
 #include "net_callback.h"
 #include "service_acceptor.h"
 #include "dispatcher/workload_dispatcher.h"
@@ -76,9 +76,9 @@ private:
   ProtoMessageHandler message_handler_;
 
   std::atomic<int64_t> channel_count_;
-  std::map<std::string, RefTcpChannel> connections_;
   std::string service_name_;
   bool is_stopping_;
+  std::unordered_map<std::string, RefTcpChannel> connections_;
 };
 
 }

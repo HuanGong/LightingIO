@@ -58,21 +58,31 @@ void FdEvent::HandleEvent() {
   VLOG(GLOG_VTRACE) << "FdEvent::handle_event: " << RcvEventAsString();
 
   /* in normal case, this caused by peer close fd */
-  if ((revents_ & EPOLLHUP) && !(revents_ & EPOLLIN) && close_callback_) {
-    close_callback_();
-  }
+  do {
 
-  if (revents_ & EPOLLOUT && write_callback_) {
-    write_callback_();
-  }
-
-  if (revents_ & (EPOLLERR | POLLNVAL) && error_callback_) {
-    error_callback_();
-  }
-
-  if (revents_ & (EPOLLIN | EPOLLRDHUP) && read_callback_) {
+    //can read and not peer half close
+    if ((revents_ & (EPOLLIN | EPOLLPRI)) &&
+        (!(revents_ & EPOLLRDHUP)) &&
+        read_callback_) {
       read_callback_();
-  }
+    }
+    //write
+    if ((revents_ & EPOLLOUT) && write_callback_) {
+      write_callback_();
+    }
+
+    //peer close
+    if (( (revents_ & EPOLLHUP) || ((revents_ & EPOLLIN) && (revents_ & EPOLLRDHUP)) ) &&
+         close_callback_) {
+      close_callback_();
+    }
+    //internal error or invailed fd
+    if ( ((revents_ & EPOLLERR) || (revents_ & POLLNVAL)) && error_callback_) {
+      error_callback_();
+    }
+    //EPOLLPRI
+
+  } while(0);
 
   revents_ = 0;
 }

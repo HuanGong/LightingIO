@@ -58,9 +58,9 @@ void TcpChannel::Initialize() {
 }
 
 TcpChannel::~TcpChannel() {
-  VLOG(GLOG_VTRACE) << "TcpChannel Gone, Fd:" << socket_fd_ << " status:" << StatusAsString();
+  VLOG(GLOG_VTRACE) << channal_name_ << " Gone, Fd:" << socket_fd_;
   //CHECK(channel_status_ == DISCONNECTED);
-  LOG(INFO) << " TcpChannel::~TcpChannel Gone";
+  LOG(INFO) << " TcpChannel::~TcpChannel " << channal_name_ << " Gone";
   if (socket_fd_ != -1) {
     socketutils::CloseSocket(socket_fd_);
   }
@@ -111,6 +111,7 @@ void TcpChannel::HandleRead() {
       proto_service_->OnDataRecieved(shared_from_this(), &in_buffer_);
     }
   } else if (0 == bytes_read) { //read eof
+    LOG(INFO) << "Close For Read 0 Bytes" << ChannelName();
     HandleClose();
   } else {
     errno = error;
@@ -186,10 +187,9 @@ void TcpChannel::Send(RefProtocolMessage& message) {
     bool success = proto_service_->EncodeToBuffer(message.get(), &buffer);
     LOG_IF(ERROR, !success) << "Send Failed For Message Encode Failed";
     if (success && buffer.CanReadSize()) {
-      LOG(INFO) << "Send Data:\n" << buffer.AsString();
+      //LOG(INFO) << "Send Data:\n" << buffer.AsString();
       Send(buffer.GetRead(), buffer.CanReadSize());
     }
-
   }
 }
 
@@ -208,7 +208,7 @@ void TcpChannel::HandleClose() {
 
   fd_event_->DisableAll();
   work_loop_->Pump()->RemoveFdEvent(fd_event_.get());
-
+  VLOG(GLOG_VTRACE) << " channel_status_ to DISCONNECTED, channel:" << ChannelName();
   channel_status_ = DISCONNECTED;
   RefTcpChannel guard(shared_from_this());
 
@@ -253,7 +253,7 @@ int32_t TcpChannel::Send(const uint8_t* data, const int32_t len) {
   CHECK(work_loop_->IsInLoopThread());
 
   if (channel_status_ != CONNECTED) {
-    LOG(INFO) <<  "Can't Write Data To a Closed[ing] socket" << channel_status_;
+    LOG(INFO) <<  "Can't Write Data To a Closed[ing] socket; INFO" << ChannelName();
     return -1;
   }
 
