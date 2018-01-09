@@ -22,6 +22,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 # add a default linked path to build/lib
 LINK_DIRECTORIES(${CMAKE_BINARY_DIR}/lib)
 
+find_package (glog)
+
 ADD_SUBDIRECTORY(thirdparty)
 ADD_SUBDIRECTORY(base)
 ADD_SUBDIRECTORY(net)

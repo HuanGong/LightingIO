@@ -33,7 +33,7 @@ void http_handler(net::RefProtocolMessage message) {
   std::ostringstream oss;
   httpmsg->ToRequestRawData(oss);
 
-  LOG(INFO) << "I Got HttpRequest Raw:\n" << oss.str();
+  LOG(INFO) << "I Got HttpRequest Raw:" << oss.str();
   net::RefHttpResponse response = std::make_shared<net::HttpResponse>(net::IODirectionType::kOutResponse);
   response->SetResponseCode(404);
   response->SetKeepAlive(false);

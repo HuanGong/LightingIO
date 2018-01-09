@@ -3,14 +3,7 @@
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 SET(gflags_DIR /usr/lib/x86_64-linux-gnu)
 
-ADD_SUBDIRECTORY(glog)
-#ADD_SUBDIRECTORY(gflags)
 ADD_SUBDIRECTORY(libcoro)
-#ADD_SUBDIRECTORY(libevent)
-
-INCLUDE_DIRECTORIES(
-  glog/src
-)
 
 SET(CRC_SOURCES
     crc/crc.cpp
