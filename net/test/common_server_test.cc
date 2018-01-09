@@ -21,7 +21,7 @@ void handler(net::RefProtocolMessage message) {
   CHECK(message.get());
 
   net::LineMessage* linemsg = static_cast<net::LineMessage*>(message.get());
-  LOG(INFO) << "I Got LineMessage: body:" << linemsg->Body();
+  DLOG(INFO) << "I Got LineMessage: body:" << linemsg->Body();
   std::shared_ptr<net::LineMessage> res =
     std::make_shared<net::LineMessage>(net::IODirectionType::kOutResponse);
   res->MutableBody() = "hello response";
