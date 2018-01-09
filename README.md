@@ -1,8 +1,19 @@
-LigthingIO is a 'light' net work IO application framework;
 
-learning and integrate them into LightingIO
+LigthingIO is a 'light' network IO application framework;
 
-因为转入后台开发不久, 刚开始想借助于现有的网络io库来构建一个服务应用框架而已,于是在调研和了解了libuv libev libevent之后, 选择了libevent,
-一开始思考着他自带的协议支持和相对完备的实现, 可是渐渐的发现使用别人的库并不是一种好的体验, 他严重的制约了自己所想要的实现;
+NOTE
+---
 
-于是,我抛弃了我之前写的东西, 在这个基础之上,开始从epoll,eventloop, messageloop, dispatcher protocol decode/encode来构建, 变成我想要它成为的那个样子
+  This library still in progress, do not use it in your project or production environments;
+  **email** me if any question and problem;
+
+Learning and integrate what i think into LightingIO
+
+LightingIO itself just a normal network application framework; all its technology from my practice and work
+
+at the start time of this project; i use libevent, but i find many things was limited by the exsiting code; it's hard to hack or change
+the libevent code; so... I give up libvent at last, and then start all things from zero, in thoes days and night, thanks the support from
+my girl friends; and other reference books
+
+
+From HuanGong 2018-01-08
