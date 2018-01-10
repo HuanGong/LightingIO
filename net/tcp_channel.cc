@@ -160,7 +160,7 @@ void TcpChannel::HandleWrite() {
   }
 }
 
-void TcpChannel::Send(RefProtocolMessage& message) {
+void TcpChannel::SendProtoMessage(RefProtocolMessage message) {
   CHECK(work_loop_->IsInLoopThread());
 
   if (!message) {
@@ -315,6 +315,9 @@ void TcpChannel::SetStatusChangedCallback(const ChannelStatusCallback& callback)
   status_change_callback_ = callback;
 }
 
+RefProtoService TcpChannel::GetProtoService() const {
+  return proto_service_;
+}
 void TcpChannel::SetProtoService(RefProtoService proto_service) {
   proto_service_ = proto_service;
 }
@@ -343,6 +346,9 @@ bool TcpChannel::InIOLoop() const {
 }
 bool TcpChannel::IsServicerChannel() const {
   return is_service_channel_;
+}
+bool TcpChannel::IsConnected() const {
+  return channel_status_ == CONNECTED;
 }
 
 }

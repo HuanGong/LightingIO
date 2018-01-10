@@ -10,6 +10,7 @@ public:
   CoroWlDispatcher(bool no_proxy);
   ~CoroWlDispatcher();
 
+  bool Play(base::StlClourse& clourse) override;
   bool Dispatch(ProtoMessageHandler&, RefProtocolMessage&) override;
 
 private:

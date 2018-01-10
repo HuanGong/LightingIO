@@ -39,7 +39,8 @@ http_parser_settings HttpProtoService::res_parser_settings_ = {
 HttpProtoService::HttpProtoService()
   : ProtoService("http"),
     request_context_(NULL),
-    response_context_(NULL) {
+    response_context_(NULL),
+    close_after_finish_send_(false) {
 
   request_context_ = new ReqParseContext();
   response_context_ = new ResParseContext();
@@ -56,13 +57,13 @@ void HttpProtoService::OnStatusChanged(const RefTcpChannel& channel) {
 
 void HttpProtoService::OnDataFinishSend(const RefTcpChannel& channel) {
   LOG(INFO) << __FUNCTION__ << channel->ChannelName();
-  //if (channel->ChannelStatus() ==  DISCONNECTED) {
+  if (close_after_finish_send_) {
     channel->ShutdownChannel();
-  //}
+  }
 }
 
 void HttpProtoService::OnDataRecieved(const RefTcpChannel& channel, IOBuffer* buf) {;
-  static const std::string kBadRequest = "HTTP/1.1 400 Bad Request\r\n\r\n";
+  //static const std::string kBadRequest = "HTTP/1.1 400 Bad Request\r\n\r\n";
 
   LOG(ERROR) << " OnDataRecieved n bytes:" << buf->CanReadSize() << " From:" << channel->ChannelName();
 
@@ -122,10 +123,6 @@ bool HttpProtoService::ParseHttpRequest(const RefTcpChannel& channel, IOBuffer* 
 
   buf->Consume(nparsed);
 
-  //LOG(ERROR) << "recv:" << buf->AsString()
-  //           << "\n nparsed: " << nparsed
-  //           << "\n buffer_size:" << buffer_size;
-
   if (parser->upgrade) {
     LOG(ERROR) << " Not Supported Now";
 
@@ -149,7 +146,14 @@ bool HttpProtoService::ParseHttpRequest(const RefTcpChannel& channel, IOBuffer* 
     message->SetIOContextWeakChannel(channel);
     message->SetMessageDirection(IODirectionType::kInRequest);
 
-    InvokeMessageHandler(message);
+    if (dispatcher_) {
+      RefHttpProtoService service = std::static_pointer_cast<HttpProtoService>(channel->GetProtoService());
+      base::StlClourse clourse = std::bind(&HttpProtoService::PlayRequest, service, message);
+      dispatcher_->Play(clourse);
+    } else { //play itself
+      PlayRequest(message);
+    }
+    //channel->Send((const uint8_t*)HttpConstant::kBadRequest.data(), HttpConstant::kBadRequest.size());
   }
   return true;
 }
@@ -189,6 +193,46 @@ bool HttpProtoService::ParseHttpResponse(const RefTcpChannel& channel, IOBuffer*
     InvokeMessageHandler(message);
   }
   return true;
+}
+
+void HttpProtoService::PlayRequest(RefHttpRequest request) {
+
+  if (message_handler_) {
+    message_handler_(std::static_pointer_cast<ProtocolMessage>(request));
+  }
+
+  WeakPtrTcpChannel weak_channel = request->GetIOCtx().channel;
+  RefTcpChannel channel = weak_channel.lock();
+  if (!channel.get() && channel->IsConnected()) {
+    return;
+  }
+
+  RefProtocolMessage response = request->Response();
+  if (!response.get()) {
+    RefHttpResponse http_res = std::make_shared<HttpResponse>(IODirectionType::kOutResponse);
+    http_res->MutableBody() = HttpConstant::kBadRequest;
+    if (!request->IsKeepAlive()) {
+      http_res->SetKeepAlive(request->IsKeepAlive());
+    }
+    response = std::static_pointer_cast<ProtocolMessage>(http_res);
+  }
+  HttpResponse* http_res = static_cast<HttpResponse*>(response.get());
+  if (!http_res->IsKeepAlive()) {
+    close_after_finish_send_ = true;
+  } else {
+    close_after_finish_send_ = false;
+  }
+
+  if (channel->InIOLoop()) {
+    channel->SendProtoMessage(response);
+  } else {
+    auto functor = std::bind(&TcpChannel::SendProtoMessage, channel, response);
+    channel->IOLoop()->PostTask(base::NewClosure(std::move(functor)));
+  }
+}
+
+void HttpProtoService::PlayResponse(RefHttpResponse response) {
+
 }
 
 }//end namespace

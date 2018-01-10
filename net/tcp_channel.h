@@ -42,7 +42,7 @@ public:
   void SetProtoService(RefProtoService proto_service);
 
   /* send a protocol*/
-  void Send(RefProtocolMessage& message);
+  void SendProtoMessage(RefProtocolMessage message);
   /* return -1 in error, return 0 when success*/
   int32_t Send(const uint8_t* data, const int32_t len);
 
@@ -50,8 +50,10 @@ public:
   void ShutdownChannel();
   const std::string StatusAsString();
   bool InIOLoop() const;
+  bool IsConnected() const;
   base::MessageLoop2* IOLoop() const;
   bool IsServicerChannel() const;
+  RefProtoService GetProtoService() const;
 protected:
   void Initialize();
 

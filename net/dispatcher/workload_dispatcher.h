@@ -23,6 +23,7 @@ public:
   base::MessageLoop2* GetNextWorkLoop();
   virtual bool Dispatch(ProtoMessageHandler&, RefProtocolMessage&) = 0;
 
+  virtual bool Play(base::StlClourse& clourse) = 0;
 private:
   bool work_in_io_;
   bool started_;

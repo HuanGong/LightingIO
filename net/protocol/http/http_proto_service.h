@@ -9,21 +9,8 @@
 #include "http_parser/http_parser.h"
 
 namespace net {
-
-typedef struct {
-  void reset() {
-    status_code.clear();
-    current_.reset();
-    half_header.first.clear();
-    half_header.second.clear();
-    last_is_header_value = false;
-  }
-  std::string status_code;
-  bool last_is_header_value;
-  std::pair<std::string, std::string> half_header;
-  RefHttpRequest current_;
-  std::vector<RefHttpRequest> messages_;
-} HttpParseContext;
+class HttpProtoService;
+typedef std::shared_ptr<HttpProtoService> RefHttpProtoService;
 
 class HttpProtoService : public ProtoService {
 public:
@@ -42,10 +29,14 @@ private:
   //bool EncodeHttpResponse(const HttpResponse*, IOBU* out_buffer);
   bool ParseHttpRequest(const RefTcpChannel&, IOBuffer*);
   bool ParseHttpResponse(const RefTcpChannel&, IOBuffer*);
+
+  //run in worker thread, not thread safe
+  void PlayRequest(RefHttpRequest request);
+  void PlayResponse(RefHttpResponse response);
 private:
   ReqParseContext* request_context_;
   ResParseContext* response_context_;
-
+  bool close_after_finish_send_;
   static http_parser_settings req_parser_settings_;
   static http_parser_settings res_parser_settings_;
 };

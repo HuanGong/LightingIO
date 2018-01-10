@@ -33,6 +33,7 @@ ADD_LIBRARY(ltnet SHARED
 
 TARGET_LINK_LIBRARIES(ltnet
   -lglog
+  -lgflags
   -lhttp_parser
   -lbase_shared
   -lpthread
@@ -64,6 +65,7 @@ add_dependencies(acceptor_test
 TARGET_LINK_LIBRARIES(acceptor_test
   -lltnet
   -lglog
+  -lgflags
   -lbase_shared
   -lpthread
 )
@@ -90,6 +92,7 @@ add_dependencies(common_server
 TARGET_LINK_LIBRARIES(common_server
   -lltnet
   -lglog
+  -lgflags
   -lbase_shared
   -lpthread
 )

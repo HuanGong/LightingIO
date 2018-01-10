@@ -41,7 +41,7 @@ void ServiceAcceptor::InitListener() {
 bool ServiceAcceptor::StartListen() {
   CHECK(event_pump_->IsInLoopThread());
   if (listenning_) {
-    LOG(INFO) << " Aready Listen on:" << address_.IpPortAsString();
+    LOG(ERROR) << " Aready Listen on:" << address_.IpPortAsString();
     return true;
   }
   if (!socket_event_) {
@@ -76,8 +76,6 @@ void ServiceAcceptor::SetNewConnectionCallback(const NewConnectionCallback& cb) 
 
 void ServiceAcceptor::HandleCommingConnection() {
 
-  VLOG(GLOG_VINFO) << "Accept a New Connection";
-
   struct sockaddr_in client_socket_in;
   int peer_fd = socketutils::AcceptSocket(socket_fd_, &client_socket_in);
 
@@ -87,6 +85,9 @@ void ServiceAcceptor::HandleCommingConnection() {
   }
 
   InetAddress clientaddr(client_socket_in);
+
+  VLOG(GLOG_VTRACE) << "Accept a New Connection:" << clientaddr.IpPortAsString();
+
   if (new_conn_callback_) {
     new_conn_callback_(peer_fd, clientaddr);
   } else {

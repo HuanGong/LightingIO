@@ -22,6 +22,23 @@ CoroWlDispatcher::~CoroWlDispatcher() {
 
 }
 
+bool CoroWlDispatcher::Play(base::StlClourse& clourse) {
+  if (HandleWorkInIOLoop()) {
+    base::CoroScheduler::CreateAndSchedule(base::NewCoroTask(std::move(clourse)));
+    return true;
+  }
+
+  base::MessageLoop2* loop = GetNextWorkLoop();
+  if (NULL == loop) {
+    return false;
+  }
+  auto functor = [=]() {
+    base::CoroScheduler::CreateAndSchedule(base::NewCoroTask(std::move(clourse)));
+  };
+  loop->PostTask(base::NewClosure(functor));
+  return true;
+}
+
 //IOLoop TO WorkLoop
 bool CoroWlDispatcher::Dispatch(ProtoMessageHandler& handler, RefProtocolMessage& message) {
   if (!handler || !message) {
@@ -30,19 +47,18 @@ bool CoroWlDispatcher::Dispatch(ProtoMessageHandler& handler, RefProtocolMessage
   }
   VLOG(GLOG_VTRACE) << "CoroWlDispatcher Going Dispatch work";
 
-#if 1
   if (HandleWorkInIOLoop()) {
     DispachToCoroAndReply(handler, message);
     return true;
+  } else {
+
+    base::MessageLoop2* loop = GetNextWorkLoop();
+    loop->PostTask(base::NewClosure(std::bind(&CoroWlDispatcher::DispachToCoroAndReply,
+                                              this,
+                                              handler,
+                                              message)));
+
   }
-
-  base::MessageLoop2* loop = GetNextWorkLoop();
-  loop->PostTask(base::NewClosure(std::bind(&CoroWlDispatcher::DispachToCoroAndReply,
-                                            this,
-                                            handler,
-                                            message)));
-
-#endif
   return true;
 }
 
@@ -84,7 +100,7 @@ void CoroWlDispatcher::Reply(RefTcpChannel channel, RefProtocolMessage request) 
 
   RefProtocolMessage response = request->Response();
   if (response.get()) {
-    channel->Send(response);
+    channel->SendProtoMessage(response);
   }
 }
 

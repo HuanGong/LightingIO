@@ -29,12 +29,12 @@ public:
 
   virtual bool HandleRequstInIO() {return false;}
   /* WorkLoop Handle request/response from IOWorkerLoop*/
-  virtual int GetWorkerLoopCount() {return 4;/*std::thread::hardware_concurrency();*/}
+  virtual int GetWorkerLoopCount() {return std::thread::hardware_concurrency();}
 
   /* IOService Using for Handle New Comming Connections */
-  virtual int GetIOServiceLoopCount() { return 4;}
+  virtual int GetIOServiceLoopCount() {return std::thread::hardware_concurrency();}
   //IOWorkLoop handle socket IO and the encode/decode to requestmessage or responsemessage
-  virtual int GetIOWorkerLoopCount() {return 4; /*std::thread::hardware_concurrency();*/};
+  virtual int GetIOWorkerLoopCount() {return std::thread::hardware_concurrency();};
 
   virtual void BeforeServerRun() {};
   virtual void AfterServerRun() {};

@@ -33,16 +33,19 @@ void http_handler(net::RefProtocolMessage message) {
   std::ostringstream oss;
   httpmsg->ToRequestRawData(oss);
 
-  LOG(INFO) << "I Got HttpRequest Raw:" << oss.str();
+  VLOG(3) << "I Got HttpRequest Raw:" << oss.str();
   net::RefHttpResponse response = std::make_shared<net::HttpResponse>(net::IODirectionType::kOutResponse);
-  response->SetResponseCode(404);
-  response->SetKeepAlive(false);
+  response->SetResponseCode(200);
+  response->SetKeepAlive(httpmsg->IsKeepAlive());
   response->MutableBody() = "Nice to meet your,I'm LightingIO\n";
 
   httpmsg->SetResponse(std::move(response));
 }
 
-int main() {
+int main(int argc, char* argv[]) {
+
+  google::InitGoogleLogging(argv[0]);  // 初始化 glog
+  google::ParseCommandLineFlags(&argc, &argv, true);  // 初始化 gflags
 
   //net::SrvDelegate delegate;
   net::Application app;

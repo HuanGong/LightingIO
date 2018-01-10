@@ -136,7 +136,6 @@ int ReqParseContext::OnHttpRequestEnd(http_parser* parser) {
   context->current_->http_minor_ = parser->http_minor;
 
   context->current_->method_ = http_method_str((http_method)parser->method);
-
   //build params
   //extract host
 

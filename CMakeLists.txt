@@ -8,11 +8,12 @@ include(${CMAKE_CONFIG_DIR}/include_path.cmake)
 include(${CMAKE_CONFIG_DIR}/package_deps.cmake)
 #include(${CMAKE_CONFIG_DIR}/googletest.cmake)
 
+set(CMAKE_CONFIGURATION_TYPES "Release" CACHE STRING "" FORCE)
+SET(CMAKE_CXX_FLAGS_RELEASE "-O2")
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-
 
 # add a default linked path to build/lib
 LINK_DIRECTORIES(${CMAKE_BINARY_DIR}/lib)

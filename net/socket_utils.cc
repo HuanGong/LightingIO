@@ -12,6 +12,7 @@
 
 #include <sys/types.h>
 #include <arpa/inet.h>
+#include <base/base_constants.h>
 
 #include "net_endian.h"
 
@@ -84,7 +85,7 @@ SocketFd AcceptSocket(SocketFd sockfd, struct sockaddr_in* addr) {
                          &addrlen, SOCK_NONBLOCK | SOCK_CLOEXEC);
   if (connfd < 0) {
     int savedErrno = errno;
-    LOG(ERROR) << "SocketUtils::AcceptSocket Error";
+    VLOG(GLOG_VERROR) << "SocketUtils::AcceptSocket Error: fd:" << sockfd;
     switch (savedErrno) {
       case EAGAIN:
       case ECONNABORTED:
@@ -104,10 +105,10 @@ SocketFd AcceptSocket(SocketFd sockfd, struct sockaddr_in* addr) {
       case ENOTSOCK:
       case EOPNOTSUPP:
         // unexpected errors
-        LOG(ERROR) << "unexpected error of ::accept " << savedErrno;
+        VLOG(GLOG_VERROR) << "unexpected error of ::accept " << savedErrno;
         break;
       default:
-        LOG(ERROR) << "unknown error of ::accept " << savedErrno;
+        VLOG(GLOG_VERROR) << "unknown error of ::accept " << savedErrno;
         break;
     }
   }
@@ -282,7 +283,7 @@ bool ReUseSocketPort(SocketFd socket_fd, bool reuse) {
   LOG_IF(ERROR, ret == -1) << "Set SO_REUSEPORT failed.";
   return ret == 0;
 #else
-  LOG(INFO) << "SO_REUSEPORT is not supported."
+  LOG(ERROR) << "SO_REUSEPORT is not supported."
 #endif
 }
 
