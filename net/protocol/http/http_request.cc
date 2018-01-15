@@ -21,6 +21,14 @@ HttpRequest::~HttpRequest() {
 
 }
 
+void HttpRequest::SetRequestURL(const char* url) {
+  url_ = url;
+}
+
+void HttpRequest::SetRequestURL(const std::string& url) {
+  url_ = url;
+}
+
 const std::string& HttpRequest::RequestUrl() const {
   return url_;
 }

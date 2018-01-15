@@ -24,7 +24,7 @@ int main(int argc, char** argv) {
                                      local,
                                      peer,
                                      &loop,
-                                     true);
+                                     net::ChannelServeType::kServerType);
     connections.push_back(f);
 
     int32_t size = f->Send((const uint8_t*)"const", sizeof "const");

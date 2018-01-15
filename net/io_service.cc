@@ -20,7 +20,7 @@ IOService::IOService(const InetAddress addr,
   CHECK(delegate_);
   service_name_ = addr.IpPortAsString();
   acceptor_.reset(new ServiceAcceptor(acceptor_loop_->Pump(), addr));
-  acceptor_->SetNewConnectionCallback(std::bind(&IOService::HandleNewConnection,
+  acceptor_->SetNewConnectionCallback(std::bind(&IOService::OnNewConnection,
                                                 this,
                                                 std::placeholders::_1,
                                                 std::placeholders::_2));
@@ -64,7 +64,7 @@ void IOService::StopIOService() {
   }
 }
 
-void IOService::HandleNewConnection(int local_socket, const InetAddress& peer_addr) {
+void IOService::OnNewConnection(int local_socket, const InetAddress& peer_addr) {
   CHECK(acceptor_loop_->IsInLoopThread());
   if (!delegate_) {
     LOG(ERROR) << "New Connection Can't Get IOWorkLoop From NULL delegate";
@@ -90,7 +90,7 @@ void IOService::HandleNewConnection(int local_socket, const InetAddress& peer_ad
                                         local_addr,
                                         peer_addr,
                                         io_work_loop,
-                                        true);
+                                        ChannelServeType::kServerType);
 
   //Is peer_addr.IpPortAsString Is unique?
   new_channel->SetChannelName(peer_addr.IpPortAsString());

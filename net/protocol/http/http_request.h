@@ -25,6 +25,8 @@ public:
   void SetMethod(const std::string);
   const std::string& Method() const;
 
+  void SetRequestURL(const char* url);
+  void SetRequestURL(const std::string&);
   const std::string& RequestUrl() const;
 
   KeyValMap& MutableHeaders();

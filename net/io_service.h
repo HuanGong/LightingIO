@@ -54,7 +54,7 @@ public:
 private:
   //void HandleProtoMessage(RefProtocolMessage message);
   /* create a new connection channel */
-  void HandleNewConnection(int, const InetAddress&);
+  void OnNewConnection(int, const InetAddress&);
 
   void OnChannelClosed(const RefTcpChannel&);
 

@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
                                      local,
                                      peer,
                                      loop,
-                                     true);
+                                     net::ChannelServeType::kServerType);
     int32_t size = f->Send((const uint8_t*)"hello world", sizeof "hello world");
     LOG(INFO) << "N ByteWrite:" << size;
 

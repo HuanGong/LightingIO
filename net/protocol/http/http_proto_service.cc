@@ -68,7 +68,7 @@ void HttpProtoService::OnDataRecieved(const RefTcpChannel& channel, IOBuffer* bu
   LOG(ERROR) << " OnDataRecieved n bytes:" << buf->CanReadSize() << " From:" << channel->ChannelName();
 
   bool success = false;
-  if (channel->IsServicerChannel()) {// parse Request
+  if (channel->IsServerChannel()) {// parse Request
     success = ParseHttpRequest(channel, buf);
   } else {
     success = ParseHttpResponse(channel, buf);
@@ -153,7 +153,6 @@ bool HttpProtoService::ParseHttpRequest(const RefTcpChannel& channel, IOBuffer* 
     } else { //play itself
       PlayRequest(message);
     }
-    //channel->Send((const uint8_t*)HttpConstant::kBadRequest.data(), HttpConstant::kBadRequest.size());
   }
   return true;
 }
@@ -167,10 +166,6 @@ bool HttpProtoService::ParseHttpResponse(const RefTcpChannel& channel, IOBuffer*
                                        &res_parser_settings_,
                                        buffer_start,
                                        buffer_size);
-
-  LOG(ERROR) << "recv:" << buf->AsString()
-             << "\n nparsed: " << nparsed
-             << "\n buffer_size:" << buffer_size;
 
   if (parser->upgrade) {
     LOG(ERROR) << " Not Supported Now";
@@ -190,7 +185,8 @@ bool HttpProtoService::ParseHttpResponse(const RefTcpChannel& channel, IOBuffer*
     message->SetIOContextWeakChannel(channel);
     message->SetMessageDirection(IODirectionType::kInRequest);
 
-    InvokeMessageHandler(message);
+    PlayResponse(message);
+    //InvokeMessageHandler(message);
   }
   return true;
 }
@@ -232,7 +228,10 @@ void HttpProtoService::PlayRequest(RefHttpRequest request) {
 }
 
 void HttpProtoService::PlayResponse(RefHttpResponse response) {
-
+  if (message_handler_) {
+    message_handler_(std::static_pointer_cast<ProtocolMessage>(response));
+  }
+  LOG(ERROR) << __FUNCTION__ << " hahahah";
 }
 
 }//end namespace

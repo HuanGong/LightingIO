@@ -24,6 +24,11 @@ set(LTNET_SOURCE
   #dispatcher
   dispatcher/coro_dispatcher.cc
   dispatcher/workload_dispatcher.cc
+
+  #clients source
+  clients/client_channel.cc
+  clients/client_connector.cc
+  clients/requests_keeper.cc
 )
 
 #ADD_LIBRARY(ltnet STATIC
@@ -90,6 +95,20 @@ add_dependencies(common_server
   ltnet
 )
 TARGET_LINK_LIBRARIES(common_server
+  -lltnet
+  -lglog
+  -lgflags
+  -lbase_shared
+  -lpthread
+)
+
+ADD_EXECUTABLE(client_test
+  test/client_test.cc
+)
+add_dependencies(client_test
+  ltnet
+)
+TARGET_LINK_LIBRARIES(client_test
   -lltnet
   -lglog
   -lgflags

@@ -16,6 +16,11 @@
  * */
 namespace net {
 
+typedef enum {
+  kClientType = 0,
+  kServerType = 1
+} ChannelServeType;
+
 class TcpChannel : public std::enable_shared_from_this<TcpChannel> {
 public:
   typedef enum {
@@ -25,11 +30,15 @@ public:
     DISCONNECTING = 3
   } ChannelStatus;
 
+  static RefTcpChannel CreateClientChannel(int socket_fd,
+                                           const InetAddress& local,
+                                           const InetAddress& remote,
+                                           base::MessageLoop2* loop);
   static RefTcpChannel Create(int socket_fd,
                               const InetAddress& local,
                               const InetAddress& peer,
                               base::MessageLoop2* loop,
-                              bool is_service_channel);
+                              ChannelServeType type);
 
   ~TcpChannel();
   const std::string& ChannelName() {return channal_name_;}
@@ -42,7 +51,7 @@ public:
   void SetProtoService(RefProtoService proto_service);
 
   /* send a protocol*/
-  void SendProtoMessage(RefProtocolMessage message);
+  bool SendProtoMessage(RefProtocolMessage message);
   /* return -1 in error, return 0 when success*/
   int32_t Send(const uint8_t* data, const int32_t len);
 
@@ -52,7 +61,8 @@ public:
   bool InIOLoop() const;
   bool IsConnected() const;
   base::MessageLoop2* IOLoop() const;
-  bool IsServicerChannel() const;
+  bool IsServerChannel() const;
+  bool IsClientChannel() const;
   RefProtoService GetProtoService() const;
 protected:
   void Initialize();
@@ -68,7 +78,7 @@ private:
              const InetAddress& loc,
              const InetAddress& peer,
              base::MessageLoop2* loop,
-             bool service_channel);
+             ChannelServeType type);
   void OnConnectionReady();
 private:
   /* all the io thing happend in work loop,
@@ -85,8 +95,8 @@ private:
 
   InetAddress local_addr_;
   InetAddress peer_addr_;
-  /*indicate channel type: client or server type*/
-  const bool is_service_channel_;
+
+  const ChannelServeType serve_type_;
 
   std::string channal_name_;
 

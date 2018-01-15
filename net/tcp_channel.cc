@@ -9,18 +9,28 @@
 
 namespace net {
 
+RefTcpChannel TcpChannel::CreateClientChannel(int socket_fd,
+                                              const InetAddress& local,
+                                              const InetAddress& remote,
+                                              base::MessageLoop2* loop) {
+
+  RefTcpChannel conn(new TcpChannel(socket_fd, local, remote,
+                                    loop, ChannelServeType::kClientType));
+  conn->Initialize();
+  return std::move(conn);
+}
 //static
 RefTcpChannel TcpChannel::Create(int socket_fd,
                                  const InetAddress& local,
                                  const InetAddress& peer,
                                  base::MessageLoop2* loop,
-                                 bool service_channel) {
+                                 ChannelServeType type) {
 
   RefTcpChannel conn(new TcpChannel(socket_fd,
                                     local,
                                     peer,
                                     loop,
-                                    service_channel));
+                                    type));
   conn->Initialize();
   return std::move(conn);
 }
@@ -29,15 +39,14 @@ TcpChannel::TcpChannel(int socket_fd,
                        const InetAddress& loc,
                        const InetAddress& peer,
                        base::MessageLoop2* loop,
-                       bool is_service_channel)
+                       ChannelServeType type)
   : work_loop_(loop),
     owner_loop_(NULL),
     channel_status_(CONNECTING),
     socket_fd_(socket_fd),
     local_addr_(loc),
     peer_addr_(peer),
-    is_service_channel_(is_service_channel) {
-
+    serve_type_(type) {
 
   fd_event_ = base::FdEvent::create(socket_fd_, 0);
 }
@@ -61,6 +70,12 @@ TcpChannel::~TcpChannel() {
   VLOG(GLOG_VTRACE) << channal_name_ << " Gone, Fd:" << socket_fd_;
   //CHECK(channel_status_ == DISCONNECTED);
   LOG(INFO) << " TcpChannel::~TcpChannel " << channal_name_ << " Gone";
+  if (channel_status_ != DISCONNECTED) {
+    work_loop_->PostTask(base::NewClosure(std::bind(&base::EventPump::RemoveFdEvent,
+                                                    work_loop_->Pump(),
+                                                    fd_event_.get())));
+  }
+
   if (socket_fd_ != -1) {
     socketutils::CloseSocket(socket_fd_);
   }
@@ -160,18 +175,20 @@ void TcpChannel::HandleWrite() {
   }
 }
 
-void TcpChannel::SendProtoMessage(RefProtocolMessage message) {
+bool TcpChannel::SendProtoMessage(RefProtocolMessage message) {
   CHECK(work_loop_->IsInLoopThread());
+  CHECK(proto_service_);
 
   if (!message) {
     LOG(ERROR) << "Bad ProtoMessage, ChannelInfo:" << ChannelName()
                << " Status:" << StatusAsString();
+    return false;
   }
   if (channel_status_ != ChannelStatus::CONNECTED) {
     LOG(ERROR) << "Channel Is Broken, ChannelInfo:" << ChannelName()
                << " Status:" << StatusAsString();
+    return false;
   }
-  CHECK(proto_service_);
 
   if (out_buffer_.CanReadSize()) { //append to out_buffer_
 
@@ -187,10 +204,10 @@ void TcpChannel::SendProtoMessage(RefProtocolMessage message) {
     bool success = proto_service_->EncodeToBuffer(message.get(), &buffer);
     LOG_IF(ERROR, !success) << "Send Failed For Message Encode Failed";
     if (success && buffer.CanReadSize()) {
-      //LOG(INFO) << "Send Data:\n" << buffer.AsString();
       Send(buffer.GetRead(), buffer.CanReadSize());
     }
   }
+  return true;
 }
 
 void TcpChannel::HandleError() {
@@ -344,9 +361,15 @@ base::MessageLoop2* TcpChannel::IOLoop() const {
 bool TcpChannel::InIOLoop() const {
   return work_loop_->IsInLoopThread();
 }
-bool TcpChannel::IsServicerChannel() const {
-  return is_service_channel_;
+
+bool TcpChannel::IsClientChannel() const {
+  return serve_type_ == ChannelServeType::kClientType;
 }
+
+bool TcpChannel::IsServerChannel() const {
+  return serve_type_ == ChannelServeType::kServerType;
+}
+
 bool TcpChannel::IsConnected() const {
   return channel_status_ == CONNECTED;
 }
