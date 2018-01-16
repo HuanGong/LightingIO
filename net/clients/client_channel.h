@@ -9,7 +9,9 @@
 
 namespace net {
 class ClientChannel;
+
 typedef std::shared_ptr<ClientChannel> RefClientChannel;
+typedef std::function<void (RefProtocolMessage&, RefProtocolMessage&)> ResponseHandler;
 
 /* all thing doing in iocontext */
 class ClientChannel : public std::enable_shared_from_this<ClientChannel> {
@@ -20,9 +22,15 @@ public:
   virtual ~ClientChannel();
 
   bool StartRequest(RefProtocolMessage& request);
+  void OnResponseMessage(RefProtocolMessage message);
+  void SetResponseHandler(ResponseHandler handler);
 private:
+  void OnChannelClosed(RefTcpChannel channel);
+
   //sequence_keeper_;
   RefTcpChannel channel_;
+
+  ResponseHandler response_handler_;
 };
 
 }

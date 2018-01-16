@@ -14,6 +14,8 @@
 
 namespace net {
 
+class Connector;
+typedef std::shared_ptr<Connector> RefConnector;
 typedef std::weak_ptr<base::FdEvent> WeakPtrFdEvent;
 
 class ConnectorDelegate {

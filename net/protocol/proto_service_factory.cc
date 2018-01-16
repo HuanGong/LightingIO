@@ -21,6 +21,7 @@ RefProtoService ProtoServiceFactory::Create(const std::string& proto) {
   if (creators_[proto]) {
     return creators_[proto]();
   }
+  LOG(ERROR) << __FUNCTION__ << " Protocol:" << proto << " Not Supported";
   return _null;
 }
 

@@ -29,6 +29,7 @@ set(LTNET_SOURCE
   clients/client_channel.cc
   clients/client_connector.cc
   clients/requests_keeper.cc
+  clients/client_router.cc
 )
 
 #ADD_LIBRARY(ltnet STATIC
