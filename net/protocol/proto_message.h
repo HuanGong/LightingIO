@@ -19,6 +19,12 @@ typedef struct {
   WeakPtrTcpChannel channel;
 } IOContext;
 
+typedef enum {
+  kNothing = 0,
+  kTimeOut = 1,
+  kChannelBroken = 2
+}FailInfo;
+
 typedef struct {
   void* data;
 } WorkContext;
@@ -38,15 +44,20 @@ public:
   void SetIOContextWeakChannel(const RefTcpChannel& channel);
   void SetIOContextWeakChannel(WeakPtrTcpChannel& channel);
 
+  void SetFailInfo(FailInfo reason);
+  FailInfo MessageFailInfo() const;
+
   void SetResponse(RefProtocolMessage& response);
   void SetResponse(RefProtocolMessage&& response);
   RefProtocolMessage Response() {return response_;}
+
+  virtual const std::string MessageDebug() {};
 protected:
   IOContext io_context_;
   WorkContext work_context_;
 private:
   // Work Context
-
+  FailInfo fail_info_;
   std::string proto_;
   IODirectionType direction_;
   RefProtocolMessage response_;

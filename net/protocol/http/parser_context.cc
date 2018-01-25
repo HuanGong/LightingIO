@@ -241,7 +241,7 @@ int ResParseContext::OnHttpResponseEnd(http_parser* parser) {
 
   int type = parser->type;
   if (type == HTTP_RESPONSE) {
-    LOG(ERROR) << __FUNCTION__ << " Not A HTTP_RESPONSE";
+    LOG(ERROR) << __FUNCTION__ << " A HTTP_RESPONSE";
   }
 
   context->current_->SetMessageDirection(IODirectionType::kInReponse);

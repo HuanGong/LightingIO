@@ -9,9 +9,8 @@ ClientRouter::ClientRouter(base::MessageLoop2* loop, const InetAddress& server)
     connection_timeout_(5000),
     server_addr_(server),
     work_loop_(loop) {
-
+  router_counter_ = 0;
   CHECK(work_loop_);
-
   connector_ = std::make_shared<Connector>(work_loop_, this);
 }
 
@@ -19,8 +18,10 @@ ClientRouter::~ClientRouter() {
 }
 
 
-bool ClientRouter::StartRouter() {
-
+void ClientRouter::StartRouter() {
+  for (uint32_t i = 0; i < channel_count_; i++) {
+    work_loop_->PostTask(base::NewClosure(std::bind(&Connector::LaunchAConnection, connector_, server_addr_)));
+  }
 }
 
 void ClientRouter::OnNewClientConnected(int socket_fd, InetAddress& local, InetAddress& remote) {
@@ -35,14 +36,9 @@ void ClientRouter::OnNewClientConnected(int socket_fd, InetAddress& local, InetA
   //Is peer_addr.IpPortAsString Is unique?
   new_channel->SetChannelName(remote.IpPortAsString());
 
-  RefClientChannel client_channel = std::make_shared<ClientChannel>(new_channel);
-  client_channel->SetResponseHandler(std::bind(&ClientRouter::OnRequestGetResponse,
-                                               this,
-                                               std::placeholders::_1,
-                                               std::placeholders::_2));
+  RefClientChannel client_channel = std::make_shared<ClientChannel>(this, new_channel);
 
   RefProtoService proto_service = ProtoServiceFactory::Instance().Create(protocol_);
-  //proto_service->SetMessageDispatcher(g_dispatcher);
   proto_service->SetMessageHandler(std::bind(&ClientChannel::OnResponseMessage,
                                              client_channel,
                                              std::placeholders::_1));
@@ -52,7 +48,11 @@ void ClientRouter::OnNewClientConnected(int socket_fd, InetAddress& local, InetA
 }
 
 void ClientRouter::OnClientChannelClosed(RefClientChannel channel) {
-  CHECK(work_loop_->IsInLoopThread());
+  LOG(ERROR) << " OnChannelConnected";
+  if (!work_loop_->IsInLoopThread()) {
+    work_loop_->PostTask(base::NewClosure(std::bind(&ClientRouter::OnClientChannelClosed, this, channel)));
+    return;
+  }
 
   auto iter = std::find(channels_.begin(), channels_.end(), channel);
   if (iter != channels_.end()) {
@@ -62,12 +62,24 @@ void ClientRouter::OnClientChannelClosed(RefClientChannel channel) {
   }
 }
 
-void ClientRouter::OnRequestGetResponse(RefProtocolMessage& request,
-                                        RefProtocolMessage& response) {
-  LOG(INFO) << " Request Got A Resonse ";
+void ClientRouter::OnRequestGetResponse(RefProtocolMessage request,
+                                        RefProtocolMessage response) {
+  if (response) {
+    LOG(INFO) << " Request Got A Resonse " << response->MessageDebug();
+  }
   request->SetResponse(response);
-  //dispatcher->DiaptchResponse();
-  //dispatcher->DiaptchResponse();
+}
+
+bool ClientRouter::SendClientRequest(RefProtocolMessage& message) {
+  uint32_t index = router_counter_ % channels_.size();
+  RefClientChannel& client = channels_[index];
+  base::MessageLoop2* io_loop = client->IOLoop();
+  if (NULL == io_loop) {
+    return false;
+  }
+  router_counter_++;
+  io_loop->PostTask(base::NewClosure(std::bind(&ClientChannel::ScheduleARequest, client, message)));
+  return true;
 }
 
 }

@@ -3,7 +3,7 @@
 
 #include "tcp_channel.h"
 #include "net_callback.h"
-
+#include "requests_keeper.h"
 #include "protocol/proto_message.h"
 #include "protocol/proto_service.h"
 
@@ -11,27 +11,48 @@ namespace net {
 class ClientChannel;
 
 typedef std::shared_ptr<ClientChannel> RefClientChannel;
+
+typedef std::unique_ptr<RequestsKeeper> OwnedRequestsKeeper;
 typedef std::function<void (RefProtocolMessage&, RefProtocolMessage&)> ResponseHandler;
 
 /* all thing doing in iocontext */
 class ClientChannel : public std::enable_shared_from_this<ClientChannel> {
 public:
-  RefClientChannel Create(RefTcpChannel& channel);
+  class Delegate {
+  public:
+    virtual void OnClientChannelClosed(RefClientChannel channel) = 0;
+    virtual void OnRequestGetResponse(RefProtocolMessage, RefProtocolMessage) = 0;
+  };
 
-  ClientChannel(RefTcpChannel&);
+  RefClientChannel Create(Delegate* delegate, RefTcpChannel& channel);
+
+  ClientChannel(Delegate*, RefTcpChannel&);
   virtual ~ClientChannel();
 
-  bool StartRequest(RefProtocolMessage& request);
+  base::MessageLoop2* IOLoop();
+  void SetRequestTimeout(uint32_t ms);
+  bool ScheduleARequest(RefProtocolMessage request);
   void OnResponseMessage(RefProtocolMessage message);
-  void SetResponseHandler(ResponseHandler handler);
+
 private:
+  bool TryFireNextRequest();
+
+  void OnRequestFailed(RefProtocolMessage& request, FailInfo reason);
+  void OnBackResponse(RefProtocolMessage& request, RefProtocolMessage& response);
+
+  bool SendRequest(RefProtocolMessage& request);
   void OnChannelClosed(RefTcpChannel channel);
+  void OnSendFinished(RefTcpChannel channel);
+  void OnRequestTimeout(RefProtocolMessage request);
 
-  //sequence_keeper_;
+private:
+  Delegate* delegate_;
+
+  uint32_t message_timeout_; //ms
+
   RefTcpChannel channel_;
-
-  ResponseHandler response_handler_;
+  OwnedRequestsKeeper requests_keeper_;
 };
 
-}
+}//end namespace
 #endif

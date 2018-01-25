@@ -121,6 +121,7 @@ bool HttpProtoService::ParseHttpRequest(const RefTcpChannel& channel, IOBuffer* 
                                        buffer_start,
                                        buffer_size);
 
+  LOG(ERROR) << " reqeuest as string:" << buf->AsString();
   buf->Consume(nparsed);
 
   if (parser->upgrade) {
@@ -131,7 +132,8 @@ bool HttpProtoService::ParseHttpRequest(const RefTcpChannel& channel, IOBuffer* 
 
     return false;
   } else if (nparsed != buffer_size) {
-    LOG(ERROR) << " Parse Occur ERROR";
+    LOG(ERROR) << " Parse Occur ERROR, nparsed" << nparsed
+               << " buffer_size:" << buffer_size;
 
     request_context_->current_.reset();
     channel->Send((const uint8_t*)HttpConstant::kBadRequest.data(), HttpConstant::kBadRequest.size());
@@ -178,13 +180,14 @@ bool HttpProtoService::ParseHttpResponse(const RefTcpChannel& channel, IOBuffer*
   }
   buf->Consume(nparsed);
 
-  while (request_context_->messages_.size()) {
+  while (response_context_->messages_.size()) {
     RefHttpResponse message = response_context_->messages_.front();
     response_context_->messages_.pop_front();
 
     message->SetIOContextWeakChannel(channel);
     message->SetMessageDirection(IODirectionType::kInRequest);
 
+    LOG(ERROR) << " PlayResponse ";
     PlayResponse(message);
     //InvokeMessageHandler(message);
   }
@@ -228,10 +231,10 @@ void HttpProtoService::PlayRequest(RefHttpRequest request) {
 }
 
 void HttpProtoService::PlayResponse(RefHttpResponse response) {
+  LOG(ERROR) << __FUNCTION__ << " Handle A Response";
   if (message_handler_) {
     message_handler_(std::static_pointer_cast<ProtocolMessage>(response));
   }
-  LOG(ERROR) << __FUNCTION__ << " hahahah";
 }
 
 }//end namespace

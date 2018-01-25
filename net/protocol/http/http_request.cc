@@ -11,6 +11,8 @@ namespace net {
 HttpRequest::HttpRequest(IODirectionType t)
   : ProtocolMessage(t, "http"),
   keepalive_(true),
+  method_("GET"),
+  url_("/"),
   http_major_(1),
   http_minor_(1),
   url_param_parsed_(false) {

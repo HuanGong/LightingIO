@@ -66,6 +66,7 @@ void IOService::StopIOService() {
 
 void IOService::OnNewConnection(int local_socket, const InetAddress& peer_addr) {
   CHECK(acceptor_loop_->IsInLoopThread());
+
   if (!delegate_) {
     LOG(ERROR) << "New Connection Can't Get IOWorkLoop From NULL delegate";
     socketutils::CloseSocket(local_socket);
@@ -141,6 +142,7 @@ void IOService::OnChannelClosed(const RefTcpChannel& connection) {
 
 void IOService::StoreConnection(const RefTcpChannel connection) {
   CHECK(acceptor_loop_->IsInLoopThread());
+
   connections_[connection->ChannelName()] = connection;
 
   channel_count_.store(connections_.size());

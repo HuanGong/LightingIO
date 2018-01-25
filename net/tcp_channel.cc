@@ -68,14 +68,8 @@ void TcpChannel::Initialize() {
 
 TcpChannel::~TcpChannel() {
   VLOG(GLOG_VTRACE) << channal_name_ << " Gone, Fd:" << socket_fd_;
-  //CHECK(channel_status_ == DISCONNECTED);
+  CHECK(channel_status_ == DISCONNECTED);
   LOG(INFO) << " TcpChannel::~TcpChannel " << channal_name_ << " Gone";
-  if (channel_status_ != DISCONNECTED) {
-    work_loop_->PostTask(base::NewClosure(std::bind(&base::EventPump::RemoveFdEvent,
-                                                    work_loop_->Pump(),
-                                                    fd_event_.get())));
-  }
-
   if (socket_fd_ != -1) {
     socketutils::CloseSocket(socket_fd_);
   }
@@ -234,11 +228,11 @@ void TcpChannel::HandleClose() {
   // normal case, it will remove from connection's ownner
   // after this, it's will destructor if no other obj hold it
   if (closed_callback_) {
-    if (owner_loop_) {
-      owner_loop_->PostTask(base::NewClosure(std::bind(closed_callback_, guard)));
-    } else {
+    //if (owner_loop_) {
+      //owner_loop_->PostTask(base::NewClosure(std::bind(closed_callback_, guard)));
+    //} else {
       closed_callback_(guard);
-    }
+    //}
   }
 }
 

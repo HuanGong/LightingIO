@@ -41,7 +41,7 @@ public:
   bool IsKeepAlive() const;
   void SetKeepAlive(bool alive);
 
-  const std::string MessageDebug();
+  const std::string MessageDebug() override;
   const bool ToRequestRawData(std::ostringstream& oss) const;
 private:
   void ParseUrlToParams();

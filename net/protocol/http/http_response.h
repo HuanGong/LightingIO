@@ -31,7 +31,7 @@ public:
   bool IsKeepAlive() const;
   void SetKeepAlive(bool alive);
 
-  const std::string MessageDebug();
+  const std::string MessageDebug() override;
   bool ToResponseRawData(std::ostringstream& oss) const;
 
   uint16_t ResponseCode() const;
