@@ -35,7 +35,8 @@ void CoroScheduler::OnNewCoroBorn(RefCoroutine& coro) {
 }
 
 void CoroScheduler::GcCoroutine(Coroutine* die) {
-  CHECK(current_.get() == die && die->Status() == CoroState::kDone);
+  CHECK(current_.get() == die &&
+        die->Status() == CoroState::kDone);
 
   intptr_t id = die->Identifier();
   coroutines_.erase(id);
@@ -60,6 +61,10 @@ CoroScheduler::~CoroScheduler() {
   main_coro_.reset();
   gc_coro_.reset();;
 
+}
+
+RefCoroutine CoroScheduler::CurrentCoro() {
+  return current_;
 }
 
 void CoroScheduler::YieldCurrent() {

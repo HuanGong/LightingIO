@@ -1,4 +1,5 @@
 #include "client_router.h"
+#include "base/coroutine/coroutine_scheduler.h"
 
 namespace net {
 
@@ -68,9 +69,22 @@ void ClientRouter::OnRequestGetResponse(RefProtocolMessage request,
     LOG(INFO) << " Request Got A Resonse " << response->MessageDebug();
   }
   request->SetResponse(response);
+
+  auto& work_context = request->GetWorkCtx();
+  work_context.coro_loop->PostTask(base::NewClosure([=]() {
+    base::RefCoroutine coro = work_context.weak_coro.lock();
+    if (coro) {
+      base::CoroScheduler::TlsCurrent()->ResumeCoroutine(coro->Identifier());
+    }
+  }));
 }
 
 bool ClientRouter::SendClientRequest(RefProtocolMessage& message) {
+  if (0 == channels_.size()) {
+    LOG(ERROR) << " No ClientChannel Established, clients count:" << channels_.size()
+               << " Server:" << server_addr_.IpPortAsString();
+    return false;
+  }
   uint32_t index = router_counter_ % channels_.size();
   RefClientChannel& client = channels_[index];
   base::MessageLoop2* io_loop = client->IOLoop();
@@ -78,6 +92,17 @@ bool ClientRouter::SendClientRequest(RefProtocolMessage& message) {
     return false;
   }
   router_counter_++;
+
+  if (!base::MessageLoop2::Current()) {
+    return false;
+  }
+  if (!base::CoroScheduler::TlsCurrent()->CurrentCoro()) {
+    return false;
+  }
+  auto& work_context = message->GetWorkCtx();
+  work_context.coro_loop = base::MessageLoop2::Current();
+  work_context.weak_coro = base::CoroScheduler::TlsCurrent()->CurrentCoro();
+
   io_loop->PostTask(base::NewClosure(std::bind(&ClientChannel::ScheduleARequest, client, message)));
   return true;
 }

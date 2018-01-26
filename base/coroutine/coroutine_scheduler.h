@@ -10,9 +10,9 @@
 
 namespace base {
 
+typedef std::shared_ptr<Coroutine> RefCoroutine;
 class CoroScheduler {
 public:
-  typedef std::shared_ptr<Coroutine> RefCoroutine;
   typedef std::map<intptr_t, RefCoroutine> IdCoroMap;
 
   static CoroScheduler* TlsCurrent();
@@ -20,6 +20,7 @@ public:
   static void CreateAndSchedule(std::unique_ptr<CoroTask> task);
 
   intptr_t CurrentCoroId();
+  RefCoroutine CurrentCoro();
   void YieldCurrent();
   bool InRootCoroutine();
 

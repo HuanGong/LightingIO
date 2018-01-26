@@ -22,6 +22,8 @@ public:
   Coroutine(bool meta);
   Coroutine(int stack_sz);
   ~Coroutine();
+
+  intptr_t Identifier() const;
 private:
   friend class CoroScheduler;
   static void run_coroutine(void* arg);
@@ -29,7 +31,6 @@ private:
   void InitCoroutine();
   void RunCoroTask();
 
-  intptr_t Identifier() const;
   void SetIdentifier(uint64_t id);
   void SetCoroTask(std::unique_ptr<CoroTask> t);
   void SetCoroState(CoroState st) {current_state_ = st;}

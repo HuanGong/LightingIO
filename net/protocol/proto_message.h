@@ -3,6 +3,8 @@
 
 #include <string>
 #include <net_callback.h>
+#include <base/coroutine/coroutine.h>
+#include <base/event_loop/msg_event_loop.h>
 
 namespace net {
 
@@ -27,6 +29,8 @@ typedef enum {
 
 typedef struct {
   void* data;
+  base::MessageLoop2* coro_loop;
+  std::weak_ptr<base::Coroutine> weak_coro;
 } WorkContext;
 
 class ProtocolMessage {

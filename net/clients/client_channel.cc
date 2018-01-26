@@ -24,7 +24,6 @@ ClientChannel::ClientChannel(Delegate* delegate, RefTcpChannel& channel)
 }
 
 ClientChannel::~ClientChannel() {
-
 }
 
 bool ClientChannel::ScheduleARequest(RefProtocolMessage request) {
