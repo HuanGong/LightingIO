@@ -80,6 +80,13 @@ intptr_t CoroScheduler::CurrentCoroId() {
   return current_->Identifier();
 }
 
+bool CoroScheduler::ResumeCoroutine(RefCoroutine& coro) {
+  if (!InRootCoroutine()) {
+    return false;
+  }
+  return Transfer(coro);
+}
+
 bool CoroScheduler::ResumeCoroutine(intptr_t identifier) {
   if (!InRootCoroutine()) {
     return false;

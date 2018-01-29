@@ -33,7 +33,7 @@ public:
   void SetRequestTimeout(uint32_t ms);
   bool ScheduleARequest(RefProtocolMessage request);
   void OnResponseMessage(RefProtocolMessage message);
-
+  void CloseClientChannel();
 private:
   bool TryFireNextRequest();
 

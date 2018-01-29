@@ -1,26 +1,25 @@
 #ifndef APP_CONTENT_H_H
 #define APP_CONTENT_H_H
 
+#include <base/event_loop/msg_event_loop.h>
+
 namespace content {
 
-
-
-
-template<class ContentCtx>
 class App {
 public:
   App();
   virtual ~App();
 
-  AppDelegate* Delegate();
+  void RunApplication();
+  base::MessageLoop2* MainLoop();
+protected:
+  virtual void ContentMain();
 
-  ContentCtx* ApplicationCtx();
-  void InstallCtx(ContentCtx* ctx);
+  virtual void BeforeApplicationRun() = 0;
+  virtual void AfterApplicationRun() = 0;
 
-
-priavte:
-  AppDelegate* delegate_;
-  ContentCtx* content_ctx_;
+private:
+  base::MessageLoop2 content_loop_;
 };
 
 } //namespace content

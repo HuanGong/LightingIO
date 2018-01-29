@@ -23,6 +23,7 @@ typedef std::weak_ptr<base::FdEvent> WeakPtrFdEvent;
 class ConnectorDelegate {
 public:
   virtual ~ConnectorDelegate() {};
+  virtual void OnClientConnectFailed() = 0;
   virtual void OnNewClientConnected(int socket_fd, InetAddress& local, InetAddress& remote) = 0;
 };
 
@@ -37,7 +38,6 @@ public:
   void OnError(WeakPtrFdEvent weak_fdevent);
 
   void DiscardAllConnectingClient();
-  void OnConnectTimeout(base::RefFdEvent);
 
 private:
   void InitEvent(base::RefFdEvent& fd_event);

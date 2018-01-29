@@ -24,6 +24,7 @@ public:
   void YieldCurrent();
   bool InRootCoroutine();
 
+  bool ResumeCoroutine(RefCoroutine& coro);
   bool ResumeCoroutine(intptr_t identifier);
   void GcCoroutine(Coroutine* finished);
 protected:

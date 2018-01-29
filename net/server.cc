@@ -14,6 +14,7 @@ Server::Server(SrvDelegate* delegate)
     delegate_(delegate) {
 
   CHECK(delegate_);
+  client_loop_index_.store(0);
   comming_connections_.store(0);
 
   bool no_proxy = delegate_->HandleRequstInIO();
@@ -35,6 +36,14 @@ void Server::Initialize() {
 
   base::Signal::signal(SERVER_EXIT_SIG,
                        std::bind(&Server::ExitServerSignalHandler, this));
+}
+
+base::MessageLoop2* Server::NextIOLoopForClient() {
+  if (0 == ioworker_loops_.size()) {
+    return NULL;
+  }
+  uint32_t idx = client_loop_index_++;
+  return ioworker_loops_[idx % ioworker_loops_.size()].get();
 }
 
 bool Server::RegisterService(const std::string server, ProtoMessageHandler handler) {
@@ -88,9 +97,6 @@ void Server::RunAllService() {
     server->StartIOService();
   }
 
-  while(!quit_) {
-    sleep(5);
-  }
 }
 
 bool Server::IncreaseChannelCount() {
@@ -127,6 +133,7 @@ void Server::IOServiceStoped(const IOService* s) {
   }
   if (0 == ioservices_.size()) {
     quit_ = true;
+    delegate_->OnServerStoped();
   }
 };
 
@@ -161,10 +168,17 @@ void Server::InitIOServiceLoop() {
 }
 
 void Server::ExitServerSignalHandler() {
+
+  delegate_->ServerIsGoingExit();
+
   for (auto& ioservice : ioservices_) {
     auto functor = std::bind(&IOService::StopIOService, ioservice);
     ioservice->AcceptorLoop()->PostTask(base::NewClosure(std::move(functor)));
   }
+}
+
+const std::vector<RefMessageLoop> Server::IOworkerLoops() const {
+  return ioworker_loops_;
 }
 
 }//endnamespace net

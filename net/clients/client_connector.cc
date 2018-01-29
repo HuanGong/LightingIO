@@ -59,6 +59,7 @@ void Connector::OnWrite(WeakPtrFdEvent weak_fdevent) {
 
   if (net::socketutils::IsSelfConnect(socket_fd)) {
     CleanUpBadChannel(fd_event);
+    delegate_->OnClientConnectFailed();
     return;
   }
 
@@ -90,10 +91,6 @@ void Connector::DiscardAllConnectingClient() {
   connecting_sockets_.clear();
 }
 
-void Connector::OnConnectTimeout(base::RefFdEvent) {
-
-}
-
 void Connector::InitEvent(base::RefFdEvent& fd_event) {
   loop_->Pump()->InstallFdEvent(fd_event.get());
   fd_event->EnableWriting();
@@ -104,6 +101,7 @@ void Connector::CleanUpBadChannel(base::RefFdEvent& event) {
   loop_->Pump()->RemoveFdEvent(event.get());
   net::socketutils::CloseSocket(socket_fd);
   connecting_sockets_.erase(event);
+
   LOG(INFO) << "Now Has " << connecting_sockets_.size() << " In Connecting Progress";
 }
 

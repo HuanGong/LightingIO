@@ -1,22 +1,32 @@
 
 #include "app_content.h"
+#include "glog/logging.h"
+#include <base/closure/closure_task.h>
+#include <base/event_loop/msg_event_loop.h>
 
 namespace content {
 
-App::App(AppDelegate* delegate);
-App::~App();
-
-AppDelegate* App::Delegate() {
-  return delegate_;
+App::App() {
+  content_loop_.SetLoopName("MainLoop");
+  content_loop_.Start();
 }
 
-ContentCtx* App::ApplicationCtx() {
-  return content_ctx_;
+App::~App() {
 }
 
-void App::InstallCtx(ContentCtx* ctx) {
-  content_ctx_ = ctx;
+base::MessageLoop2* App::MainLoop() {
+  return &content_loop_;
 }
 
+void App::RunApplication() {
+  auto functor = std::bind(&App::ContentMain, this);
+  content_loop_.PostTask(base::NewClosure(functor));
+
+  content_loop_.WaitLoopEnd();
+}
+
+void App::ContentMain() {
+  LOG(INFO) << " Applictaion Content Main Run...";
+}
 
 }

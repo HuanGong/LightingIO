@@ -101,7 +101,7 @@ bool ClientChannel::TryFireNextRequest() {
       requests_keeper_->SetCurrent(next_request);
 
       auto functor = std::bind(&ClientChannel::OnRequestTimeout, shared_from_this(), next_request);
-      channel_->IOLoop()->PostDelayTask(base::NewClosure(functor), message_timeout_);
+      IOLoop()->PostDelayTask(base::NewClosure(functor), message_timeout_);
 
     } else {
       //Notify Woker[Sender] For Failed Request Sending
@@ -114,6 +114,7 @@ bool ClientChannel::TryFireNextRequest() {
 
 void ClientChannel::OnRequestTimeout(RefProtocolMessage request) {
   CHECK(channel_->InIOLoop());
+
   if (request != requests_keeper_->InProgressRequest()) {
     LOG(INFO) << " This Request Has Got Response, Ignore this Timeout";
     return;
@@ -134,6 +135,14 @@ void ClientChannel::OnRequestFailed(RefProtocolMessage& request, FailInfo reason
 
 void ClientChannel::OnBackResponse(RefProtocolMessage& request, RefProtocolMessage& response) {
   delegate_->OnRequestGetResponse(request, response);
+}
+
+void ClientChannel::CloseClientChannel() {
+  if (channel_->InIOLoop()) {
+    channel_->ForceShutdown();
+    return;
+  }
+  IOLoop()->PostTask(base::NewClosure(std::bind(&TcpChannel::ForceShutdown, channel_)));
 }
 
 void ClientChannel::OnSendFinished(RefTcpChannel channel) {

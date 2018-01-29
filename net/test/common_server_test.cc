@@ -46,6 +46,9 @@ int main(int argc, char* argv[]) {
 
   //google::InitGoogleLogging(argv[0]);  // 初始化 glog
   //google::ParseCommandLineFlags(&argc, &argv, true);  // 初始化 gflags
+  base::MessageLoop2 main_loop;
+  main_loop.SetLoopName("MainLoop");
+  main_loop.Start();
 
   //net::SrvDelegate delegate;
   net::Application app;
@@ -55,7 +58,9 @@ int main(int argc, char* argv[]) {
   //                       std::bind(handler, std::placeholders::_1));
   server.RegisterService("http://0.0.0.0:5006",
                          std::bind(http_handler, std::placeholders::_1));
+
   server.RunAllService();
 
+  main_loop.WaitLoopEnd();
   LOG(INFO) << __FUNCTION__ << " program end";
 }

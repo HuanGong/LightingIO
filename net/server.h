@@ -11,6 +11,7 @@
 #include "dispatcher/coro_dispatcher.h"
 
 #include "glog/logging.h"
+#include "clients/client_router.h"
 #include "event_loop/msg_event_loop.h"
 
 namespace net {
@@ -36,11 +37,16 @@ public:
   //IOWorkLoop handle socket IO and the encode/decode to requestmessage or responsemessage
   virtual int GetIOWorkerLoopCount() {return std::thread::hardware_concurrency();};
 
+
+  virtual void ServerIsGoingExit() {};
+  virtual void OnServerStoped() {};
+
   virtual void BeforeServerRun() {};
   virtual void AfterServerRun() {};
 };
 
-class Server : public IOServiceDelegate {
+class Server : public IOServiceDelegate,
+               public RouterDelegate {
 public:
   Server(SrvDelegate* delegate);
   ~Server();
@@ -50,6 +56,7 @@ public:
 
   void RunAllService();
 
+  const std::vector<RefMessageLoop> IOworkerLoops() const;
 public: //override from ioservicedelegate
   bool IncreaseChannelCount() override;
   void DecreaseChannelCount() override;
@@ -62,6 +69,9 @@ public: //override from ioservicedelegate
   bool CanCreateNewChannel() { return true;}
   void IOServiceStarted(const IOService* ioservice) override;
   void IOServiceStoped(const IOService* ioservice) override;
+
+  //override form client routerdelegate
+  base::MessageLoop2* NextIOLoopForClient() override;
 private:
   void Initialize();
 
@@ -76,6 +86,7 @@ private:
   std::vector<RefMessageLoop> ioworker_loops_;
   std::vector<RefMessageLoop> ioservice_loops_;
 
+  std::atomic<uint32_t> client_loop_index_;
   std::atomic<uint64_t> comming_connections_;
 
   std::shared_ptr<CoroWlDispatcher> dispatcher_;

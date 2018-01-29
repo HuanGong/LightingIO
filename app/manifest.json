@@ -1,0 +1,23 @@
+{
+  "IOLoopNum": 4,
+  "WorkerOnIO": false,
+  "WorkerLoopNum": 4,
+  "AcceptorLoopNum": 1,
+  "ShareIOLoopForAcceptor":true,
+  "Service" : [
+    {
+      "name": "httpserver",
+      "address" : "http://0.0.0.0:5006"
+    }
+  ],
+  "clients": [
+    {
+      "name" : "weather",
+      "address": "http://0.0.0.0:8008",
+      "connections": 10,
+      "query_timout": 5000,
+      "recon_interval" : 2000
+    }
+  ],
+  "LogFile":"lighting_log.log"
+}
