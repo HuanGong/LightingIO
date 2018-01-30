@@ -26,7 +26,11 @@ class Server;
 
 class SrvDelegate {
 public:
+  SrvDelegate() {
+  }
   virtual ~SrvDelegate() {};
+
+  std::shared_ptr<CoroWlDispatcher> WorkLoadTransfer() {return dispatcher_};
 
   virtual bool HandleRequstInIO() {return false;}
   /* WorkLoop Handle request/response from IOWorkerLoop*/
@@ -43,6 +47,8 @@ public:
 
   virtual void BeforeServerRun() {};
   virtual void AfterServerRun() {};
+private:
+  std::shared_ptr<CoroWlDispatcher> dispatcher_;
 };
 
 class Server : public IOServiceDelegate,
@@ -72,6 +78,7 @@ public: //override from ioservicedelegate
 
   //override form client routerdelegate
   base::MessageLoop2* NextIOLoopForClient() override;
+  std::shared_ptr<CoroWlDispatcher> Dispatcher() {return dispatcher_;}
 private:
   void Initialize();
 

@@ -2,6 +2,7 @@
 #define NET_COROWORKLOAD_DISPATCHER_H_H
 
 #include "workload_dispatcher.h"
+#include "base/closure/closure_task.h"
 
 namespace net {
 
@@ -13,6 +14,11 @@ public:
   bool Play(base::StlClourse& clourse) override;
   bool Dispatch(ProtoMessageHandler&, RefProtocolMessage&) override;
 
+  //for client out-request and response-back
+  bool PrepareOutRequestContext(RefProtocolMessage& message);
+  void TransferAndYield(base::MessageLoop2* ioloop, base::StlClourse);
+
+  bool ResumeWorkCtxForRequest(RefProtocolMessage& request);
 private:
   void Reply(RefTcpChannel channel, RefProtocolMessage request);
   void DispachToCoroAndReply(ProtoMessageHandler, RefProtocolMessage);

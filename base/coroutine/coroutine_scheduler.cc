@@ -118,8 +118,9 @@ bool CoroScheduler::Transfer(RefCoroutine& next) {
   return true;
 }
 
-inline bool CoroScheduler::InRootCoroutine() {
-  return main_coro_ && (main_coro_->Status() == CoroState::kRunning);
+bool CoroScheduler::InRootCoroutine() {
+  return main_coro_ && main_coro_ == current_;
+  //(main_coro_->Status() == CoroState::kRunning);
 }
 
 void CoroScheduler::gc_loop() {

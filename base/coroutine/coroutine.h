@@ -24,6 +24,7 @@ public:
   ~Coroutine();
 
   intptr_t Identifier() const;
+  const CoroState Status() const {return current_state_;}
 private:
   friend class CoroScheduler;
   static void run_coroutine(void* arg);
@@ -34,7 +35,6 @@ private:
   void SetIdentifier(uint64_t id);
   void SetCoroTask(std::unique_ptr<CoroTask> t);
   void SetCoroState(CoroState st) {current_state_ = st;}
-  const CoroState Status() const {return current_state_;}
 
   int stack_size_;
   bool meta_coro_;

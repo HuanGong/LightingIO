@@ -7,6 +7,7 @@ ProtocolMessage::ProtocolMessage(IODirectionType direction, const std::string pr
   : fail_info_(kNothing),
     proto_(protocol),
     direction_(direction) {
+  work_context_.coro_loop = NULL;
 }
 
 ProtocolMessage::~ProtocolMessage() {

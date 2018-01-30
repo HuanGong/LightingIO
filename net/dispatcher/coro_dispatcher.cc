@@ -22,6 +22,46 @@ CoroWlDispatcher::~CoroWlDispatcher() {
 
 }
 
+//for client out-request and response-back
+bool CoroWlDispatcher::PrepareOutRequestContext(RefProtocolMessage& message) {
+  if (NULL == base::MessageLoop2::Current() ||
+      !base::CoroScheduler::TlsCurrent()->CurrentCoro() ||
+      base::CoroScheduler::TlsCurrent()->InRootCoroutine()) {
+    return false;
+  }
+
+  auto& work_context = message->GetWorkCtx();
+  work_context.coro_loop = base::MessageLoop2::Current();
+  work_context.weak_coro = base::CoroScheduler::TlsCurrent()->CurrentCoro();
+  return true;
+}
+
+void CoroWlDispatcher::TransferAndYield(base::MessageLoop2* ioloop, base::StlClourse clourse) {
+  CHECK(ioloop);
+  CHECK(base::CoroScheduler::TlsCurrent()->CurrentCoro());
+  ioloop->PostTask(base::NewClosure(std::move(clourse)));
+  base::CoroScheduler::TlsCurrent()->YieldCurrent();
+}
+
+bool CoroWlDispatcher::ResumeWorkCtxForRequest(RefProtocolMessage& request) {
+
+  auto& work_context = request->GetWorkCtx();
+  if (!work_context.coro_loop || !work_context.weak_coro.lock()) {
+    LOG(FATAL) << " This Request WorkContext Is Not Init";
+    return false;
+  }
+
+  base::StlClourse functor = [=]() {
+    base::RefCoroutine coro = work_context.weak_coro.lock();
+    if (coro && coro->Status() == base::CoroState::kPaused) {
+      base::CoroScheduler::TlsCurrent()->ResumeCoroutine(coro);
+    }
+  };
+
+  work_context.coro_loop->PostTask(base::NewClosure(std::move(functor)));
+  return true;
+}
+
 bool CoroWlDispatcher::Play(base::StlClourse& clourse) {
   if (HandleWorkInIOLoop()) {
     base::CoroScheduler::CreateAndSchedule(base::NewCoroTask(std::move(clourse)));

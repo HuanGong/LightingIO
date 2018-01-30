@@ -14,12 +14,9 @@ typedef enum {
   kInReponse = 2,
   kOutRequest = 3,
   kOutResponse = 4,
-  kUnknownType = 5
+  kLonelyMessage = 5,
+  kUnknownType = 6
 } IODirectionType;
-
-typedef struct {
-  WeakPtrTcpChannel channel;
-} IOContext;
 
 typedef enum {
   kNothing = 0,
@@ -28,7 +25,10 @@ typedef enum {
 }FailInfo;
 
 typedef struct {
-  void* data;
+  WeakPtrTcpChannel channel;
+} IOContext;
+
+typedef struct {
   base::MessageLoop2* coro_loop;
   std::weak_ptr<base::Coroutine> weak_coro;
 } WorkContext;

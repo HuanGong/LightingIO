@@ -17,11 +17,15 @@ Server::Server(SrvDelegate* delegate)
   client_loop_index_.store(0);
   comming_connections_.store(0);
 
+  dispatcher_ = delegate_->WorkLoadTransfer();
+  CHECK(dispatcher_);
+#if 0
   bool no_proxy = delegate_->HandleRequstInIO();
   dispatcher_.reset(new CoroWlDispatcher(no_proxy));
   if (false == no_proxy) {
     dispatcher_->InitWorkLoop(delegate_->GetWorkerLoopCount());
   }
+#endif
   Initialize();
 }
 

@@ -13,7 +13,8 @@ ClientRouter::ClientRouter(base::MessageLoop2* loop, const InetAddress& server)
     server_addr_(server),
     work_loop_(loop),
     is_stopping_(false),
-    delegate_(NULL) {
+    delegate_(NULL),
+    dispatcher_(NULL) {
 
   router_counter_ = 0;
   CHECK(work_loop_);
@@ -120,10 +121,15 @@ void ClientRouter::OnClientChannelClosed(RefClientChannel channel) {
 
 void ClientRouter::OnRequestGetResponse(RefProtocolMessage request,
                                         RefProtocolMessage response) {
+  CHECK(request);
+
   if (response) {
     LOG(INFO) << " Request Got A Resonse " << response->MessageDebug();
   }
+
   request->SetResponse(response);
+
+  dispatcher_->ResumeWorkCtxForRequest(request);
 
   auto& work_context = request->GetWorkCtx();
   work_context.coro_loop->PostTask(base::NewClosure([=]() {
@@ -135,33 +141,36 @@ void ClientRouter::OnRequestGetResponse(RefProtocolMessage request,
 }
 
 bool ClientRouter::SendClientRequest(RefProtocolMessage& message) {
-  if (!base::MessageLoop2::Current()) {
-    LOG(ERROR) << " Seems You Wanna Send A Client Request without WorkContext";
+  if (0 == channels_.size() || dispatcher_ == NULL) { //avoid x/0 Error
+    LOG_IF(ERROR, !dispatcher_) << "No Dispatcher Can't Transfer This Request";
+    LOG_IF(ERROR, 0 == channels_.size()) << " No ClientChannel Established"
+                                         << " Server:" << server_addr_.IpPortAsString();
     return false;
   }
 
-  if (0 == channels_.size()) { //avoid x/0 Error
-    LOG(ERROR) << " No ClientChannel Established, clients count:" << channels_.size()
-               << " Server:" << server_addr_.IpPortAsString();
-    return false;
-  }
   uint32_t index = router_counter_ % channels_.size();
 
   RefClientChannel& client = channels_[index];
   base::MessageLoop2* io_loop = client->IOLoop();
   CHECK(io_loop);
 
-  router_counter_++;
-
-  if (!base::CoroScheduler::TlsCurrent()->CurrentCoro()) {
+  if (dispatcher_->PrepareOutRequestContext(message)) {
+    LOG(FATAL) << "Can't Transfer/Dispatch This Request From Work To IO";
     return false;
   }
-  auto& work_context = message->GetWorkCtx();
-  work_context.coro_loop = base::MessageLoop2::Current();
-  work_context.weak_coro = base::CoroScheduler::TlsCurrent()->CurrentCoro();
 
-  io_loop->PostTask(base::NewClosure(std::bind(&ClientChannel::ScheduleARequest, client, message)));
+  router_counter_++;
+
+  base::StlClourse func = std::bind(&ClientChannel::ScheduleARequest, client, message);
+
+  dispatcher_->TransferAndYield(io_loop, func);
+
+  //TODO: Check message status and wheather has a correct response for this request
   return true;
+}
+
+void ClientRouter::SetWorkLoadTransfer(CoroWlDispatcher* dispatcher) {
+  dispatcher_ = dispatcher;
 }
 
 }

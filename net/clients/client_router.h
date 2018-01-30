@@ -42,6 +42,7 @@ public:
 
   void SetDelegate(RouterDelegate* delegate);
   void SetupRouter(const RouterConf& config);
+  void SetWorkLoadTransfer(CoroWlDispatcher* dispatcher);
 
   void StartRouter();
   void StopRouter();
@@ -66,6 +67,7 @@ private:
 
   const InetAddress server_addr_;
   base::MessageLoop2* work_loop_;
+  CoroWlDispatcher* dispatcher_;
   bool is_stopping_;
 
   RefConnector connector_;

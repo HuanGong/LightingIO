@@ -62,8 +62,10 @@ void GeneralServerApp::ContentMain() {
 
       net::InetAddress server_address(sch_ip_port.ip, sch_ip_port.port);
       std::shared_ptr<net::ClientRouter> router(new net::ClientRouter(MainLoop(), server_address));
+
       router->SetDelegate(server_.get());
       router->SetupRouter(config);
+      router->SetWorkLoadTransfer(server_->Dispatcher().get());
 
       router->StartRouter();
       clients_[name] = router;
