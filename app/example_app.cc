@@ -40,7 +40,6 @@ void GeneralServerApp::ContentMain() {
       server_->RegisterService(address, std::bind(HanleMessage, std::placeholders::_1));
     }
   }
-
   json j_clients = manifest_["clients"];
   if (j_service.is_array()) {
     for (auto& client : j_clients) {
@@ -54,6 +53,7 @@ void GeneralServerApp::ContentMain() {
       net::RouterConf config;
 
       config.protocol = sch_ip_port.scheme;
+
       config.connections = client["connections"];
       config.message_timeout = client["query_timeout"];
       config.recon_interal = client["recon_interval"];
@@ -64,12 +64,15 @@ void GeneralServerApp::ContentMain() {
       std::shared_ptr<net::ClientRouter> router(new net::ClientRouter(MainLoop(), server_address));
       router->SetDelegate(server_.get());
       router->SetupRouter(config);
+
       router->StartRouter();
       clients_[name] = router;
     }
   }
 
-  //server.RunAllService();
+  //TODO: before application Run
+
+  server_->RunAllService();
 }
 
 void GeneralServerApp::LoadConfig() {

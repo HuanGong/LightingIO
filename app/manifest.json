@@ -15,7 +15,7 @@
       "name" : "weather",
       "address": "http://0.0.0.0:8008",
       "connections": 10,
-      "query_timout": 5000,
+      "query_timeout": 5000,
       "recon_interval" : 2000
     }
   ],
