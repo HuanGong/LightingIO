@@ -19,13 +19,7 @@ Server::Server(SrvDelegate* delegate)
 
   dispatcher_ = delegate_->WorkLoadTransfer();
   CHECK(dispatcher_);
-#if 0
-  bool no_proxy = delegate_->HandleRequstInIO();
-  dispatcher_.reset(new CoroWlDispatcher(no_proxy));
-  if (false == no_proxy) {
-    dispatcher_->InitWorkLoop(delegate_->GetWorkerLoopCount());
-  }
-#endif
+
   Initialize();
 }
 
@@ -95,12 +89,9 @@ bool Server::RegisterService(const std::string server, ProtoMessageHandler handl
 
 void Server::RunAllService() {
 
-  dispatcher_->StartDispatcher();
-
   for (auto& server : ioservices_) {
     server->StartIOService();
   }
-
 }
 
 bool Server::IncreaseChannelCount() {
@@ -115,9 +106,9 @@ void Server::DecreaseChannelCount() {
 
 base::MessageLoop2* Server::GetNextIOWorkLoop() {
 #ifdef NET_ENABLE_REUSER_PORT
-  return ioworker_loops_[comming_connections_%ioworker_loops_.size()].get();
-#else
   return base::MessageLoop2::Current();
+#else
+  return ioworker_loops_[comming_connections_%ioworker_loops_.size()].get();
 #endif
 }
 

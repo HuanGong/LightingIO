@@ -40,6 +40,7 @@ void GeneralServerApp::ContentMain() {
       server_->RegisterService(address, std::bind(HanleMessage, std::placeholders::_1));
     }
   }
+
   json j_clients = manifest_["clients"];
   if (j_service.is_array()) {
     for (auto& client : j_clients) {
@@ -65,7 +66,7 @@ void GeneralServerApp::ContentMain() {
 
       router->SetDelegate(server_.get());
       router->SetupRouter(config);
-      router->SetWorkLoadTransfer(server_->Dispatcher().get());
+      router->SetWorkLoadTransfer(WorkLoadTransfer().get());
 
       router->StartRouter();
       clients_[name] = router;

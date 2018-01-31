@@ -26,21 +26,27 @@ class Server;
 
 class SrvDelegate {
 public:
-  SrvDelegate() {
-  }
   virtual ~SrvDelegate() {};
 
-  std::shared_ptr<CoroWlDispatcher> WorkLoadTransfer() {return dispatcher_};
+  virtual std::shared_ptr<CoroWlDispatcher> WorkLoadTransfer() {
+    if (dispatcher_) {
+      return dispatcher_;
+    }
+    dispatcher_ = std::make_shared<CoroWlDispatcher>(HandleRequstInIO());
+    if (!HandleRequstInIO()) {
+      dispatcher_->InitWorkLoop(GetWorkerLoopCount());
+    }
+    dispatcher_->StartDispatcher();
+    return dispatcher_;
+  };
 
   virtual bool HandleRequstInIO() {return false;}
   /* WorkLoop Handle request/response from IOWorkerLoop*/
   virtual int GetWorkerLoopCount() {return std::thread::hardware_concurrency();}
-
-  /* IOService Using for Handle New Comming Connections */
-  virtual int GetIOServiceLoopCount() {return std::thread::hardware_concurrency();}
+  /* IOService Using for Accept New Comming Connections */
+  virtual int GetIOServiceLoopCount() {return 1;/*std::thread::hardware_concurrency();*/}
   //IOWorkLoop handle socket IO and the encode/decode to requestmessage or responsemessage
   virtual int GetIOWorkerLoopCount() {return std::thread::hardware_concurrency();};
-
 
   virtual void ServerIsGoingExit() {};
   virtual void OnServerStoped() {};
@@ -68,17 +74,12 @@ public: //override from ioservicedelegate
   void DecreaseChannelCount() override;
   base::MessageLoop2* GetNextIOWorkLoop() override;
 
-  WorkLoadDispatcher* MessageDispatcher() override {
-    return dispatcher_.get();
-  };
-
   bool CanCreateNewChannel() { return true;}
   void IOServiceStarted(const IOService* ioservice) override;
   void IOServiceStoped(const IOService* ioservice) override;
 
   //override form client routerdelegate
   base::MessageLoop2* NextIOLoopForClient() override;
-  std::shared_ptr<CoroWlDispatcher> Dispatcher() {return dispatcher_;}
 private:
   void Initialize();
 
