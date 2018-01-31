@@ -56,6 +56,7 @@ int FdEvent::fd() const {
 
 void FdEvent::HandleEvent() {
   VLOG(GLOG_VTRACE) << "FdEvent::handle_event: " << RcvEventAsString();
+  LOG(ERROR) << "FdEvent::handle_event: " << RcvEventAsString();
 
   /* in normal case, this caused by peer close fd */
   do {
@@ -110,7 +111,8 @@ std::string FdEvent::events2string(uint32_t events) {
   if (events & EPOLLERR)
     oss << "ERR ";
   if (events & POLLNVAL)
-    oss << "NVAL ]";
+    oss << "NVAL";
+  oss << "]";
   return oss.str().c_str();
 }
 

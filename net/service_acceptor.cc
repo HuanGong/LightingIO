@@ -36,6 +36,8 @@ void ServiceAcceptor::InitListener() {
   socket_event_->SetDelegate(event_pump_->AsFdEventDelegate());
   socket_event_->SetReadCallback(
     std::bind(&ServiceAcceptor::HandleCommingConnection, this));
+
+  LOG(ERROR) << " Server Accept Socket Fd:" << socket_fd_;
 }
 
 bool ServiceAcceptor::StartListen() {

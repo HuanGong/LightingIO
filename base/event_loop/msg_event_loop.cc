@@ -156,6 +156,7 @@ MessageLoop2::~MessageLoop2() {
 
   CHECK(!IsInLoopThread());
 
+  LOG(ERROR) << " MessageLoop2::~MessageLoop2 Gone " << loop_name_;
   struct timespec ts;
   char message = kQuit;
   while (write(wakeup_pipe_in_, &message, sizeof(message)) != sizeof(message)) {
@@ -328,7 +329,8 @@ void MessageLoop2::OnWakeup() {
           }
         }
       }
-      reply_task->Run();
+      if (reply_task.get())
+        reply_task->Run();
     }
     break;
     default:
