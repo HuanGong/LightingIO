@@ -145,16 +145,22 @@ bool HttpProtoService::ParseHttpRequest(const RefTcpChannel& channel, IOBuffer* 
     RefHttpRequest message = request_context_->messages_.front();
     request_context_->messages_.pop_front();
 
+    //Config IOContext
     message->SetIOContextWeakChannel(channel);
     message->SetMessageDirection(IODirectionType::kInRequest);
 
+    PlayRequest(message);
+#if 0
     if (dispatcher_) {
+      LOG(ERROR) << "has dispatcher_";
       RefHttpProtoService service = std::static_pointer_cast<HttpProtoService>(channel->GetProtoService());
       base::StlClourse clourse = std::bind(&HttpProtoService::PlayRequest, service, message);
       dispatcher_->Play(clourse);
     } else { //play itself
+      LOG(ERROR) << "no dispatcher_";
       PlayRequest(message);
     }
+#endif
   }
   return true;
 }

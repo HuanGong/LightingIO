@@ -68,7 +68,7 @@ uint64_t TimerTaskQueue::HandleExpiredTimer() {
 
 int64_t TimerTaskQueue::CalculateNextTimerDuration() {
   if (timer_heap_.empty()) {
-    return 5000;
+    return 1000;
   }
   const auto& next_enter = timer_heap_.top();
 
