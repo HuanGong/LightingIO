@@ -4,7 +4,10 @@
 #include "glog/logging.h"
 #include "tcp_channel.h"
 #include "protocol/proto_service.h"
+#include "protocol/proto_message.h"
 #include "protocol/proto_service_factory.h"
+
+#include <base/coroutine/coroutine_scheduler.h>
 
 namespace net {
 
@@ -106,7 +109,8 @@ void IOService::OnNewConnection(int local_socket, const InetAddress& peer_addr) 
 
   proto_service->SetMessageDispatcher(delegate_->MessageDispatcher());
 
-  proto_service->SetMessageHandler(message_handler_);
+  ProtoMessageHandler h = std::bind(&IOService::HandleRequest, this, std::placeholders::_1);
+  proto_service->SetMessageHandler(h);
 
   new_channel->SetProtoService(proto_service);
 
@@ -166,6 +170,94 @@ void IOService::RemoveConncetion(const RefTcpChannel connection) {
   }
 }
 
+//Running On NetWorkIO Channel Thread
+void IOService::HandleRequest(const RefProtocolMessage& request) {
+  LOG(INFO) << "Server [" << service_name_ << "] Recv a Request";
+  //current just Handle Work On IO
+  CHECK(request);
+
+  WeakPtrTcpChannel weak_channel = request->GetIOCtx().channel;
+  RefTcpChannel channel = weak_channel.lock();
+  if (!channel.get() || !channel->IsConnected()) {
+    return;
+  }
+
+  if (!message_handler_) {//replay default response some type request no response
+    RefProtocolMessage response = channel->GetProtoService()->DefaultResponse(request);
+    if (!response) {
+      return;
+    }
+    if (!channel->SendProtoMessage(response)) { //failed
+      channel->ShutdownChannel();
+    }
+    return;
+  }
+
+  HandleRequestOnWorker(request);
+  //dispatch to worker do work
+  //auto functor = std::bind(&IOService::HandleRequestOnWorker, this, request);
+#if 1 //handle io
+  //base::CoroScheduler::CreateAndSchedule(base::NewCoroTask(std::move(functor)));
+#else
+  auto functor = std::bind(&base::CoroScheduler::CreateAndSchedule, std::move(functor));
+  loop->PostTask(base::NewClorsure(std::move(functor));
+#endif
+}
+
+//Run On Worker
+void IOService::HandleRequestOnWorker(const RefProtocolMessage request) {
+
+  LOG(INFO) << __FUNCTION__ << " On Loop:" << base::MessageLoop2::Current()->LoopName();
+  //dispatch_->SetupWorkerContext();
+  auto& work_context = request->GetWorkCtx();
+  work_context.coro_loop = base::MessageLoop2::Current();
+  work_context.weak_coro = base::CoroScheduler::TlsCurrent()->CurrentCoro();
+
+  if (message_handler_) {
+    message_handler_(request);
+  }
+
+  // For Reply Response
+
+  WeakPtrTcpChannel weak_channel = request->GetIOCtx().channel;
+  RefTcpChannel channel = weak_channel.lock();
+  if (NULL == channel.get() || false == channel->IsConnected()) {//channel Broken Or Has Gone
+    LOG(INFO) << __FUNCTION__ << " End For Return";
+    return;
+  }
+
+  RefProtocolMessage response = request->Response();
+  if (!response.get()) {
+    RefProtocolMessage response = channel->GetProtoService()->DefaultResponse(request);
+    if (!response) { //this type message not need response, things over
+      LOG(INFO) << __FUNCTION__ << " End For Return";
+      return;
+    }
+  }
+
+  if (channel->InIOLoop()) { //send reply directly
+
+    if (false == channel->SendProtoMessage(response)) { //failed
+      channel->ShutdownChannel();
+    }
+
+    channel->ShutdownChannel();
+  } else  { //post response to io
+
+    auto functor = [=]() {
+      if (false == channel->SendProtoMessage(response)) { //failed
+        channel->ShutdownChannel();
+      }
+      LOG(ERROR) << "Call ForceShutdown";
+      channel->ForceShutdown();
+      //channel->ShutdownChannel();
+    };
+    //auto functor = std::bind(&TcpChannel::SendProtoMessage, channel, response);
+    channel->IOLoop()->PostTask(base::NewClosure(std::move(functor)));
+  }
+}
+
+//typedef std::function<void(const RefProtocolMessage/*request*/)> ProtoMessageHandler;
 void IOService::SetProtoMessageHandler(ProtoMessageHandler handler) {
   message_handler_ = handler;
 }

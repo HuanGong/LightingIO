@@ -22,6 +22,8 @@ public:
   virtual bool EncodeToBuffer(const ProtocolMessage* msg, IOBuffer* out_buffer);
   virtual bool DecodeToMessage(IOBuffer* buffer, ProtocolMessage* out_msg);
   const std::string& Protocol() {return protocol_;};
+
+  virtual const RefProtocolMessage DefaultResponse(const RefProtocolMessage&) {return NULL;}
 protected:
   bool InvokeMessageHandler(RefProtocolMessage);
   //void HandleMessage();

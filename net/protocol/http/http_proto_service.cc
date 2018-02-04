@@ -148,12 +148,8 @@ bool HttpProtoService::ParseHttpRequest(const RefTcpChannel& channel, IOBuffer* 
     message->SetIOContextWeakChannel(channel);
     message->SetMessageDirection(IODirectionType::kInRequest);
 
-    if (dispatcher_) {
-      RefHttpProtoService service = std::static_pointer_cast<HttpProtoService>(channel->GetProtoService());
-      base::StlClourse clourse = std::bind(&HttpProtoService::PlayRequest, service, message);
-      dispatcher_->Play(clourse);
-    } else { //play itself
-      PlayRequest(message);
+    if (message_handler_) {
+      message_handler_(std::static_pointer_cast<ProtocolMessage>(message));
     }
   }
   return true;
@@ -209,7 +205,8 @@ void HttpProtoService::PlayRequest(RefHttpRequest request) {
   RefProtocolMessage response = request->Response();
   if (!response.get()) {
     RefHttpResponse http_res = std::make_shared<HttpResponse>(IODirectionType::kOutResponse);
-    http_res->MutableBody() = HttpConstant::kBadRequest;
+    //http_res->MutableBody() = HttpConstant::kBadRequest;
+    http_res->SetResponseCode(500);
     if (!request->IsKeepAlive()) {
       http_res->SetKeepAlive(request->IsKeepAlive());
     }
@@ -237,4 +234,18 @@ void HttpProtoService::PlayResponse(RefHttpResponse response) {
   }
 }
 
+const RefProtocolMessage HttpProtoService::DefaultResponse(const RefProtocolMessage& request)  {
+  CHECK(request);
+  HttpRequest* http_request = static_cast<HttpRequest*>(request.get());
+
+  const RefHttpResponse http_res =
+    std::make_shared<HttpResponse>(IODirectionType::kOutResponse);
+
+  http_res->SetResponseCode(500);
+
+  if (!http_request->IsKeepAlive()) {
+    http_res->SetKeepAlive(http_request->IsKeepAlive());
+  }
+  return std::move(http_res);
+}
 }//end namespace

@@ -24,9 +24,9 @@ public:
   virtual bool IncreaseChannelCount() = 0;
   virtual void DecreaseChannelCount() = 0;
 
-  virtual bool CanCreateNewChannel() { return true; }
+  virtual bool CanCreateNewChannel() { return true;}
 
-  virtual WorkLoadDispatcher* MessageDispatcher() {return NULL;}
+  virtual WorkLoadDispatcher* MessageDispatcher() {return NULL;};
 
   virtual void IOServiceStarted(const IOService* ioservice) {};
   virtual void IOServiceStoped(const IOService* ioservice) {};
@@ -51,6 +51,9 @@ public:
   const std::string& IOServiceName() const {return service_name_;}
 
   void SetProtoMessageHandler(ProtoMessageHandler handler);
+protected:
+  void HandleRequest(const RefProtocolMessage& request);
+  void HandleRequestOnWorker(const RefProtocolMessage request);
 private:
   //void HandleProtoMessage(RefProtocolMessage message);
   /* create a new connection channel */

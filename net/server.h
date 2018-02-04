@@ -40,7 +40,7 @@ public:
     return dispatcher_;
   };
 
-  virtual bool HandleRequstInIO() {return false;}
+  virtual bool HandleRequstInIO() {return true;}
   /* WorkLoop Handle request/response from IOWorkerLoop*/
   virtual int GetWorkerLoopCount() {return std::thread::hardware_concurrency();}
   /* IOService Using for Accept New Comming Connections */
@@ -68,6 +68,9 @@ public:
 
   void RunAllService();
 
+  WorkLoadDispatcher* MessageDispatcher() override {
+    return dispatcher_.get();
+  };
   const std::vector<RefMessageLoop> IOworkerLoops() const;
 public: //override from ioservicedelegate
   bool IncreaseChannelCount() override;
