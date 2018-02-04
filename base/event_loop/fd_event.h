@@ -34,6 +34,7 @@ public:
   Delegate* EventDelegate() {return delegate_;}
 
   void HandleEvent();
+  void ResetCallback();
   void SetReadCallback(const EventCallback &cb);
   void SetWriteCallback(const EventCallback &cb);
   void SetErrorCallback(const EventCallback &cb);

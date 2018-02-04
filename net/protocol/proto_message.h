@@ -55,7 +55,7 @@ public:
   void SetResponse(RefProtocolMessage&& response);
   RefProtocolMessage Response() {return response_;}
 
-  virtual const std::string MessageDebug() {};
+  virtual const std::string MessageDebug() {return "";};
 protected:
   IOContext io_context_;
   WorkContext work_context_;

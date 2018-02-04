@@ -70,6 +70,7 @@ bool CoroWlDispatcher::Play(base::StlClourse& clourse) {
 
   base::MessageLoop2* loop = GetNextWorkLoop();
   if (NULL == loop) {
+    LOG(ERROR) << "NO WorkLoop Handle this Request Clourse";
     return false;
   }
   auto functor = [=]() {

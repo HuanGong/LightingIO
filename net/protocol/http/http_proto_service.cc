@@ -75,6 +75,7 @@ void HttpProtoService::OnDataRecieved(const RefTcpChannel& channel, IOBuffer* bu
   }
 
   if (!success) {
+    LOG(ERROR) << "Parse Request/Response Error, Shutdown this cannel";
     channel->ShutdownChannel();
   }
 }
@@ -145,6 +146,7 @@ bool HttpProtoService::ParseHttpRequest(const RefTcpChannel& channel, IOBuffer* 
     RefHttpRequest message = request_context_->messages_.front();
     request_context_->messages_.pop_front();
 
+    //Config IOContext
     message->SetIOContextWeakChannel(channel);
     message->SetMessageDirection(IODirectionType::kInRequest);
 
@@ -185,46 +187,8 @@ bool HttpProtoService::ParseHttpResponse(const RefTcpChannel& channel, IOBuffer*
 
     LOG(ERROR) << " PlayResponse ";
     PlayResponse(message);
-    //InvokeMessageHandler(message);
   }
   return true;
-}
-
-void HttpProtoService::PlayRequest(RefHttpRequest request) {
-
-  if (message_handler_) {
-    message_handler_(std::static_pointer_cast<ProtocolMessage>(request));
-  }
-
-  WeakPtrTcpChannel weak_channel = request->GetIOCtx().channel;
-  RefTcpChannel channel = weak_channel.lock();
-  if (!channel.get() && channel->IsConnected()) {
-    return;
-  }
-
-  RefProtocolMessage response = request->Response();
-  if (!response.get()) {
-    RefHttpResponse http_res = std::make_shared<HttpResponse>(IODirectionType::kOutResponse);
-    //http_res->MutableBody() = HttpConstant::kBadRequest;
-    http_res->SetResponseCode(500);
-    if (!request->IsKeepAlive()) {
-      http_res->SetKeepAlive(request->IsKeepAlive());
-    }
-    response = std::static_pointer_cast<ProtocolMessage>(http_res);
-  }
-  HttpResponse* http_res = static_cast<HttpResponse*>(response.get());
-  if (!http_res->IsKeepAlive()) {
-    close_after_finish_send_ = true;
-  } else {
-    close_after_finish_send_ = false;
-  }
-
-  if (channel->InIOLoop()) {
-    channel->SendProtoMessage(response);
-  } else {
-    auto functor = std::bind(&TcpChannel::SendProtoMessage, channel, response);
-    channel->IOLoop()->PostTask(base::NewClosure(std::move(functor)));
-  }
 }
 
 void HttpProtoService::PlayResponse(RefHttpResponse response) {

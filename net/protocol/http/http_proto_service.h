@@ -32,8 +32,6 @@ private:
   bool ParseHttpRequest(const RefTcpChannel&, IOBuffer*);
   bool ParseHttpResponse(const RefTcpChannel&, IOBuffer*);
 
-  //run in worker thread, not thread safe
-  void PlayRequest(RefHttpRequest request);
   void PlayResponse(RefHttpResponse response);
 private:
   ReqParseContext* request_context_;

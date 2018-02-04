@@ -18,6 +18,7 @@ enum CoroState {
 // only can allocate in stack
 class Coroutine : public coro_context {
 public:
+  Coroutine(int stack_size, bool main);
   Coroutine();
   Coroutine(bool meta);
   Coroutine(int stack_sz);
@@ -35,9 +36,10 @@ private:
   void SetIdentifier(uint64_t id);
   void SetCoroTask(std::unique_ptr<CoroTask> t);
   void SetCoroState(CoroState st) {current_state_ = st;}
-
+private:
   int stack_size_;
-  bool meta_coro_;
+  const bool meta_coro_;
+
   coro_stack stack_;
 
   CoroState current_state_;

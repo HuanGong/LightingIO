@@ -58,8 +58,8 @@ void IOService::StopIOService() {
   is_stopping_ = true;
 
   //async
-  for (auto& pair : connections_) {
-    pair.second->ForceShutdown();
+  for (auto& channel : connections_) {
+    channel->ForceShutdown();
   }
 
   if (connections_.size() == 0) {
@@ -147,7 +147,8 @@ void IOService::OnChannelClosed(const RefTcpChannel& connection) {
 void IOService::StoreConnection(const RefTcpChannel connection) {
   CHECK(acceptor_loop_->IsInLoopThread());
 
-  connections_[connection->ChannelName()] = connection;
+  connections_.insert(connection);
+  //connections_[connection->ChannelName()] = connection;
 
   channel_count_.store(connections_.size());
 
@@ -158,13 +159,15 @@ void IOService::StoreConnection(const RefTcpChannel connection) {
 
 void IOService::RemoveConncetion(const RefTcpChannel connection) {
   CHECK(acceptor_loop_->IsInLoopThread());
-  connections_.erase(connection->ChannelName());
+
+  connections_.erase(connection);
 
   channel_count_.store(connections_.size());
 
   if (delegate_) {
     delegate_->DecreaseChannelCount();
-    if (is_stopping_) {
+
+    if (is_stopping_ && connections_.size() == 0) {
       delegate_->IOServiceStoped(this);
     }
   }
@@ -182,6 +185,8 @@ void IOService::HandleRequest(const RefProtocolMessage& request) {
     return;
   }
 
+  CHECK(channel->InIOLoop());
+
   if (!message_handler_) {//replay default response some type request no response
     RefProtocolMessage response = channel->GetProtoService()->DefaultResponse(request);
     if (!response) {
@@ -193,11 +198,13 @@ void IOService::HandleRequest(const RefProtocolMessage& request) {
     return;
   }
 
-  HandleRequestOnWorker(request);
+  //HandleRequestOnWorker(request);
+
   //dispatch to worker do work
-  //auto functor = std::bind(&IOService::HandleRequestOnWorker, this, request);
+  auto functor = std::bind(&IOService::HandleRequestOnWorker, this, request);
 #if 1 //handle io
-  //base::CoroScheduler::CreateAndSchedule(base::NewCoroTask(std::move(functor)));
+  base::CoroScheduler::TlsCurrent();
+  base::CoroScheduler::CreateAndSchedule(base::NewCoroTask(std::move(functor)));
 #else
   auto functor = std::bind(&base::CoroScheduler::CreateAndSchedule, std::move(functor));
   loop->PostTask(base::NewClorsure(std::move(functor));
@@ -207,7 +214,6 @@ void IOService::HandleRequest(const RefProtocolMessage& request) {
 //Run On Worker
 void IOService::HandleRequestOnWorker(const RefProtocolMessage request) {
 
-  LOG(INFO) << __FUNCTION__ << " On Loop:" << base::MessageLoop2::Current()->LoopName();
   //dispatch_->SetupWorkerContext();
   auto& work_context = request->GetWorkCtx();
   work_context.coro_loop = base::MessageLoop2::Current();
@@ -237,11 +243,14 @@ void IOService::HandleRequestOnWorker(const RefProtocolMessage request) {
 
   if (channel->InIOLoop()) { //send reply directly
 
+    LOG(INFO) << __FUNCTION__ << " send response On Loop:" << base::MessageLoop2::Current()->LoopName();
+
     if (false == channel->SendProtoMessage(response)) { //failed
       channel->ShutdownChannel();
     }
 
-    channel->ShutdownChannel();
+    //channel->ShutdownChannel();
+
   } else  { //post response to io
 
     auto functor = [=]() {
@@ -249,7 +258,7 @@ void IOService::HandleRequestOnWorker(const RefProtocolMessage request) {
         channel->ShutdownChannel();
       }
       LOG(ERROR) << "Call ForceShutdown";
-      channel->ForceShutdown();
+      //channel->ForceShutdown();
       //channel->ShutdownChannel();
     };
     //auto functor = std::bind(&TcpChannel::SendProtoMessage, channel, response);

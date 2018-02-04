@@ -81,7 +81,9 @@ void IoMultiplexerEpoll::epoll_ctl(int fd, uint32_t events, int op) {
   ev.events = events;
   int ret = ::epoll_ctl(epoll_fd_, op, fd, &ev);
   if (ret != 0) {
-    LOG(ERROR) << "epoll_ctl failed, option:" << epollopt_to_string(op) << " fd:" << fd;
+    int32_t e = errno;
+    LOG(ERROR) << "epoll_ctl failed, option:" << epollopt_to_string(op) << " fd:" << fd << " events:" << events << " errno:" << e;
+    CHECK(false);
   }
 }
 

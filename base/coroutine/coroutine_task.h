@@ -14,7 +14,6 @@ class CoroTask {
  public:
   CoroTask() {}
   virtual ~CoroTask() {
-    LOG(ERROR) << " CoroTask end";
   }
 
   virtual bool RunCoro() = 0;

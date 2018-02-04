@@ -2,6 +2,7 @@
 #define _NET_IO_SERVICE_H_H
 
 #include <atomic>
+#include <unordered_set>
 #include <unordered_map>
 #include "net_callback.h"
 #include "service_acceptor.h"
@@ -81,7 +82,8 @@ private:
   std::atomic<int64_t> channel_count_;
   std::string service_name_;
   bool is_stopping_;
-  std::unordered_map<std::string, RefTcpChannel> connections_;
+  std::unordered_set<RefTcpChannel> connections_;
+  //std::unordered_map<std::string, RefTcpChannel> connections_;
 };
 
 }

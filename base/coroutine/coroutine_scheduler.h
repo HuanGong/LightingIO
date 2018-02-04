@@ -2,6 +2,7 @@
 #define BASE_COROUTINE_SCHEDULER_H_H_
 
 #include <map>
+#include <set>
 #include <vector>
 #include <cinttypes>
 #include <unordered_map>
@@ -13,7 +14,8 @@ namespace base {
 typedef std::shared_ptr<Coroutine> RefCoroutine;
 class CoroScheduler {
 public:
-  typedef std::map<intptr_t, RefCoroutine> IdCoroMap;
+  //typedef std::map<intptr_t, RefCoroutine> IdCoroMap;
+  typedef std::set<RefCoroutine> CoroSet;
 
   static CoroScheduler* TlsCurrent();
 
@@ -25,7 +27,6 @@ public:
   bool InRootCoroutine();
 
   bool ResumeCoroutine(RefCoroutine& coro);
-  bool ResumeCoroutine(intptr_t identifier);
   void GcCoroutine(Coroutine* finished);
 protected:
   CoroScheduler();
@@ -40,7 +41,8 @@ private:
   RefCoroutine main_coro_;
   RefCoroutine gc_coro_;
 
-  IdCoroMap coroutines_;
+  //IdCoroMap coroutines_;
+  CoroSet coroutines_;
 
   std::vector<RefCoroutine> expired_coros_;
   DISALLOW_COPY_AND_ASSIGN(CoroScheduler);

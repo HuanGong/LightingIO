@@ -139,6 +139,7 @@ void TcpChannel::HandleWrite() {
   if (0 == data_size) {
     LOG(INFO) << " Noting Need Write In Buffer, fd: " << socket_fd_;
     fd_event_->DisableWriting();
+
     if (schedule_shutdown_) {
       socketutils::ShutdownWrite(socket_fd_);
     }
@@ -166,6 +167,7 @@ void TcpChannel::HandleWrite() {
 
   if (out_buffer_.CanReadSize() == 0) { //all data writen
     fd_event_->DisableWriting();
+
     if (schedule_shutdown_) {
       socketutils::ShutdownWrite(socket_fd_);
     }
@@ -221,6 +223,7 @@ void TcpChannel::HandleClose() {
   }
 
   fd_event_->DisableAll();
+  fd_event_->ResetCallback();
   work_loop_->Pump()->RemoveFdEvent(fd_event_.get());
 
   VLOG(GLOG_VTRACE) << " channel_status_ to DISCONNECTED, channel:" << ChannelName();
@@ -229,21 +232,15 @@ void TcpChannel::HandleClose() {
   OnStatusChanged();
 
   LOG(ERROR) << "Call closed callback in HandleClose";
-
   // normal case, it will remove from connection's ownner
   // after this, it's will destructor if no other obj hold it
   RefTcpChannel guard(shared_from_this());
   if (closed_callback_) {
-    if (owner_loop_) {
-      owner_loop_->PostTask(base::NewClosure(std::bind(closed_callback_, guard)));
-    } else {
+    //if (owner_loop_) {
+      //owner_loop_->PostTask(base::NewClosure(std::bind(closed_callback_, guard)));
+    //} else {
       closed_callback_(guard);
-    }
-  }
-
-  if (socket_fd_ != -1) {
-    socketutils::CloseSocket(socket_fd_);
-    socket_fd_ = -1;
+    //}
   }
 }
 

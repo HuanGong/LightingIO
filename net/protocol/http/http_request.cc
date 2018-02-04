@@ -10,7 +10,7 @@ namespace net {
 
 HttpRequest::HttpRequest(IODirectionType t)
   : ProtocolMessage(t, "http"),
-  keepalive_(true),
+  keepalive_(false),
   method_("GET"),
   url_("/"),
   http_major_(1),

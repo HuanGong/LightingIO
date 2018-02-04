@@ -135,7 +135,7 @@ void ClientRouter::OnRequestGetResponse(RefProtocolMessage request,
   work_context.coro_loop->PostTask(base::NewClosure([=]() {
     base::RefCoroutine coro = work_context.weak_coro.lock();
     if (coro) {
-      base::CoroScheduler::TlsCurrent()->ResumeCoroutine(coro->Identifier());
+      base::CoroScheduler::TlsCurrent()->ResumeCoroutine(coro);
     }
   }));
 }

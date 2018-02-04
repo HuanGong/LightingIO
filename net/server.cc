@@ -97,6 +97,7 @@ void Server::RunAllService() {
 bool Server::IncreaseChannelCount() {
   comming_connections_++;
   LOG(INFO) << "Now Has <" << comming_connections_ << "> Comming Connections";
+  return true;
 }
 
 void Server::DecreaseChannelCount() {
@@ -120,7 +121,7 @@ void Server::IOServiceStarted(const IOService* s) {
 void Server::IOServiceStoped(const IOService* s) {
   LOG(INFO) << "IOService " << s->IOServiceName() << " Stoped .......";
   auto iter = ioservices_.begin();
-  for (iter;iter != ioservices_.end(); iter++) {
+  for (;iter != ioservices_.end(); iter++) {
     if (iter->get() == s) {
       ioservices_.erase(iter);
       break;

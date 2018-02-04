@@ -33,8 +33,16 @@ void FdEvent::SetErrorCallback(const EventCallback &cb) {
   error_callback_ = cb;
 }
 
-void FdEvent::SetRcvEvents(uint32_t ev){
+void FdEvent::SetRcvEvents(uint32_t ev) {
   revents_ = ev;
+}
+
+void FdEvent::ResetCallback() {
+  static const EventCallback kNullCallback;
+  error_callback_ = kNullCallback;
+  write_callback_ = kNullCallback;
+  read_callback_  = kNullCallback;
+  close_callback_ = kNullCallback;
 }
 
 void FdEvent::Update() {
@@ -61,30 +69,29 @@ void FdEvent::HandleEvent() {
   /* in normal case, this caused by peer close fd */
   do {
 
-    //can read and not peer half close
-    if ((revents_ & (EPOLLIN | EPOLLPRI)) &&
-        (!(revents_ & EPOLLRDHUP)) &&
-        read_callback_) {
-      read_callback_();
+    if ((revents_ & EPOLLHUP) && !(revents_ & EPOLLIN)) {
+      if (close_callback_) {
+        close_callback_();
+      }
     }
-    //write
+
+    if (revents_ & (EPOLLERR | POLLNVAL)) {
+      if (error_callback_) {
+        error_callback_();
+      }
+    }
+
+    if (revents_ & (EPOLLIN | EPOLLPRI | EPOLLRDHUP)) {
+      if (read_callback_) {
+        read_callback_();
+      }
+    }
+
     if ((revents_ & EPOLLOUT) && write_callback_) {
       write_callback_();
     }
 
-    //peer close
-    if (( (revents_ & EPOLLHUP) || ((revents_ & EPOLLIN) && (revents_ & EPOLLRDHUP)) ) &&
-         close_callback_) {
-      close_callback_();
-    }
-    //internal error or invailed fd
-    if ( ((revents_ & EPOLLERR) || (revents_ & POLLNVAL)) && error_callback_) {
-      error_callback_();
-    }
-    //EPOLLPRI
-
   } while(0);
-
   revents_ = 0;
 }
 

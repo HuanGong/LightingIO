@@ -33,7 +33,8 @@ public:
       return dispatcher_;
     }
     dispatcher_ = std::make_shared<CoroWlDispatcher>(HandleRequstInIO());
-    if (!HandleRequstInIO()) {
+    if (false == HandleRequstInIO()) {
+      LOG(INFO) << " Server Handle Work On Separated Loop";
       dispatcher_->InitWorkLoop(GetWorkerLoopCount());
     }
     dispatcher_->StartDispatcher();
@@ -42,11 +43,11 @@ public:
 
   virtual bool HandleRequstInIO() {return true;}
   /* WorkLoop Handle request/response from IOWorkerLoop*/
-  virtual int GetWorkerLoopCount() {return std::thread::hardware_concurrency();}
+  virtual int GetWorkerLoopCount() {return 1;/*std::thread::hardware_concurrency()*/;}
   /* IOService Using for Accept New Comming Connections */
   virtual int GetIOServiceLoopCount() {return 1;/*std::thread::hardware_concurrency();*/}
   //IOWorkLoop handle socket IO and the encode/decode to requestmessage or responsemessage
-  virtual int GetIOWorkerLoopCount() {return std::thread::hardware_concurrency();};
+  virtual int GetIOWorkerLoopCount() {return 2;/*return std::thread::hardware_concurrency();*/};
 
   virtual void ServerIsGoingExit() {};
   virtual void OnServerStoped() {};
@@ -68,10 +69,14 @@ public:
 
   void RunAllService();
 
+  //WorkLoadDispatcher* MessageDispatcher() override {
+    //return dispatcher_.get();
+  //};
+
+  const std::vector<RefMessageLoop> IOworkerLoops() const;
   WorkLoadDispatcher* MessageDispatcher() override {
     return dispatcher_.get();
-  };
-  const std::vector<RefMessageLoop> IOworkerLoops() const;
+  }
 public: //override from ioservicedelegate
   bool IncreaseChannelCount() override;
   void DecreaseChannelCount() override;

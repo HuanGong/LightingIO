@@ -10,7 +10,7 @@ namespace net {
 
 HttpResponse::HttpResponse(IODirectionType t)
   : ProtocolMessage(t, "http"),
-  keepalive_(true),
+  keepalive_(false),
   http_major_(1),
   http_minor_(1) {
 }
