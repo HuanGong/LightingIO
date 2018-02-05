@@ -7,7 +7,7 @@
 #include <atomic>
 #include <iostream>
 #include <mutex>
-
+#include <base/spin_lock.h>
 #include <base/event_loop/msg_event_loop.h>
 
 namespace base {
@@ -15,12 +15,12 @@ namespace base {
 #define COROSTACKSIZE 1024*16
 
 static std::mutex g_coro_mutex;
+static base::SpinLock g_coro_lock;
 
 //static
 void Coroutine::run_coroutine(void* arg) {
 
   Coroutine* coroutine = static_cast<Coroutine*>(arg);
-  std::cout << __FUNCTION__ << " RUN coro:" << coroutine << " InLOOP:" << base::MessageLoop2::Current()->LoopName() << std::endl;
 
   coroutine->current_state_ = CoroState::kRunning;
 
@@ -50,7 +50,8 @@ Coroutine::Coroutine(int stack_size, bool main)
     current_state_ = CoroState::kInitialized;
     memset(&coro_ctx_, 0, sizeof(coro_ctx_));
     {
-      std::unique_lock<std::mutex> lck(g_coro_mutex);
+      base::SpinLockGuard guard(g_coro_lock);
+      //std::unique_lock<std::mutex> lck(g_coro_mutex);
       coro_create(&coro_ctx_, &Coroutine::run_coroutine, this, stack_.sptr, stack_.ssze);
     }
   }

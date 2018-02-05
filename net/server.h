@@ -47,7 +47,7 @@ public:
   /* IOService Using for Accept New Comming Connections */
   virtual int GetIOServiceLoopCount() {return 1;/*std::thread::hardware_concurrency();*/}
   //IOWorkLoop handle socket IO and the encode/decode to requestmessage or responsemessage
-  virtual int GetIOWorkerLoopCount() {return 6;/*return std::thread::hardware_concurrency();*/};
+  virtual int GetIOWorkerLoopCount() {return 4;/*return std::thread::hardware_concurrency();*/};
 
   virtual void ServerIsGoingExit() {};
   virtual void OnServerStoped() {};

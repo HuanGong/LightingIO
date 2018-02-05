@@ -52,11 +52,11 @@ HttpProtoService::~HttpProtoService() {
 }
 
 void HttpProtoService::OnStatusChanged(const RefTcpChannel& channel) {
-  LOG(INFO) << __FUNCTION__ << channel->ChannelName() << " status:" << channel->StatusAsString();
+  //LOG(INFO) << __FUNCTION__ << channel->ChannelName() << " status:" << channel->StatusAsString();
 }
 
 void HttpProtoService::OnDataFinishSend(const RefTcpChannel& channel) {
-  LOG(INFO) << __FUNCTION__ << channel->ChannelName();
+  //LOG(INFO) << __FUNCTION__ << channel->ChannelName();
   if (close_after_finish_send_) {
     channel->ShutdownChannel();
   }
@@ -65,7 +65,7 @@ void HttpProtoService::OnDataFinishSend(const RefTcpChannel& channel) {
 void HttpProtoService::OnDataRecieved(const RefTcpChannel& channel, IOBuffer* buf) {;
   //static const std::string kBadRequest = "HTTP/1.1 400 Bad Request\r\n\r\n";
 
-  LOG(ERROR) << " OnDataRecieved n bytes:" << buf->CanReadSize() << " From:" << channel->ChannelName();
+  //LOG(ERROR) << " OnDataRecieved n bytes:" << buf->CanReadSize() << " From:" << channel->ChannelName();
 
   bool success = false;
   if (channel->IsServerChannel()) {// parse Request
@@ -75,7 +75,7 @@ void HttpProtoService::OnDataRecieved(const RefTcpChannel& channel, IOBuffer* bu
   }
 
   if (!success) {
-    LOG(ERROR) << "Parse Request/Response Error, Shutdown this cannel";
+    //LOG(ERROR) << "Parse Request/Response Error, Shutdown this cannel";
     channel->ShutdownChannel();
   }
 }
@@ -122,7 +122,7 @@ bool HttpProtoService::ParseHttpRequest(const RefTcpChannel& channel, IOBuffer* 
                                        buffer_start,
                                        buffer_size);
 
-  LOG(ERROR) << " reqeuest as string:" << buf->AsString();
+  //LOG(ERROR) << " reqeuest as string:" << buf->AsString();
   buf->Consume(nparsed);
 
   if (parser->upgrade) {

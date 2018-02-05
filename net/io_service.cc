@@ -175,7 +175,7 @@ void IOService::RemoveConncetion(const RefTcpChannel connection) {
 
 //Running On NetWorkIO Channel Thread
 void IOService::HandleRequest(const RefProtocolMessage& request) {
-  LOG(INFO) << "Server [" << service_name_ << "] Recv a Request";
+  //LOG(INFO) << "Server [" << service_name_ << "] Recv a Request";
   //current just Handle Work On IO
   CHECK(request);
 
@@ -203,7 +203,6 @@ void IOService::HandleRequest(const RefProtocolMessage& request) {
   //dispatch to worker do work
   auto functor = std::bind(&IOService::HandleRequestOnWorker, this, request);
 #if 1 //handle io
-  base::CoroScheduler::TlsCurrent();
   base::CoroScheduler::CreateAndSchedule(base::NewCoroTask(std::move(functor)));
 #else
   auto functor = std::bind(&base::CoroScheduler::CreateAndSchedule, std::move(functor));
@@ -242,8 +241,6 @@ void IOService::HandleRequestOnWorker(const RefProtocolMessage request) {
   }
 
   if (channel->InIOLoop()) { //send reply directly
-
-    LOG(INFO) << __FUNCTION__ << " send response On Loop:" << base::MessageLoop2::Current()->LoopName();
 
     if (false == channel->SendProtoMessage(response)) { //failed
       channel->ShutdownChannel();

@@ -69,7 +69,6 @@ void TcpChannel::Initialize() {
 TcpChannel::~TcpChannel() {
   VLOG(GLOG_VTRACE) << channal_name_ << " Gone, Fd:" << socket_fd_;
   CHECK(channel_status_ == DISCONNECTED);
-  LOG(INFO) << " TcpChannel::~TcpChannel " << channal_name_ << " Gone";
   if (socket_fd_ != -1) {
     socketutils::CloseSocket(socket_fd_);
   }
@@ -231,7 +230,7 @@ void TcpChannel::HandleClose() {
   channel_status_ = DISCONNECTED;
   OnStatusChanged();
 
-  LOG(ERROR) << "Call closed callback in HandleClose";
+  //LOG(ERROR) << "Call closed callback in HandleClose";
   // normal case, it will remove from connection's ownner
   // after this, it's will destructor if no other obj hold it
   RefTcpChannel guard(shared_from_this());
