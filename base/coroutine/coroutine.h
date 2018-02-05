@@ -19,9 +19,6 @@ enum CoroState {
 class Coroutine : public coro_context {
 public:
   Coroutine(int stack_size, bool main);
-  Coroutine();
-  Coroutine(bool meta);
-  Coroutine(int stack_sz);
   ~Coroutine();
 
   intptr_t Identifier() const;
@@ -30,7 +27,6 @@ private:
   friend class CoroScheduler;
   static void run_coroutine(void* arg);
 
-  void InitCoroutine();
   void RunCoroTask();
 
   void SetIdentifier(uint64_t id);
@@ -41,6 +37,7 @@ private:
   const bool meta_coro_;
 
   coro_stack stack_;
+  coro_context coro_ctx_;
 
   CoroState current_state_;
   std::unique_ptr<CoroTask> task_;

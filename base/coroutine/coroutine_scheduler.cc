@@ -24,7 +24,7 @@ void CoroScheduler::CreateAndSchedule(std::unique_ptr<CoroTask> task) {
 
   //LOG(ERROR) << __FUNCTION__ << " : " << __LINE__ << " @ Loop " << base::MessageLoop2::Current()->LoopName();
 
-  RefCoroutine coro = std::make_shared<Coroutine>();
+  RefCoroutine coro = std::make_shared<Coroutine>(0, false);
   if (!coro.get()) {
     LOG(ERROR) << "Bad Coro Seem Failed" << " @ Loop " << base::MessageLoop2::Current()->LoopName();
     return;
@@ -113,11 +113,12 @@ bool CoroScheduler::Transfer(RefCoroutine& next) {
     current_->SetCoroState(CoroState::kPaused);
   }
 
-  Coroutine* to = next.get();
-  Coroutine* from = current_.get();
+  coro_context* to = &next->coro_ctx_;
+  coro_context* from = &current_->coro_ctx_;
 
   LOG_IF(ERROR, next == main_coro_) << " current set to main_coro_";
   current_ = next;
+
   coro_transfer(from, to);
   return true;
 }

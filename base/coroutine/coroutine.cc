@@ -12,9 +12,7 @@
 
 namespace base {
 
-#define COROSTACKSIZE 1024*8
-
-//std::atomic<long> count;
+#define COROSTACKSIZE 1024*16
 
 static std::mutex g_coro_mutex;
 
@@ -43,40 +41,19 @@ Coroutine::Coroutine(int stack_size, bool main)
 
   } else {
     if (stack_size_ < 1024) {
-      stack_size_ = 1024;
+      stack_size_ = COROSTACKSIZE;
     }
     int r = coro_stack_alloc(&stack_, stack_size_);
     LOG_IF(ERROR, r == 0) << "Failed Allocate Coroutine Stack";
     CHECK(r == 1);
 
     current_state_ = CoroState::kInitialized;
-
+    memset(&coro_ctx_, 0, sizeof(coro_ctx_));
     {
       std::unique_lock<std::mutex> lck(g_coro_mutex);
-      coro_create(this, Coroutine::run_coroutine, this, stack_.sptr, stack_.ssze);
+      coro_create(&coro_ctx_, &Coroutine::run_coroutine, this, stack_.sptr, stack_.ssze);
     }
   }
-}
-
-Coroutine::Coroutine()
-  : stack_size_(COROSTACKSIZE),
-    meta_coro_(false) {
-
-  InitCoroutine();
-}
-
-Coroutine::Coroutine(int stack_sz)
-  : stack_size_(stack_sz),
-    meta_coro_(false) {
-
-  InitCoroutine();
-}
-
-Coroutine::Coroutine(bool meta_coro)
-  : stack_size_(0),
-    meta_coro_(meta_coro) {
-  stack_size_ =  meta_coro_ ? 0 : COROSTACKSIZE;
-  InitCoroutine();
 }
 
 Coroutine::~Coroutine() {
@@ -86,25 +63,6 @@ Coroutine::~Coroutine() {
   if (!meta_coro_) {
     coro_stack_free(&stack_);
   }
-}
-
-void Coroutine::InitCoroutine() {
-  if (meta_coro_) {
-    current_state_ = CoroState::kRunning;
-    coro_create(this, NULL, NULL, NULL, 0);
-  } else {
-    if (0 == stack_size_) stack_size_ = COROSTACKSIZE;
-    coro_stack_alloc(&stack_, stack_size_);
-    coro_create(this, // coro_context
-                Coroutine::run_coroutine, //func
-                this, //arg
-                stack_.sptr,
-                stack_.ssze);
-    current_state_ = CoroState::kInitialized;
-  }
-
-  //count++;
-  //LOG(INFO) << "coroutine born count:" << count;
 }
 
 void Coroutine::RunCoroTask() {
