@@ -72,6 +72,7 @@ bool Server::RegisterService(const std::string server, ProtoMessageHandler handl
                                  this));
 
     s->SetProtoMessageHandler(handler);
+    s->SetWorkLoadDispatcher(delegate_->WorkLoadTransfer().get());
 
     ioservices_.push_back(std::move(s));
   }
@@ -80,6 +81,7 @@ bool Server::RegisterService(const std::string server, ProtoMessageHandler handl
 
   RefIOService s(new IOService(listenner_addr, sch_ip_port.scheme, loop.get(), this));
   s->SetProtoMessageHandler(handler);
+  s->SetWorkLoadDispatcher(delegate_->WorkLoadTransfer().get());
 
   ioservices_.push_back(std::move(s));
 #endif
@@ -96,7 +98,6 @@ void Server::RunAllService() {
 
 bool Server::IncreaseChannelCount() {
   comming_connections_++;
-  LOG(INFO) << "Now Has <" << comming_connections_ << "> Comming Connections";
   return true;
 }
 

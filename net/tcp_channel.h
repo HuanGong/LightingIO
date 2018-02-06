@@ -109,6 +109,7 @@ private:
   ChannelClosedCallback closed_callback_;
   FinishSendCallback finish_write_callback_;
   ChannelStatusCallback status_change_callback_;
+  bool got_data = false;
   DISALLOW_COPY_AND_ASSIGN(TcpChannel);
 };
 

@@ -48,6 +48,7 @@ TcpChannel::TcpChannel(int socket_fd,
     peer_addr_(peer),
     serve_type_(type) {
 
+  got_data = false;
   fd_event_ = base::FdEvent::create(socket_fd_, 0);
 }
 
@@ -68,6 +69,9 @@ void TcpChannel::Initialize() {
 
 TcpChannel::~TcpChannel() {
   VLOG(GLOG_VTRACE) << channal_name_ << " Gone, Fd:" << socket_fd_;
+  if (!got_data) {
+    LOG(ERROR) << " This Channel Not Got Data after Setup Connection";
+  }
   CHECK(channel_status_ == DISCONNECTED);
   if (socket_fd_ != -1) {
     socketutils::CloseSocket(socket_fd_);
@@ -112,6 +116,7 @@ void TcpChannel::HandleRead() {
   int32_t bytes_read = in_buffer_.ReadFromSocketFd(socket_fd_, &error);
 
   if (bytes_read > 0) {
+    got_data = true;
     if ( recv_data_callback_ ) {
       recv_data_callback_(shared_from_this(), &in_buffer_);
     }
@@ -177,11 +182,11 @@ bool TcpChannel::SendProtoMessage(RefProtocolMessage message) {
   CHECK(proto_service_);
 
   if (!message) {
-    LOG(DEBUG) << "Bad ProtoMessage, ChannelInfo:" << ChannelName() << " Status:" << StatusAsString();
+    DLOG(INFO) << "Bad ProtoMessage, ChannelInfo:" << ChannelName() << " Status:" << StatusAsString();
     return false;
   }
   if (channel_status_ != ChannelStatus::CONNECTED) {
-    LOG(DEBUG) << "Channel Is Broken, ChannelInfo:" << ChannelName() << " Status:" << StatusAsString();
+    DLOG(INFO) << "Channel Is Broken, ChannelInfo:" << ChannelName() << " Status:" << StatusAsString();
     return false;
   }
 
@@ -266,7 +271,7 @@ int32_t TcpChannel::Send(const uint8_t* data, const int32_t len) {
   CHECK(work_loop_->IsInLoopThread());
 
   if (channel_status_ != CONNECTED) {
-    LOG(DEBUG) << "Can't Write Data To a Closed[ing] socket; INFO" << ChannelName();
+    DLOG(INFO) << "Can't Write Data To a Closed[ing] socket; INFO" << ChannelName();
     return -1;
   }
 

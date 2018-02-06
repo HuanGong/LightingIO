@@ -20,6 +20,8 @@ public:
   void StartDispatcher();
   bool HandleWorkInIOLoop() {return work_in_io_;}
 
+  virtual void SetWorkContext(ProtocolMessage* message) {};
+
   base::MessageLoop2* GetNextWorkLoop();
   virtual bool Dispatch(ProtoMessageHandler&, RefProtocolMessage&) = 0;
 

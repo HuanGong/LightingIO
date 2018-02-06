@@ -19,6 +19,7 @@ IOService::IOService(const InetAddress addr,
   : protocol_(protocol),
     acceptor_loop_(workloop),
     delegate_(delegate),
+    dispatcher_(NULL),
     is_stopping_(false) {
 
   CHECK(delegate_);
@@ -88,7 +89,7 @@ void IOService::OnNewConnection(int local_socket, const InetAddress& peer_addr) 
     socketutils::CloseSocket(local_socket);
     return;
   }
-  LOG(INFO) << " New Connection from:" << peer_addr.IpPortAsString();
+  VLOG(GLOG_VTRACE) << " New Connection from:" << peer_addr.IpPortAsString();
 
   net::InetAddress local_addr(socketutils::GetLocalAddrIn(local_socket));
   auto new_channel = TcpChannel::Create(local_socket,
@@ -182,26 +183,30 @@ void IOService::HandleRequest(const RefProtocolMessage& request) {
 
   WeakPtrTcpChannel weak_channel = request->GetIOCtx().channel;
   RefTcpChannel channel = weak_channel.lock();
-  if (!channel.get() || !channel->IsConnected()) {
+  if (!channel) {
     return;
   }
 
   CHECK(channel->InIOLoop());
 
   if (!message_handler_) {//replay default response some type request no response
-    RefProtocolMessage response = channel->GetProtoService()->DefaultResponse(request);
-    if (!response) {
-      return;
-    }
-    if (!channel->SendProtoMessage(response)) { //failed
-      channel->ShutdownChannel();
-    }
+    channel->ShutdownChannel();
     return;
   }
 
   //dispatch to worker do work
-  auto functor = std::bind(&IOService::HandleRequestOnWorker, this, request);
-  base::CoroScheduler::CreateAndSchedule(base::NewCoroTask(std::move(functor)));
+  auto wokerload_functor = [=, this]() {
+    auto functor = std::bind(&IOService::HandleRequestOnWorker, this, request);
+    base::CoroScheduler::CreateAndSchedule(base::NewCoroTask(std::move(functor)));
+  };
+
+  bool handle_in_io = dispatcher_->HandleWorkInIOLoop();
+  if (handle_in_io) {
+    wokerload_functor();
+  } else {
+    base::MessageLoop2* work_loop = dispatcher_->GetNextWorkLoop();
+    work_loop->PostTask(base::NewClosure(std::move(wokerload_functor)));
+  }
 }
 
 //Run On Worker
@@ -254,6 +259,10 @@ void IOService::HandleRequestOnWorker(const RefProtocolMessage request) {
 //typedef std::function<void(const RefProtocolMessage/*request*/)> ProtoMessageHandler;
 void IOService::SetProtoMessageHandler(ProtoMessageHandler handler) {
   message_handler_ = handler;
+}
+
+void IOService::SetWorkLoadDispatcher(WorkLoadDispatcher* d) {
+  dispatcher_ = d;
 }
 
 }// endnamespace net

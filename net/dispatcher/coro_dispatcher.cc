@@ -145,4 +145,10 @@ void CoroWlDispatcher::Reply(RefTcpChannel channel, RefProtocolMessage request) 
   }
 }
 
+void CoroWlDispatcher::SetWorkContext(ProtocolMessage* message) {
+  auto& work_context = message->GetWorkCtx();
+  work_context.coro_loop = base::MessageLoop2::Current();
+  work_context.weak_coro = base::CoroScheduler::TlsCurrent()->CurrentCoro();
+};
+
 }//end namespace

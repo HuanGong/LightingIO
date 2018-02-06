@@ -31,9 +31,9 @@ void handler(net::RefProtocolMessage message) {
 void http_handler(net::RefProtocolMessage message) {
   net::HttpRequest* httpmsg = static_cast<net::HttpRequest*>(message.get());
   std::ostringstream oss;
-  httpmsg->ToRequestRawData(oss);
+  //httpmsg->ToRequestRawData(oss);
 
-  VLOG(3) << "I Got HttpRequest Raw:" << oss.str();
+  LOG(INFO) << "I Got HttpRequest Raw:";// << oss.str();
   net::RefHttpResponse response = std::make_shared<net::HttpResponse>(net::IODirectionType::kOutResponse);
   response->SetResponseCode(200);
   response->SetKeepAlive(httpmsg->IsKeepAlive());

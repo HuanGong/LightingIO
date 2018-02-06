@@ -7,7 +7,6 @@
 #include "net_callback.h"
 #include "service_acceptor.h"
 #include "dispatcher/workload_dispatcher.h"
-
 #include "base/event_loop/msg_event_loop.h"
 
 namespace net {
@@ -51,6 +50,7 @@ public:
   base::MessageLoop2* AcceptorLoop() { return acceptor_loop_; }
   const std::string& IOServiceName() const {return service_name_;}
 
+  void SetWorkLoadDispatcher(WorkLoadDispatcher* d);
   void SetProtoMessageHandler(ProtoMessageHandler handler);
 protected:
   void HandleRequest(const RefProtocolMessage& request);
@@ -76,6 +76,7 @@ private:
   IOServiceDelegate* delegate_;
   //RefProtoService proto_service_;
 
+  WorkLoadDispatcher* dispatcher_;
   // install this callback to protoservice
   ProtoMessageHandler message_handler_;
 

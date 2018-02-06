@@ -19,6 +19,8 @@ public:
   void TransferAndYield(base::MessageLoop2* ioloop, base::StlClourse);
 
   bool ResumeWorkCtxForRequest(RefProtocolMessage& request);
+
+  void SetWorkContext(ProtocolMessage* message) override;
 private:
   void Reply(RefTcpChannel channel, RefProtocolMessage request);
   void DispachToCoroAndReply(ProtoMessageHandler, RefProtocolMessage);
