@@ -212,4 +212,18 @@ const RefProtocolMessage HttpProtoService::DefaultResponse(const RefProtocolMess
   }
   return std::move(http_res);
 }
+
+bool HttpProtoService::CloseAfterMessage(ProtocolMessage* request, ProtocolMessage* response) {
+  return true;
+  if (!request || !response) {
+    return true;
+  }
+  HttpRequest* http_request = static_cast<HttpRequest*>(request);
+  HttpResponse* http_response = static_cast<HttpResponse*>(response);
+  if (http_request->IsKeepAlive() && http_response->IsKeepAlive()) {
+    return false;
+  }
+  return true;
+}
+
 }//end namespace

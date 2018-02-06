@@ -27,6 +27,7 @@ public:
   bool EncodeToBuffer(const ProtocolMessage* msg, IOBuffer* out_buffer);
 
   const RefProtocolMessage DefaultResponse(const RefProtocolMessage&) override;
+  bool CloseAfterMessage(ProtocolMessage* request, ProtocolMessage* response) override;
 private:
   //bool EncodeHttpResponse(const HttpResponse*, IOBU* out_buffer);
   bool ParseHttpRequest(const RefTcpChannel&, IOBuffer*);

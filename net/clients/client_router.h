@@ -67,11 +67,12 @@ private:
 
   const InetAddress server_addr_;
   base::MessageLoop2* work_loop_;
-  CoroWlDispatcher* dispatcher_;
   bool is_stopping_;
 
   RefConnector connector_;
   RouterDelegate* delegate_;
+  CoroWlDispatcher* dispatcher_;
+
   std::vector<RefClientChannel> channels_;
   std::atomic<uint32_t> router_counter_;
 };

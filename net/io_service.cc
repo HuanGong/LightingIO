@@ -7,6 +7,7 @@
 #include "protocol/proto_message.h"
 #include "protocol/proto_service_factory.h"
 
+#include <base/base_constants.h>
 #include <base/coroutine/coroutine_scheduler.h>
 
 namespace net {
@@ -198,16 +199,9 @@ void IOService::HandleRequest(const RefProtocolMessage& request) {
     return;
   }
 
-  //HandleRequestOnWorker(request);
-
   //dispatch to worker do work
   auto functor = std::bind(&IOService::HandleRequestOnWorker, this, request);
-#if 1 //handle io
   base::CoroScheduler::CreateAndSchedule(base::NewCoroTask(std::move(functor)));
-#else
-  auto functor = std::bind(&base::CoroScheduler::CreateAndSchedule, std::move(functor));
-  loop->PostTask(base::NewClorsure(std::move(functor));
-#endif
 }
 
 //Run On Worker
@@ -222,43 +216,37 @@ void IOService::HandleRequestOnWorker(const RefProtocolMessage request) {
     message_handler_(request);
   }
 
-  // For Reply Response
-
   WeakPtrTcpChannel weak_channel = request->GetIOCtx().channel;
   RefTcpChannel channel = weak_channel.lock();
   if (NULL == channel.get() || false == channel->IsConnected()) {//channel Broken Or Has Gone
-    LOG(INFO) << __FUNCTION__ << " End For Return";
+    VLOG(GLOG_VTRACE) << __FUNCTION__ << " Channel Has Broken After Handle Request Message";
     return;
   }
 
   RefProtocolMessage response = request->Response();
   if (!response.get()) {
-    RefProtocolMessage response = channel->GetProtoService()->DefaultResponse(request);
-    if (!response) { //this type message not need response, things over
-      LOG(INFO) << __FUNCTION__ << " End For Return";
-      return;
-    }
+    response = channel->GetProtoService()->DefaultResponse(request);
+  }
+  if (!response) { //This type message not need response, WorkFlow Over
+    return;
   }
 
+  bool close = channel->GetProtoService()->CloseAfterMessage(request.get(), response.get());
   if (channel->InIOLoop()) { //send reply directly
 
-    if (false == channel->SendProtoMessage(response)) { //failed
+    bool send_success = channel->SendProtoMessage(response);
+    if (close || !send_success) { //failed
       channel->ShutdownChannel();
     }
 
-    //channel->ShutdownChannel();
-
-  } else  { //post response to io
+  } else  { //Send Response to Channel's IO Loop
 
     auto functor = [=]() {
-      if (false == channel->SendProtoMessage(response)) { //failed
+      bool send_success = channel->SendProtoMessage(response);
+      if (close || !send_success) { //failed
         channel->ShutdownChannel();
       }
-      LOG(ERROR) << "Call ForceShutdown";
-      //channel->ForceShutdown();
-      //channel->ShutdownChannel();
     };
-    //auto functor = std::bind(&TcpChannel::SendProtoMessage, channel, response);
     channel->IOLoop()->PostTask(base::NewClosure(std::move(functor)));
   }
 }

@@ -92,7 +92,7 @@ void TcpChannel::OnConnectionReady() {
       socketutils::CloseSocket(socket_fd_);
       socket_fd_ = -1;
     }
-    LOG(INFO) << "This Connection Status Changed After Initialize";
+    LOG(ERROR) << " Channel Status Changed After Initialize";
   }
 }
 
@@ -119,7 +119,6 @@ void TcpChannel::HandleRead() {
       proto_service_->OnDataRecieved(shared_from_this(), &in_buffer_);
     }
   } else if (0 == bytes_read) { //read eof
-    LOG(INFO) << "Close For Read 0 Bytes" << ChannelName();
     HandleClose();
   } else {
     errno = error;
@@ -178,13 +177,11 @@ bool TcpChannel::SendProtoMessage(RefProtocolMessage message) {
   CHECK(proto_service_);
 
   if (!message) {
-    LOG(ERROR) << "Bad ProtoMessage, ChannelInfo:" << ChannelName()
-               << " Status:" << StatusAsString();
+    LOG(DEBUG) << "Bad ProtoMessage, ChannelInfo:" << ChannelName() << " Status:" << StatusAsString();
     return false;
   }
   if (channel_status_ != ChannelStatus::CONNECTED) {
-    LOG(ERROR) << "Channel Is Broken, ChannelInfo:" << ChannelName()
-               << " Status:" << StatusAsString();
+    LOG(DEBUG) << "Channel Is Broken, ChannelInfo:" << ChannelName() << " Status:" << StatusAsString();
     return false;
   }
 
@@ -225,21 +222,14 @@ void TcpChannel::HandleClose() {
   fd_event_->ResetCallback();
   work_loop_->Pump()->RemoveFdEvent(fd_event_.get());
 
-  VLOG(GLOG_VTRACE) << " channel_status_ to DISCONNECTED, channel:" << ChannelName();
+  VLOG(GLOG_VTRACE) << " Channel Status: DISCONNECTED, channel:" << ChannelName();
 
   channel_status_ = DISCONNECTED;
   OnStatusChanged();
 
-  //LOG(ERROR) << "Call closed callback in HandleClose";
-  // normal case, it will remove from connection's ownner
-  // after this, it's will destructor if no other obj hold it
   RefTcpChannel guard(shared_from_this());
   if (closed_callback_) {
-    //if (owner_loop_) {
-      //owner_loop_->PostTask(base::NewClosure(std::bind(closed_callback_, guard)));
-    //} else {
-      closed_callback_(guard);
-    //}
+    closed_callback_(guard);
   }
 }
 
@@ -250,7 +240,6 @@ void TcpChannel::ShutdownChannel() {
     return;
   }
   if (!fd_event_->IsWriteEnable()) {
-    LOG(ERROR) << "ShutdownWrite call socketutils::ShutdownWrite(socket_fd_); fd:" << socket_fd_;
     channel_status_ = DISCONNECTING;
     socketutils::ShutdownWrite(socket_fd_);
   } else {
@@ -270,7 +259,6 @@ void TcpChannel::ForceShutdown() {
     return;
   }
 
-  LOG(ERROR) << "Call HandleClose in ForceShutdown";
   HandleClose();
 }
 
@@ -278,7 +266,7 @@ int32_t TcpChannel::Send(const uint8_t* data, const int32_t len) {
   CHECK(work_loop_->IsInLoopThread());
 
   if (channel_status_ != CONNECTED) {
-    LOG(INFO) <<  "Can't Write Data To a Closed[ing] socket; INFO" << ChannelName();
+    LOG(DEBUG) << "Can't Write Data To a Closed[ing] socket; INFO" << ChannelName();
     return -1;
   }
 

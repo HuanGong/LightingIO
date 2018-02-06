@@ -36,4 +36,8 @@ bool ProtoService::InvokeMessageHandler(RefProtocolMessage msg) {
   return false;
 }
 
+bool ProtoService::CloseAfterMessage(ProtocolMessage* request, ProtocolMessage* response) {
+  return true;
+}
+
 }// end namespace

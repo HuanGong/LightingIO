@@ -53,7 +53,7 @@ public:
 
   void SetResponse(RefProtocolMessage& response);
   void SetResponse(RefProtocolMessage&& response);
-  RefProtocolMessage Response() {return response_;}
+  RefProtocolMessage& Response() {return response_;}
 
   virtual const std::string MessageDebug() {return "";};
 protected:
