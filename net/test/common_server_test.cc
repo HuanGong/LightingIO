@@ -27,13 +27,14 @@ void handler(net::RefProtocolMessage message) {
   res->MutableBody() = "hello response";
   linemsg->SetResponse(std::move(res));
 }
+static std::atomic_int couter;
 
 void http_handler(net::RefProtocolMessage message) {
   net::HttpRequest* httpmsg = static_cast<net::HttpRequest*>(message.get());
   std::ostringstream oss;
   //httpmsg->ToRequestRawData(oss);
-
-  LOG(INFO) << "I Got HttpRequest Raw:";// << oss.str();
+  couter++;
+  LOG(INFO) << "I Got HttpRequest Raw:" << couter;// << oss.str();
   net::RefHttpResponse response = std::make_shared<net::HttpResponse>(net::IODirectionType::kOutResponse);
   response->SetResponseCode(200);
   response->SetKeepAlive(httpmsg->IsKeepAlive());
@@ -43,7 +44,7 @@ void http_handler(net::RefProtocolMessage message) {
 }
 
 int main(int argc, char* argv[]) {
-
+  couter = 0;
   //google::InitGoogleLogging(argv[0]);  // 初始化 glog
   //google::ParseCommandLineFlags(&argc, &argv, true);  // 初始化 gflags
   base::MessageLoop2 main_loop;

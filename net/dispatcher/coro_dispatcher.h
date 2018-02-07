@@ -20,7 +20,9 @@ public:
 
   bool ResumeWorkCtxForRequest(RefProtocolMessage& request);
 
+  // brand new api
   void SetWorkContext(ProtocolMessage* message) override;
+  bool TransmitToWorker(base::StlClourse& clourse) override;
 private:
   void Reply(RefTcpChannel channel, RefProtocolMessage request);
   void DispachToCoroAndReply(ProtoMessageHandler, RefProtocolMessage);

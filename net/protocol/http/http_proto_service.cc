@@ -61,11 +61,11 @@ void HttpProtoService::OnDataFinishSend(const RefTcpChannel& channel) {
     channel->ShutdownChannel();
   }
 }
-
+static std::atomic<int> counter;
 void HttpProtoService::OnDataRecieved(const RefTcpChannel& channel, IOBuffer* buf) {;
   //static const std::string kBadRequest = "HTTP/1.1 400 Bad Request\r\n\r\n";
 
-  //LOG(ERROR) << " OnDataRecieved n bytes:" << buf->CanReadSize() << " From:" << channel->ChannelName();
+  LOG(ERROR) << " OnDataRecieved n bytes:" << buf->CanReadSize() << " From:" << channel->ChannelName() << " counter:" << (counter++);
 
   bool success = false;
   if (channel->IsServerChannel()) {// parse Request
@@ -214,7 +214,6 @@ const RefProtocolMessage HttpProtoService::DefaultResponse(const RefProtocolMess
 }
 
 bool HttpProtoService::CloseAfterMessage(ProtocolMessage* request, ProtocolMessage* response) {
-  return true;
   if (!request || !response) {
     return true;
   }

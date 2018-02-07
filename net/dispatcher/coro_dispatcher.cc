@@ -107,9 +107,6 @@ bool CoroWlDispatcher::Dispatch(ProtoMessageHandler& handler, RefProtocolMessage
 void CoroWlDispatcher::DispachToCoroAndReply(ProtoMessageHandler functor,
                                              RefProtocolMessage request) {
 
-  //auto coro_functor = std::bind(functor, request);
-  //base::CoroScheduler::CreateAndSchedule(base::NewCoroTask(std::move(coro_functor)));
-
   functor(request);
 
   RefProtocolMessage response = request->Response();
@@ -146,9 +143,30 @@ void CoroWlDispatcher::Reply(RefTcpChannel channel, RefProtocolMessage request) 
 }
 
 void CoroWlDispatcher::SetWorkContext(ProtocolMessage* message) {
+  CHECK(message);
   auto& work_context = message->GetWorkCtx();
   work_context.coro_loop = base::MessageLoop2::Current();
   work_context.weak_coro = base::CoroScheduler::TlsCurrent()->CurrentCoro();
 };
+
+bool CoroWlDispatcher::TransmitToWorker(base::StlClourse& closure) {
+
+  if (HandleWorkInIOLoop()) {
+    base::CoroScheduler::CreateAndSchedule(base::NewCoroTask(std::move(closure)));
+    return true;
+  }
+
+  base::MessageLoop2* loop = GetNextWorkLoop();
+  if (loop) {
+
+    auto coro_functor = [=]() {
+      base::CoroScheduler::CreateAndSchedule(base::NewCoroTask(std::move(closure)));
+    };
+
+    loop->PostTask(base::NewClosure(coro_functor));
+    return true;
+  }
+  return false;
+}
 
 }//end namespace

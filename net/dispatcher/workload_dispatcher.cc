@@ -2,6 +2,8 @@
 #include "glog/logging.h"
 #include "workload_dispatcher.h"
 
+#include "net/protocol/proto_message.h"
+
 namespace net {
 
 WorkLoadDispatcher::WorkLoadDispatcher(bool work_in_io)
@@ -39,6 +41,25 @@ base::MessageLoop2* WorkLoadDispatcher::GetNextWorkLoop() {
     return work_loops_[index].get();
   }
   return NULL;
+}
+
+void WorkLoadDispatcher::SetWorkContext(ProtocolMessage* message) {
+  CHECK(message);
+  auto& work_context = message->GetWorkCtx();
+  work_context.coro_loop = base::MessageLoop2::Current();
+}
+
+bool WorkLoadDispatcher::TransmitToWorker(base::StlClourse& clourse) {
+  if (HandleWorkInIOLoop()) {
+    clourse();
+    return true;
+  }
+  base::MessageLoop2* loop = GetNextWorkLoop();
+  if (loop) {
+    loop->PostTask(base::NewClosure(clourse));
+    return true;
+  }
+  return false;
 }
 
 }//end namespace net

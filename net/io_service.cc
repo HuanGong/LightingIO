@@ -7,6 +7,7 @@
 #include "protocol/proto_message.h"
 #include "protocol/proto_service_factory.h"
 
+#include <atomic>
 #include <base/base_constants.h>
 #include <base/coroutine/coroutine_scheduler.h>
 
@@ -193,13 +194,19 @@ void IOService::HandleRequest(const RefProtocolMessage& request) {
     channel->ShutdownChannel();
     return;
   }
-
+#if 0
   //dispatch to worker do work
-  auto wokerload_functor = [=, this]() {
-    auto functor = std::bind(&IOService::HandleRequestOnWorker, this, request);
+  auto wokerload_functor = [=]() {
+    base::StlClourse functor = std::bind(&IOService::HandleRequestOnWorker, this, request);
     base::CoroScheduler::CreateAndSchedule(base::NewCoroTask(std::move(functor)));
   };
+#endif
 
+  base::StlClourse functor = std::bind(&IOService::HandleRequestOnWorker, this, request);
+
+  dispatcher_->TransmitToWorker(functor);
+
+#if 0
   bool handle_in_io = dispatcher_->HandleWorkInIOLoop();
   if (handle_in_io) {
     wokerload_functor();
@@ -207,8 +214,10 @@ void IOService::HandleRequest(const RefProtocolMessage& request) {
     base::MessageLoop2* work_loop = dispatcher_->GetNextWorkLoop();
     work_loop->PostTask(base::NewClosure(std::move(wokerload_functor)));
   }
+#endif
 }
 
+static std::atomic<int> counter;
 //Run On Worker
 void IOService::HandleRequestOnWorker(const RefProtocolMessage request) {
 
@@ -237,6 +246,8 @@ void IOService::HandleRequestOnWorker(const RefProtocolMessage request) {
   }
 
   bool close = channel->GetProtoService()->CloseAfterMessage(request.get(), response.get());
+  LOG_IF(ERROR, close == false) << "This Connection KeepAlive" << (counter++);
+
   if (channel->InIOLoop()) { //send reply directly
 
     bool send_success = channel->SendProtoMessage(response);
