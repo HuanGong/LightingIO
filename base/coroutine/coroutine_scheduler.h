@@ -7,7 +7,10 @@
 #include <cinttypes>
 #include <unordered_map>
 #include "base_micro.h"
+#include <base/closure/closure_task.h>
 #include "coroutine/coroutine.h"
+
+#include <base/event_loop/msg_event_loop.h>
 
 namespace base {
 
@@ -19,7 +22,8 @@ public:
 
   static CoroScheduler* TlsCurrent();
 
-  static void CreateAndSchedule(std::unique_ptr<CoroTask> task);
+  static void RunAsCoroInLoop(base::MessageLoop2* target_loop, StlClosure& t);
+  static void CreateAndSchedule(CoroClosure& task);
 
   intptr_t CurrentCoroId();
   RefCoroutine CurrentCoro();

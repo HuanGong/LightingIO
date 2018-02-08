@@ -39,7 +39,7 @@ TimerEvent::TimerEvent(int64_t ms, bool once)
 }
 
 TimerEvent::~TimerEvent() {
-  LOG(INFO) << "TimerEvent Gone";
+  //LOG(INFO) << "TimerEvent Gone";
 }
 
 const Timestamp& TimerEvent::Time() const {
@@ -52,7 +52,6 @@ void TimerEvent::SetTimerTask(UniqueTimerTask task) {
 
 void TimerEvent::Invoke() {
   if (timer_task_) {
-    LOG(INFO) << "INVOKE Timer Task";
     timer_task_->Run();
   }
 }

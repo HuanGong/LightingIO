@@ -194,45 +194,33 @@ void IOService::HandleRequest(const RefProtocolMessage& request) {
     channel->ShutdownChannel();
     return;
   }
-#if 0
-  //dispatch to worker do work
-  auto wokerload_functor = [=]() {
-    base::StlClourse functor = std::bind(&IOService::HandleRequestOnWorker, this, request);
-    base::CoroScheduler::CreateAndSchedule(base::NewCoroTask(std::move(functor)));
-  };
-#endif
 
   base::StlClourse functor = std::bind(&IOService::HandleRequestOnWorker, this, request);
 
-  dispatcher_->TransmitToWorker(functor);
-
-#if 0
-  bool handle_in_io = dispatcher_->HandleWorkInIOLoop();
-  if (handle_in_io) {
-    wokerload_functor();
-  } else {
-    base::MessageLoop2* work_loop = dispatcher_->GetNextWorkLoop();
-    work_loop->PostTask(base::NewClosure(std::move(wokerload_functor)));
+  bool ok = dispatcher_->TransmitToWorker(functor);
+  if (false == ok) {
+    channel->ShutdownChannel();
   }
-#endif
 }
 
 static std::atomic<int> counter;
 //Run On Worker
 void IOService::HandleRequestOnWorker(const RefProtocolMessage request) {
 
-  //dispatch_->SetupWorkerContext();
-  auto& work_context = request->GetWorkCtx();
-  work_context.coro_loop = base::MessageLoop2::Current();
-  work_context.weak_coro = base::CoroScheduler::TlsCurrent()->CurrentCoro();
+  do {
 
-  if (message_handler_) {
-    message_handler_(request);
-  }
+    if (!dispatcher_->SetWorkContext(request.get())) {
+      break;
+    }
+    if (message_handler_) {
+      message_handler_(request);
+    }
+  } while(0);
 
   WeakPtrTcpChannel weak_channel = request->GetIOCtx().channel;
   RefTcpChannel channel = weak_channel.lock();
-  if (NULL == channel.get() || false == channel->IsConnected()) {//channel Broken Or Has Gone
+  //channel Broken Or Has Gone
+  if (NULL == channel.get() || false == channel->IsConnected()) {
     VLOG(GLOG_VTRACE) << __FUNCTION__ << " Channel Has Broken After Handle Request Message";
     return;
   }
@@ -249,14 +237,11 @@ void IOService::HandleRequestOnWorker(const RefProtocolMessage request) {
   LOG_IF(ERROR, close == false) << "This Connection KeepAlive" << (counter++);
 
   if (channel->InIOLoop()) { //send reply directly
-
     bool send_success = channel->SendProtoMessage(response);
     if (close || !send_success) { //failed
       channel->ShutdownChannel();
     }
-
   } else  { //Send Response to Channel's IO Loop
-
     auto functor = [=]() {
       bool send_success = channel->SendProtoMessage(response);
       if (close || !send_success) { //failed
@@ -267,7 +252,6 @@ void IOService::HandleRequestOnWorker(const RefProtocolMessage request) {
   }
 }
 
-//typedef std::function<void(const RefProtocolMessage/*request*/)> ProtoMessageHandler;
 void IOService::SetProtoMessageHandler(ProtoMessageHandler handler) {
   message_handler_ = handler;
 }

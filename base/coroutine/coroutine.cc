@@ -67,20 +67,13 @@ Coroutine::~Coroutine() {
 }
 
 void Coroutine::RunCoroTask() {
-  if (!task_.get()) {
-    LOG(INFO) << "This coro not Bind To a Task";
-    return;
+  if (coro_task_) {
+    coro_task_();
   }
-  task_->RunCoro();
-  task_.reset();
 }
 
-void Coroutine::SetCoroTask(std::unique_ptr<CoroTask> t) {
-  if (task_.get()) {
-    LOG(ERROR) << "Aready Set, Can't Assign Task Twice";
-    return;
-  }
-  task_ = std::move(t);
+void Coroutine::SetCoroTask(CoroClosure task) {
+  coro_task_ = task;
 }
 
 intptr_t Coroutine::Identifier() const {

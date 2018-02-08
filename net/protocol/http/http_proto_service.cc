@@ -185,17 +185,11 @@ bool HttpProtoService::ParseHttpResponse(const RefTcpChannel& channel, IOBuffer*
     message->SetIOContextWeakChannel(channel);
     message->SetMessageDirection(IODirectionType::kInRequest);
 
-    LOG(ERROR) << " PlayResponse ";
-    PlayResponse(message);
+    if (message_handler_) {
+      message_handler_(std::static_pointer_cast<ProtocolMessage>(message));
+    }
   }
   return true;
-}
-
-void HttpProtoService::PlayResponse(RefHttpResponse response) {
-  LOG(ERROR) << __FUNCTION__ << " Handle A Response";
-  if (message_handler_) {
-    message_handler_(std::static_pointer_cast<ProtocolMessage>(response));
-  }
 }
 
 const RefProtocolMessage HttpProtoService::DefaultResponse(const RefProtocolMessage& request)  {

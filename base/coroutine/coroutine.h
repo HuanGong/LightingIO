@@ -30,8 +30,9 @@ private:
   void RunCoroTask();
 
   void SetIdentifier(uint64_t id);
-  void SetCoroTask(std::unique_ptr<CoroTask> t);
-  void SetCoroState(CoroState st) {current_state_ = st;}
+  void SetCoroTask(CoroClosure task);
+
+  inline void SetCoroState(CoroState st) {current_state_ = st;}
 private:
   int stack_size_;
   const bool meta_coro_;
@@ -40,7 +41,9 @@ private:
   coro_context coro_ctx_;
 
   CoroState current_state_;
-  std::unique_ptr<CoroTask> task_;
+
+  CoroClosure coro_task_;
+
   DISALLOW_COPY_AND_ASSIGN(Coroutine);
 };
 

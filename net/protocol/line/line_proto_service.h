@@ -15,7 +15,8 @@ public:
   void OnDataFinishSend(const RefTcpChannel&) override;
   void OnDataRecieved(const RefTcpChannel&, IOBuffer*) override;
 
-  //no SharedPtr here, bz of type_cast and don't need guarantee it's lifetime in this contex
+  //no SharedPtr here, bz of type_cast and don't need guarantee
+  //it's lifetime in this contex
   bool DecodeBufferToMessage(IOBuffer* buffer, ProtocolMessage* out_msg);
   bool EncodeMessageToBuffer(const ProtocolMessage* msg, IOBuffer* out_buffer);
 };

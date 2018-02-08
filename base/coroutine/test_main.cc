@@ -28,10 +28,10 @@ int main() {
     base::MessageLoop2* loop = loops[i % loops.size()];
 
     loop->PostTask(base::NewClosure([]() {
-      auto functor = std::bind(coro_fun);
 
+      base::CoroClosure functor = std::bind(coro_fun);
 
-      base::CoroScheduler::CreateAndSchedule(base::NewCoroTask(functor));
+      base::CoroScheduler::CreateAndSchedule(functor);
 
       LOG(INFO) << "coro create and excuted success";
     }));

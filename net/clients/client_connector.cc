@@ -99,6 +99,7 @@ void Connector::InitEvent(base::RefFdEvent& fd_event) {
 void Connector::CleanUpBadChannel(base::RefFdEvent& event) {
   int socket_fd = event->fd();
   loop_->Pump()->RemoveFdEvent(event.get());
+  event->ResetCallback();
   net::socketutils::CloseSocket(socket_fd);
   connecting_sockets_.erase(event);
 

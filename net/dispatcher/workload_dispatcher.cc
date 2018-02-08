@@ -13,17 +13,15 @@ WorkLoadDispatcher::WorkLoadDispatcher(bool work_in_io)
 
 void WorkLoadDispatcher::InitWorkLoop(const int32_t count) {
   if (work_in_io_) {
-    LOG(ERROR) << "Don't Need WorkLoop When Handle Work in IOLoop";
+    LOG(ERROR) << "Don't Need WorkerLoop When Handle Work in IOLoop";
     return;
   }
 
   for (int32_t i = 0; i < count; i++) {
     const static std::string name_prefix("WorkLoop:");
-
     RefMessageLoop loop(new base::MessageLoop2);
     loop->SetLoopName(name_prefix + std::to_string(i));
     work_loops_.push_back(std::move(loop));
-
   }
   LOG(INFO) << "WorkLoadDispatcher Create [" << work_loops_.size() << "] loops Handle Work";
 }
@@ -43,10 +41,11 @@ base::MessageLoop2* WorkLoadDispatcher::GetNextWorkLoop() {
   return NULL;
 }
 
-void WorkLoadDispatcher::SetWorkContext(ProtocolMessage* message) {
+bool WorkLoadDispatcher::SetWorkContext(ProtocolMessage* message) {
   CHECK(message);
   auto& work_context = message->GetWorkCtx();
   work_context.coro_loop = base::MessageLoop2::Current();
+  return work_context.coro_loop != NULL;
 }
 
 bool WorkLoadDispatcher::TransmitToWorker(base::StlClourse& clourse) {

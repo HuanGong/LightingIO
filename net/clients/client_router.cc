@@ -64,13 +64,11 @@ void ClientRouter::OnClientConnectFailed() {
 
 
 base::MessageLoop2* ClientRouter::GetLoopForClient() {
-  if (delegate_ == NULL) {
-    base::MessageLoop2* io_loop = delegate_->NextIOLoopForClient();
-    if (io_loop) {
-      return io_loop;
-    }
+  base::MessageLoop2* io_loop = NULL;
+  if (delegate_) {
+    io_loop = delegate_->NextIOLoopForClient();
   }
-  return work_loop_;
+  return io_loop ? io_loop : work_loop_;
 }
 
 void ClientRouter::OnNewClientConnected(int socket_fd, InetAddress& local, InetAddress& remote) {
@@ -99,7 +97,7 @@ void ClientRouter::OnNewClientConnected(int socket_fd, InetAddress& local, InetA
 }
 
 void ClientRouter::OnClientChannelClosed(RefClientChannel channel) {
-  LOG(ERROR) << " OnChannelConnected";
+  LOG(ERROR) << " OnClientChannelClosed";
   if (!work_loop_->IsInLoopThread()) {
     work_loop_->PostTask(base::NewClosure(std::bind(&ClientRouter::OnClientChannelClosed, this, channel)));
     return;
@@ -110,10 +108,9 @@ void ClientRouter::OnClientChannelClosed(RefClientChannel channel) {
     channels_.erase(iter);
   }
 
-  //reconnect
-  VLOG(GLOG_VTRACE) << " A Client Channel Broken, RefConnect After: " << reconnect_interval_ << " ms";
-
   if (!is_stopping_ && channels_.size() < channel_count_) {
+    VLOG(GLOG_VTRACE) << " A Client Channel Broken, RefConnect After: " << reconnect_interval_ << " ms";
+    LOG(ERROR) << " Try To Reconnect To Server:" << server_addr_.IpPortAsString();
     auto functor = std::bind(&Connector::LaunchAConnection, connector_, server_addr_);
     work_loop_->PostDelayTask(base::NewClosure(functor), reconnect_interval_);
   }
@@ -130,14 +127,6 @@ void ClientRouter::OnRequestGetResponse(RefProtocolMessage request,
   request->SetResponse(response);
 
   dispatcher_->ResumeWorkCtxForRequest(request);
-
-  auto& work_context = request->GetWorkCtx();
-  work_context.coro_loop->PostTask(base::NewClosure([=]() {
-    base::RefCoroutine coro = work_context.weak_coro.lock();
-    if (coro) {
-      base::CoroScheduler::TlsCurrent()->ResumeCoroutine(coro);
-    }
-  }));
 }
 
 bool ClientRouter::SendClientRequest(RefProtocolMessage& message) {
@@ -154,7 +143,7 @@ bool ClientRouter::SendClientRequest(RefProtocolMessage& message) {
   base::MessageLoop2* io_loop = client->IOLoop();
   CHECK(io_loop);
 
-  if (dispatcher_->PrepareOutRequestContext(message)) {
+  if (!dispatcher_->SetWorkContext(message.get())) {
     LOG(FATAL) << "Can't Transfer/Dispatch This Request From Work To IO";
     return false;
   }
@@ -165,6 +154,9 @@ bool ClientRouter::SendClientRequest(RefProtocolMessage& message) {
 
   dispatcher_->TransferAndYield(io_loop, func);
 
+  if (message->Response()) {
+    LOG(ERROR) << "Response:" << message->Response()->MessageDebug();
+  }
   //TODO: Check message status and wheather has a correct response for this request
   return true;
 }

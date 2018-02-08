@@ -14,7 +14,8 @@ RefClientChannel ClientChannel::Create(Delegate* delegate, RefTcpChannel& channe
 
 ClientChannel::ClientChannel(Delegate* delegate, RefTcpChannel& channel)
   : delegate_(delegate),
-    channel_(channel) {
+    channel_(channel),
+    message_timeout_(10000){
 
   CHECK(delegate_);
   requests_keeper_.reset(new RequestsKeeper());
@@ -63,7 +64,6 @@ void ClientChannel::OnChannelClosed(RefTcpChannel channel) {
 }
 
 void ClientChannel::OnResponseMessage(RefProtocolMessage response) {
-  LOG(INFO) << "ClientChannel Recv A Response Message";
   RefProtocolMessage request = requests_keeper_->InProgressRequest();
   if (!request) {
     LOG(ERROR) << "Got A Response Without Request or Request Has Canceled";

@@ -26,8 +26,6 @@ public:
   virtual const RefProtocolMessage DefaultResponse(const RefProtocolMessage&) {return NULL;}
   virtual bool CloseAfterMessage(ProtocolMessage* request, ProtocolMessage* response);
 protected:
-  bool InvokeMessageHandler(RefProtocolMessage);
-  //void HandleMessage();
   std::string protocol_;
   WorkLoadDispatcher* dispatcher_;
   ProtoMessageHandler message_handler_;

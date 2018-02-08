@@ -4,12 +4,16 @@
 #include <memory>
 #include <assert.h>
 
+#include <functional>
 #include "glog/logging.h"
 #include "base/base_micro.h"
 #include "base/time/time_utils.h"
 
 namespace base {
 
+typedef std::function<void()> CoroClosure;
+
+//deprecated and discarded
 class CoroTask {
  public:
   CoroTask() {}
@@ -39,25 +43,6 @@ template <class Closure>
 static std::unique_ptr<CoroTask> NewCoroTask(const Closure& closure) {
   return std::unique_ptr<CoroTask>(new CoroClosureTask<Closure>(closure));
 }
-/*
-template <class Functor, class Ctx>
-class CoroCtxTask : public CoroTask {
-public:
-  explicit CoroCtxTask(const Functor& func,
-                       std::unique_ptr<Ctx> ctx)
-    : func_(func),
-      ctx_(ctx) {
-    }
-private:
-  bool RunCoro() override {
-    closure_(ctx.get());
-    return true;
-  }
-  Functor func_;
-  std::unique_ptr<Ctx> ctx;
-};
-//CoroCtxTask<std::function<void(HttpMessage)> >
-*/
 
 }//end base
 #endif

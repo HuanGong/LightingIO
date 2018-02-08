@@ -41,7 +41,7 @@ public:
     return dispatcher_;
   };
 
-  virtual bool HandleRequstInIO() {return false;}
+  virtual bool HandleRequstInIO() {return true;}
   /* WorkLoop Handle request/response from IOWorkerLoop*/
   virtual int GetWorkerLoopCount() {return std::thread::hardware_concurrency();}
   /* IOService Using for Accept New Comming Connections */

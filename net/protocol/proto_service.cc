@@ -26,16 +26,6 @@ bool ProtoService::DecodeToMessage(IOBuffer* buffer, ProtocolMessage* out_msg) {
   return false;
 }
 
-bool ProtoService::InvokeMessageHandler(RefProtocolMessage msg) {
-  if (dispatcher_ && message_handler_) {
-    dispatcher_->Dispatch(message_handler_, msg);
-    return true;
-  }
-  LOG_IF(ERROR, !message_handler_) << "Bad Message Handler";
-  LOG_IF(ERROR, !dispatcher_) << " NO MessageDispatcher For This [" << protocol_ << "] ProtoService";
-  return false;
-}
-
 bool ProtoService::CloseAfterMessage(ProtocolMessage* request, ProtocolMessage* response) {
   return true;
 }

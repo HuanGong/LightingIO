@@ -14,10 +14,10 @@ LineProtoService::~LineProtoService() {
 }
 
 void LineProtoService::OnStatusChanged(const RefTcpChannel& channel) {
-  LOG(INFO) << "RefTcpChannel status changed:" << channel->StatusAsString();
+  ;
 }
 void LineProtoService::OnDataFinishSend(const RefTcpChannel& channel) {
-  LOG(INFO) << "RefTcpChannel Send Finished:" << channel->StatusAsString();
+  ;
 }
 
 void LineProtoService::OnDataRecieved(const RefTcpChannel& channel, IOBuffer* buf) {
@@ -28,10 +28,11 @@ void LineProtoService::OnDataRecieved(const RefTcpChannel& channel, IOBuffer* bu
   }
 
   {
-    IODirectionType type =
-      channel->IsServerChannel() ? IODirectionType::kInRequest : IODirectionType::kInReponse;
+    IODirectionType type = channel->IsServerChannel() ?
+      IODirectionType::kInRequest : IODirectionType::kInReponse;
 
     std::shared_ptr<LineMessage> msg = std::make_shared<LineMessage>(type);
+    //IOCtx
     msg->SetIOContextWeakChannel(channel);
 
     const uint8_t* start = buf->GetRead();
@@ -42,7 +43,9 @@ void LineProtoService::OnDataRecieved(const RefTcpChannel& channel, IOBuffer* bu
 
     buf->Consume(len + 2/*lenth of /r/n*/);
 
-    InvokeMessageHandler(msg);
+    if (message_handler_) {
+      message_handler_(std::static_pointer_cast<ProtocolMessage>(msg));
+    }
   }
 }
 

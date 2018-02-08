@@ -33,7 +33,6 @@ private:
   bool ParseHttpRequest(const RefTcpChannel&, IOBuffer*);
   bool ParseHttpResponse(const RefTcpChannel&, IOBuffer*);
 
-  void PlayResponse(RefHttpResponse response);
 private:
   ReqParseContext* request_context_;
   ResParseContext* response_context_;

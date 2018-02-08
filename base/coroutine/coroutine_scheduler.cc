@@ -3,7 +3,6 @@
 #include "coroutine_scheduler.h"
 #include "closure/closure_task.h"
 #include <iostream>
-#include <base/event_loop/msg_event_loop.h>
 
 namespace base {
 
@@ -17,8 +16,19 @@ CoroScheduler* CoroScheduler::TlsCurrent() {
   return scheduler_;
 }
 
+
 //static
-void CoroScheduler::CreateAndSchedule(std::unique_ptr<CoroTask> task) {
+void CoroScheduler::RunAsCoroInLoop(base::MessageLoop2* target_loop, StlClosure& t) {
+  CHECK(target_loop && t);
+
+  StlClosure coro_functor = std::bind(&CoroScheduler::CreateAndSchedule, t);
+
+  target_loop->PostTask(base::NewClosure(coro_functor));
+}
+
+//static
+void CoroScheduler::CreateAndSchedule(CoroClosure& task) {
+
   CHECK(TlsCurrent()->InRootCoroutine());
 
   RefCoroutine coro = std::make_shared<Coroutine>(0, false);
@@ -47,7 +57,7 @@ CoroScheduler::CoroScheduler() {
   current_ = main_coro_;
 
   gc_coro_.reset(new Coroutine(0, false));//std::make_shared<Coroutine>(true);
-  gc_coro_->SetCoroTask(base::NewCoroTask(std::bind(&CoroScheduler::gc_loop, this)));
+  gc_coro_->SetCoroTask(std::bind(&CoroScheduler::gc_loop, this));
 }
 
 CoroScheduler::~CoroScheduler() {
