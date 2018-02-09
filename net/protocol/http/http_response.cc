@@ -41,36 +41,6 @@ void HttpResponse::InsertHeader(const std::string& k, const std::string& v) {
   headers_.insert(std::make_pair(k, v));
 }
 
-bool HttpResponse::ToResponseRawData(std::ostringstream& oss) const {
-
-  //status line
-  oss << "HTTP/" << (int)http_major_ << "." << (int)http_minor_ << HttpConstant::kBlankSpace
-      << status_code_ << HttpConstant::kBlankSpace
-      << HttpConstant::StatusCodeCStr(status_code_) << HttpConstant::kCRCN;
-
-  //headers part
-  for (const auto& header : Headers()) {
-    oss << header.first << ":" << header.second << HttpConstant::kCRCN;
-  }
-
-  if (!HasHeaderField(HttpConstant::kConnection)) {
-    oss << "Connection:" << (keepalive_ ? "Keep-Alive" : "Close")  << HttpConstant::kCRCN;
-  }
-
-  if (!HasHeaderField(HttpConstant::kContentLength)) {
-    oss << HttpConstant::kContentLength << ":" << body_.size() << HttpConstant::kCRCN;
-  }
-
-  if (!HasHeaderField(HttpConstant::kContentType)) {
-    oss << HttpConstant::kContentType << ":" << "text/plain" << HttpConstant::kCRCN;
-  }
-
-  // body
-  oss << HttpConstant::kCRCN << body_;
-
-  return true;
-}
-
 const std::string HttpResponse::MessageDebug() {
   std::ostringstream oss;
   oss << "{\"type\": \"" << DirectionTypeStr() << "\""

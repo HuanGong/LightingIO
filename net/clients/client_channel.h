@@ -47,7 +47,6 @@ private:
 
 private:
   Delegate* delegate_;
-
   uint32_t message_timeout_; //ms
 
   RefTcpChannel channel_;

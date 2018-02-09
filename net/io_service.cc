@@ -208,7 +208,6 @@ static std::atomic<int> counter;
 void IOService::HandleRequestOnWorker(const RefProtocolMessage request) {
 
   do {
-
     if (!dispatcher_->SetWorkContext(request.get())) {
       break;
     }
@@ -219,7 +218,6 @@ void IOService::HandleRequestOnWorker(const RefProtocolMessage request) {
 
   WeakPtrTcpChannel weak_channel = request->GetIOCtx().channel;
   RefTcpChannel channel = weak_channel.lock();
-  //channel Broken Or Has Gone
   if (NULL == channel.get() || false == channel->IsConnected()) {
     VLOG(GLOG_VTRACE) << __FUNCTION__ << " Channel Has Broken After Handle Request Message";
     return;
@@ -234,7 +232,7 @@ void IOService::HandleRequestOnWorker(const RefProtocolMessage request) {
   }
 
   bool close = channel->GetProtoService()->CloseAfterMessage(request.get(), response.get());
-  LOG_IF(ERROR, close == false) << "This Connection KeepAlive" << (counter++);
+  LOG_IF(ERROR, close == false) << "This Connection KeepAlive " << (counter++);
 
   if (channel->InIOLoop()) { //send reply directly
     bool send_success = channel->SendProtoMessage(response);

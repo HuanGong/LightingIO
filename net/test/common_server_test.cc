@@ -31,11 +31,10 @@ static std::atomic_int couter;
 
 void http_handler(net::RefProtocolMessage message) {
   net::HttpRequest* httpmsg = static_cast<net::HttpRequest*>(message.get());
-  std::ostringstream oss;
-  //httpmsg->ToRequestRawData(oss);
   couter++;
   LOG(INFO) << "I Got HttpRequest Raw:" << couter;// << oss.str();
-  net::RefHttpResponse response = std::make_shared<net::HttpResponse>(net::IODirectionType::kOutResponse);
+  net::RefHttpResponse response =
+    std::make_shared<net::HttpResponse>(net::IODirectionType::kOutResponse);
   response->SetResponseCode(200);
   response->SetKeepAlive(httpmsg->IsKeepAlive());
   response->MutableBody() = "Nice to meet your,I'm LightingIO\n";

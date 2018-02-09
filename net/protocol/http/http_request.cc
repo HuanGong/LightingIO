@@ -53,6 +53,10 @@ bool HttpRequest::HasHeaderField(const std::string field) const {
   return headers_.find(field) != headers_.end();
 }
 
+void HttpRequest::InsertHeader(const char* k, const char* v) {
+  headers_.insert(std::make_pair(k, v));
+}
+
 void HttpRequest::InsertHeader(const std::string& k, const std::string& v) {
   headers_.insert(std::make_pair(k, v));
 }
@@ -79,34 +83,6 @@ const std::string& HttpRequest::GetUrlParam(const std::string& key) {
 
 const std::string& HttpRequest::Method() const {
   return method_;
-}
-
-const bool HttpRequest::ToRequestRawData(std::ostringstream& oss) const {
-
-  //request line
-  oss << method_ << HttpConstant::kBlankSpace << url_ << HttpConstant::kBlankSpace
-      << "HTTP/" << (int)http_major_ << "." << (int)http_minor_ << HttpConstant::kCRCN;
-
-  // header part
-  for (const auto& header : Headers()) {
-    oss << header.first << ":" << header.second << HttpConstant::kCRCN;
-  }
-
-  if (!HasHeaderField(HttpConstant::kConnection)) {
-    oss << "Connection:" << (keepalive_ ? "Keep-Alive" : "Close")  << HttpConstant::kCRCN;
-  }
-
-  if (!HasHeaderField(HttpConstant::kContentLength)) {
-    oss << HttpConstant::kContentLength << ":" << body_.size() << HttpConstant::kCRCN;
-  }
-
-  if (!HasHeaderField(HttpConstant::kContentType)) {
-    oss << HttpConstant::kContentType << ":" << "text/plain" << HttpConstant::kCRCN;
-  }
-  //body
-  oss << HttpConstant::kCRCN << body_;
-
-  return true;
 }
 
 const std::string HttpRequest::MessageDebug() {

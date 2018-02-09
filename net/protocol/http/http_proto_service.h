@@ -28,8 +28,10 @@ public:
 
   const RefProtocolMessage DefaultResponse(const RefProtocolMessage&) override;
   bool CloseAfterMessage(ProtocolMessage* request, ProtocolMessage* response) override;
+
+  static bool RequestToBuffer(const HttpRequest*, IOBuffer*);
+  static bool ResponseToBuffer(const HttpResponse*, IOBuffer*);
 private:
-  //bool EncodeHttpResponse(const HttpResponse*, IOBU* out_buffer);
   bool ParseHttpRequest(const RefTcpChannel&, IOBuffer*);
   bool ParseHttpResponse(const RefTcpChannel&, IOBuffer*);
 

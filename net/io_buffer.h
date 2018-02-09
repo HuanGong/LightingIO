@@ -6,6 +6,7 @@
 #include <cinttypes>
 #include <iostream>
 #include <string>
+#include <string.h>
 
 namespace net {
 #define kDefaultInitialSize 4096
@@ -24,18 +25,37 @@ public:
 
   const uint8_t* GetRead();
   uint8_t* GetWrite();
-  int32_t CanReadSize();
-  int32_t CanWriteSize();
+
+  inline int32_t CanReadSize() {
+    return write_index_ - read_index_;
+  }
+  inline int32_t CanWriteSize() {
+    return data_.size() - write_index_;
+  }
 
   const uint8_t* FindCRLF();
 
   void WriteString(const std::string& str);
   void WriteRawData(const void* data, int32_t len);
 
+  template <typename T> void Append(T data) {
+    union _X {
+      T _data;
+      char _x;
+    };
+    uint32_t len = sizeof(data);
+    EnsureWritableSize(len);
+    ::memcpy(MutableWrite(), (uint8_t*) &data, len);
+    Produce(len);
+  }
+
   std::string AsString();
 
   void Consume(int32_t len);
-  void Produce(int32_t len);
+
+  inline void Produce(int32_t len) {
+    write_index_ += len;
+  }
 private:
   uint8_t* MutableRead();
   uint8_t* MutableWrite();

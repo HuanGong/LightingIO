@@ -9,6 +9,9 @@
 
 namespace net {
 
+static const int32_t kMeanHeaderSize = 24;
+static const int32_t kHttpMsgReserveSize = 64;
+
 //static
 http_parser_settings HttpProtoService::req_parser_settings_ = {
   .on_message_begin = &ReqParseContext::OnHttpRequestBegin,
@@ -39,8 +42,7 @@ http_parser_settings HttpProtoService::res_parser_settings_ = {
 HttpProtoService::HttpProtoService()
   : ProtoService("http"),
     request_context_(NULL),
-    response_context_(NULL),
-    close_after_finish_send_(false) {
+    response_context_(NULL) {
 
   request_context_ = new ReqParseContext();
   response_context_ = new ResParseContext();
@@ -52,20 +54,13 @@ HttpProtoService::~HttpProtoService() {
 }
 
 void HttpProtoService::OnStatusChanged(const RefTcpChannel& channel) {
-  //LOG(INFO) << __FUNCTION__ << channel->ChannelName() << " status:" << channel->StatusAsString();
 }
 
 void HttpProtoService::OnDataFinishSend(const RefTcpChannel& channel) {
-  //LOG(INFO) << __FUNCTION__ << channel->ChannelName();
-  if (close_after_finish_send_) {
-    channel->ShutdownChannel();
-  }
 }
-static std::atomic<int> counter;
-void HttpProtoService::OnDataRecieved(const RefTcpChannel& channel, IOBuffer* buf) {;
-  //static const std::string kBadRequest = "HTTP/1.1 400 Bad Request\r\n\r\n";
 
-  LOG(ERROR) << " OnDataRecieved n bytes:" << buf->CanReadSize() << " From:" << channel->ChannelName() << " counter:" << (counter++);
+void HttpProtoService::OnDataRecieved(const RefTcpChannel& channel, IOBuffer* buf) {;
+  LOG(ERROR) << " OnDataRecieved n bytes:" << buf->CanReadSize() << " From:" << channel->ChannelName();
 
   bool success = false;
   if (channel->IsServerChannel()) {// parse Request
@@ -75,7 +70,6 @@ void HttpProtoService::OnDataRecieved(const RefTcpChannel& channel, IOBuffer* bu
   }
 
   if (!success) {
-    //LOG(ERROR) << "Parse Request/Response Error, Shutdown this cannel";
     channel->ShutdownChannel();
   }
 }
@@ -87,26 +81,19 @@ bool HttpProtoService::DecodeToMessage(IOBuffer* buffer, ProtocolMessage* out_ms
 bool HttpProtoService::EncodeToBuffer(const ProtocolMessage* msg, IOBuffer* out_buffer) {
   CHECK(msg && out_buffer);
   switch(msg->MessageDirection()) {
-    //TODO: consider add a uniform interface for httpmessge, just a ToHttpRawData api ?
     case IODirectionType::kInRequest:
     case IODirectionType::kOutRequest: {
-      std::ostringstream oss;
       const HttpRequest* request = static_cast<const HttpRequest*>(msg);
-      request->ToRequestRawData(oss);
-      out_buffer->WriteString(oss.str());
-      return true;
+      return RequestToBuffer(request, out_buffer);
     } break;
     case IODirectionType::kInReponse:
     case IODirectionType::kOutResponse: {
-      std::ostringstream oss;
-      const HttpResponse* request = static_cast<const HttpResponse*>(msg);
-      request->ToResponseRawData(oss);
-      out_buffer->WriteString(oss.str());
-      return true;
+      const HttpResponse* response = static_cast<const HttpResponse*>(msg);
+      return ResponseToBuffer(response, out_buffer);
     } break;
-    default:
-      return false;
-    break;
+    default: {
+      LOG(ERROR) << "Should Not Readched";
+    } break;
   }
   return false;
 }
@@ -122,7 +109,6 @@ bool HttpProtoService::ParseHttpRequest(const RefTcpChannel& channel, IOBuffer* 
                                        buffer_start,
                                        buffer_size);
 
-  //LOG(ERROR) << " reqeuest as string:" << buf->AsString();
   buf->Consume(nparsed);
 
   if (parser->upgrade) {
@@ -146,13 +132,14 @@ bool HttpProtoService::ParseHttpRequest(const RefTcpChannel& channel, IOBuffer* 
     RefHttpRequest message = request_context_->messages_.front();
     request_context_->messages_.pop_front();
 
-    //Config IOContext
     message->SetIOContextWeakChannel(channel);
     message->SetMessageDirection(IODirectionType::kInRequest);
 
-    if (message_handler_) {
-      message_handler_(std::static_pointer_cast<ProtocolMessage>(message));
+    if (!message_handler_) {
+      channel->ShutdownChannel();
+      return true;
     }
+    message_handler_(std::static_pointer_cast<ProtocolMessage>(message));
   }
   return true;
 }
@@ -167,7 +154,7 @@ bool HttpProtoService::ParseHttpResponse(const RefTcpChannel& channel, IOBuffer*
                                        buffer_start,
                                        buffer_size);
 
-  if (parser->upgrade) {
+  if (parser->upgrade) { //websockt
     LOG(ERROR) << " Not Supported Now";
     response_context_->current_.reset();
     return false;
@@ -189,6 +176,97 @@ bool HttpProtoService::ParseHttpResponse(const RefTcpChannel& channel, IOBuffer*
       message_handler_(std::static_pointer_cast<ProtocolMessage>(message));
     }
   }
+  return true;
+}
+
+//static
+bool HttpProtoService::RequestToBuffer(const HttpRequest* request, IOBuffer* buffer) {
+  CHECK(request && buffer);
+  int32_t guess_size = kHttpMsgReserveSize + request->Body().size();
+  guess_size += request->Headers().size() * kMeanHeaderSize;
+  buffer->EnsureWritableSize(guess_size);
+
+  buffer->WriteString(request->Method());
+  buffer->WriteString(HttpConstant::kBlankSpace);
+  buffer->WriteString(request->RequestUrl());
+  buffer->WriteString(HttpConstant::kBlankSpace);
+
+  char v[11]; //"HTTP/1.1\r\n"
+  snprintf(v, 11, "HTTP/%d.%d\r\n", request->VersionMajor(), request->VersionMinor());
+  buffer->WriteRawData(v, 11);
+
+  for (const auto& header : request->Headers()) {
+    buffer->WriteString(header.first);
+    buffer->WriteRawData(":", 1);
+    buffer->WriteString(header.second);
+    buffer->WriteString(HttpConstant::kCRCN);
+  }
+
+  if (!request->HasHeaderField(HttpConstant::kConnection)) {
+    buffer->WriteString(request->IsKeepAlive() ?
+                        HttpConstant::kHeaderKeepAlive :
+                        HttpConstant::kHeaderNotKeepAlive);
+  }
+
+  if (!request->HasHeaderField(HttpConstant::kContentLength)) {
+    buffer->WriteString(HttpConstant::kContentLength);
+    std::string content_len(":");
+    content_len.append(std::to_string(request->Body().size()));
+    content_len.append(HttpConstant::kCRCN);
+    buffer->WriteString(content_len);
+  }
+
+  if (!request->HasHeaderField(HttpConstant::kContentType)) {
+    buffer->WriteString(HttpConstant::kHeaderDefaultContentType);
+  }
+  buffer->WriteString(HttpConstant::kCRCN);
+
+  buffer->WriteString(request->Body());
+  return true;
+}
+
+//static
+bool HttpProtoService::ResponseToBuffer(const HttpResponse* response, IOBuffer* buffer) {
+  CHECK(response && buffer);
+
+  int32_t guess_size = kHttpMsgReserveSize + response->Headers().size() * kMeanHeaderSize + response->Body().size();
+  buffer->EnsureWritableSize(guess_size);
+
+  char v[14]; //"HTTP/1.1 xxx "
+  snprintf(v, 14, "HTTP/%d.%d %d ", (int)response->VersionMajor(), (int)response->VersionMinor(), response->ResponseCode());
+  buffer->WriteRawData(&v[0], 14);
+
+  std::string code_desc(HttpConstant::StatusCodeCStr(response->ResponseCode()));
+  code_desc.append(HttpConstant::kCRCN);
+  buffer->WriteString(code_desc);
+
+  for (const auto& header : response->Headers()) {
+    buffer->WriteString(header.first);
+    buffer->WriteRawData(":", 1);
+    buffer->WriteString(header.second);
+    buffer->WriteString(HttpConstant::kCRCN);
+  }
+
+  if (!response->HasHeaderField(HttpConstant::kConnection)) {
+    buffer->WriteString(response->IsKeepAlive() ?
+                        HttpConstant::kHeaderKeepAlive :
+                        HttpConstant::kHeaderNotKeepAlive);
+  }
+
+  if (!response->HasHeaderField(HttpConstant::kContentLength)) {
+    std::string content_len(HttpConstant::kContentLength);
+    content_len.append(":");
+    content_len.append(std::to_string(response->Body().size()));
+    content_len.append(HttpConstant::kCRCN);
+    buffer->WriteString(content_len);
+  }
+
+  if (!response->HasHeaderField(HttpConstant::kContentType)) {
+    buffer->WriteString(HttpConstant::kHeaderDefaultContentType);
+  }
+  buffer->WriteString(HttpConstant::kCRCN);
+
+  buffer->WriteString(response->Body());
   return true;
 }
 

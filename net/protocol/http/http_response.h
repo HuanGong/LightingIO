@@ -6,6 +6,7 @@
 #include <sstream>
 #include "protocol/proto_message.h"
 #include "http_parser/http_parser.h"
+#include "net/io_buffer.h"
 
 namespace net {
 
@@ -32,11 +33,12 @@ public:
   void SetKeepAlive(bool alive);
 
   const std::string MessageDebug() override;
-  bool ToResponseRawData(std::ostringstream& oss) const;
 
   uint16_t ResponseCode() const;
   void SetResponseCode(uint16_t code);
   std::string StatusCodeInfo() const;
+  int VersionMajor() const {return http_major_;}
+  int VersionMinor() const {return http_minor_;}
 private:
   friend class HttpProtoService;
   friend class ResParseContext;

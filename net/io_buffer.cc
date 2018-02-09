@@ -65,7 +65,7 @@ int32_t IOBuffer::ReadFromSocketFd(int socket, int *error) {
 
 
 bool IOBuffer::EnsureWritableSize(int32_t len) {
-  if (data_.size() - write_index_ >= len) {
+  if ((int32_t)data_.size() - write_index_ >= len) {
     return true;
   }
 
@@ -86,10 +86,10 @@ bool IOBuffer::EnsureWritableSize(int32_t len) {
   return true;
 }
 
-uint8_t* IOBuffer::MutableRead() {
+inline uint8_t* IOBuffer::MutableRead() {
   return &data_[read_index_];
 }
-uint8_t* IOBuffer::MutableWrite() {
+inline uint8_t* IOBuffer::MutableWrite() {
   return &data_[write_index_];
 }
 
@@ -98,12 +98,6 @@ const uint8_t* IOBuffer::GetRead() {
 }
 uint8_t* IOBuffer::GetWrite() {
   return &data_[write_index_];
-}
-int32_t IOBuffer::CanReadSize() {
-  return write_index_ - read_index_;
-}
-inline int32_t IOBuffer::CanWriteSize() {
-  return data_.size() - write_index_;
 }
 
 void IOBuffer::WriteString(const std::string& str) {
@@ -130,9 +124,6 @@ void IOBuffer::Consume(int32_t len) {
   }
 }
 
-void IOBuffer::Produce(int32_t len) {
-  write_index_ += len;
-}
 
 bool IOBuffer::HasALine() {
   return NULL !=  memchr(GetRead(), '\n', CanReadSize());

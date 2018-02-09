@@ -14,8 +14,8 @@ RefClientChannel ClientChannel::Create(Delegate* delegate, RefTcpChannel& channe
 
 ClientChannel::ClientChannel(Delegate* delegate, RefTcpChannel& channel)
   : delegate_(delegate),
-    channel_(channel),
-    message_timeout_(10000){
+    message_timeout_(10000),
+    channel_(channel) {
 
   CHECK(delegate_);
   requests_keeper_.reset(new RequestsKeeper());

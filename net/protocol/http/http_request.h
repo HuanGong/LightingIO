@@ -32,6 +32,7 @@ public:
   KeyValMap& MutableHeaders();
   const KeyValMap& Headers() const;
   bool HasHeaderField(const std::string) const;
+  void InsertHeader(const char*, const char*);
   void InsertHeader(const std::string&, const std::string&);
 
   KeyValMap& MutableParams();
@@ -41,8 +42,10 @@ public:
   bool IsKeepAlive() const;
   void SetKeepAlive(bool alive);
 
+  int VersionMajor() const {return http_major_;}
+  int VersionMinor() const {return http_minor_;}
+
   const std::string MessageDebug() override;
-  const bool ToRequestRawData(std::ostringstream& oss) const;
 private:
   void ParseUrlToParams();
   const char* DirectionTypeStr();
