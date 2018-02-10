@@ -60,6 +60,7 @@ void ClientChannel::OnChannelClosed(RefTcpChannel channel) {
     OnRequestFailed(next_request, FailInfo::kChannelBroken);
   };
 
+  VLOG(GLOG_VTRACE) << " OnClientChannelClosed, Channel:" << channel_->ChannelName();
   delegate_->OnClientChannelClosed(shared_from_this());
 }
 

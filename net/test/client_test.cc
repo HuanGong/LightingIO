@@ -42,6 +42,9 @@ void SendRequest() {
 int main(int argc, char* argv[]) {
 
   net::CoroWlDispatcher* dispatcher_ = new net::CoroWlDispatcher(true);
+  dispatcher_->InitWorkLoop(4);
+  dispatcher_->StartDispatcher();
+
   dispatcher_->InitWorkLoop(2);
   dispatcher_->StartDispatcher();
 
@@ -57,6 +60,8 @@ int main(int argc, char* argv[]) {
   sleep(5);
 
   base::StlClosure closure = std::bind(SendRequest);
+  base::CoroScheduler::RunAsCoroInLoop(&wloop, closure);
+
   base::CoroScheduler::RunAsCoroInLoop(&wloop, closure);
 
   loop.WaitLoopEnd();

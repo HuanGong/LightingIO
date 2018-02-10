@@ -16,11 +16,9 @@ HttpRequest::HttpRequest(IODirectionType t)
   http_major_(1),
   http_minor_(1),
   url_param_parsed_(false) {
-
 }
 
 HttpRequest::~HttpRequest() {
-
 }
 
 void HttpRequest::SetRequestURL(const char* url) {
@@ -38,6 +36,7 @@ const std::string& HttpRequest::RequestUrl() const {
 std::string& HttpRequest::MutableBody() {
   return body_;
 }
+
 const std::string& HttpRequest::Body() const {
   return body_;
 }
@@ -45,6 +44,7 @@ const std::string& HttpRequest::Body() const {
 KeyValMap& HttpRequest::MutableHeaders() {
   return headers_;
 }
+
 const KeyValMap& HttpRequest::Headers() const {
   return headers_;
 }

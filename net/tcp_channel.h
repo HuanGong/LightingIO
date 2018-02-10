@@ -30,17 +30,25 @@ public:
     DISCONNECTING = 3
   } ChannelStatus;
 
-  static RefTcpChannel CreateClientChannel(int socket_fd,
-                                           const InetAddress& local,
-                                           const InetAddress& remote,
-                                           base::MessageLoop2* loop);
   static RefTcpChannel Create(int socket_fd,
                               const InetAddress& local,
                               const InetAddress& peer,
                               base::MessageLoop2* loop,
                               ChannelServeType type);
 
+  static RefTcpChannel CreateClientChannel(int socket_fd,
+                                           const InetAddress& local,
+                                           const InetAddress& remote,
+                                           base::MessageLoop2* loop);
+  static RefTcpChannel CreateServerChannel(int socket_fd,
+                                           const InetAddress& local,
+                                           const InetAddress& peer,
+                                           base::MessageLoop2* loop);
+
   ~TcpChannel();
+
+  void Start();
+
   const std::string& ChannelName() {return channal_name_;}
   void SetChannelName(const std::string name);
   void SetOwnerLoop(base::MessageLoop2* owner);
@@ -72,7 +80,7 @@ protected:
   void HandleError();
   void HandleClose();
 
-  void OnStatusChanged();
+  void SetChannelStatus(ChannelStatus st);
 private:
   TcpChannel(int socket_fd,
              const InetAddress& loc,
@@ -109,7 +117,6 @@ private:
   ChannelClosedCallback closed_callback_;
   FinishSendCallback finish_write_callback_;
   ChannelStatusCallback status_change_callback_;
-  bool got_data = false;
   DISALLOW_COPY_AND_ASSIGN(TcpChannel);
 };
 

@@ -60,8 +60,6 @@ void HttpProtoService::OnDataFinishSend(const RefTcpChannel& channel) {
 }
 
 void HttpProtoService::OnDataRecieved(const RefTcpChannel& channel, IOBuffer* buf) {;
-  LOG(ERROR) << " OnDataRecieved n bytes:" << buf->CanReadSize() << " From:" << channel->ChannelName();
-
   bool success = false;
   if (channel->IsServerChannel()) {// parse Request
     success = ParseHttpRequest(channel, buf);
@@ -135,11 +133,11 @@ bool HttpProtoService::ParseHttpRequest(const RefTcpChannel& channel, IOBuffer* 
     message->SetIOContextWeakChannel(channel);
     message->SetMessageDirection(IODirectionType::kInRequest);
 
-    if (!message_handler_) {
+    if (message_handler_) {
+      message_handler_(std::static_pointer_cast<ProtocolMessage>(message));
+    } else {
       channel->ShutdownChannel();
-      return true;
     }
-    message_handler_(std::static_pointer_cast<ProtocolMessage>(message));
   }
   return true;
 }
@@ -193,11 +191,11 @@ bool HttpProtoService::RequestToBuffer(const HttpRequest* request, IOBuffer* buf
 
   char v[11]; //"HTTP/1.1\r\n"
   snprintf(v, 11, "HTTP/%d.%d\r\n", request->VersionMajor(), request->VersionMinor());
-  buffer->WriteRawData(v, 11);
+  buffer->WriteRawData(v, 10);
 
   for (const auto& header : request->Headers()) {
     buffer->WriteString(header.first);
-    buffer->WriteRawData(":", 1);
+    buffer->WriteRawData(": ", 2);
     buffer->WriteString(header.second);
     buffer->WriteString(HttpConstant::kCRCN);
   }
@@ -210,7 +208,7 @@ bool HttpProtoService::RequestToBuffer(const HttpRequest* request, IOBuffer* buf
 
   if (!request->HasHeaderField(HttpConstant::kContentLength)) {
     buffer->WriteString(HttpConstant::kContentLength);
-    std::string content_len(":");
+    std::string content_len(": ");
     content_len.append(std::to_string(request->Body().size()));
     content_len.append(HttpConstant::kCRCN);
     buffer->WriteString(content_len);
@@ -232,17 +230,18 @@ bool HttpProtoService::ResponseToBuffer(const HttpResponse* response, IOBuffer* 
   int32_t guess_size = kHttpMsgReserveSize + response->Headers().size() * kMeanHeaderSize + response->Body().size();
   buffer->EnsureWritableSize(guess_size);
 
-  char v[14]; //"HTTP/1.1 xxx "
-  snprintf(v, 14, "HTTP/%d.%d %d ", (int)response->VersionMajor(), (int)response->VersionMinor(), response->ResponseCode());
-  buffer->WriteRawData(&v[0], 14);
-
-  std::string code_desc(HttpConstant::StatusCodeCStr(response->ResponseCode()));
-  code_desc.append(HttpConstant::kCRCN);
-  buffer->WriteString(code_desc);
+  //char v[14]; //"HTTP/1.1 xxx "
+  //snprintf(v, 13, "HTTP/%d.%d %d ", (int)response->VersionMajor(), (int)response->VersionMinor(), response->ResponseCode());
+  std::string headline("HTTP/1.1 ");
+  headline.append(std::to_string(response->ResponseCode()));
+  headline.append(" ");
+  headline.append(HttpConstant::StatusCodeCStr(response->ResponseCode()));
+  headline.append(HttpConstant::kCRCN);
+  buffer->WriteString(headline);
 
   for (const auto& header : response->Headers()) {
     buffer->WriteString(header.first);
-    buffer->WriteRawData(":", 1);
+    buffer->WriteRawData(": ", 2);
     buffer->WriteString(header.second);
     buffer->WriteString(HttpConstant::kCRCN);
   }
@@ -255,7 +254,7 @@ bool HttpProtoService::ResponseToBuffer(const HttpResponse* response, IOBuffer* 
 
   if (!response->HasHeaderField(HttpConstant::kContentLength)) {
     std::string content_len(HttpConstant::kContentLength);
-    content_len.append(":");
+    content_len.append(": ");
     content_len.append(std::to_string(response->Body().size()));
     content_len.append(HttpConstant::kCRCN);
     buffer->WriteString(content_len);
@@ -278,20 +277,18 @@ const RefProtocolMessage HttpProtoService::DefaultResponse(const RefProtocolMess
     std::make_shared<HttpResponse>(IODirectionType::kOutResponse);
 
   http_res->SetResponseCode(500);
+  http_res->SetKeepAlive(http_request->IsKeepAlive());
 
-  if (!http_request->IsKeepAlive()) {
-    http_res->SetKeepAlive(http_request->IsKeepAlive());
-  }
   return std::move(http_res);
 }
 
 bool HttpProtoService::CloseAfterMessage(ProtocolMessage* request, ProtocolMessage* response) {
-  if (!request || !response) {
+  if (!request) {
     return true;
   }
   HttpRequest* http_request = static_cast<HttpRequest*>(request);
-  HttpResponse* http_response = static_cast<HttpResponse*>(response);
-  if (http_request->IsKeepAlive() && http_response->IsKeepAlive()) {
+  //HttpResponse* http_response = static_cast<HttpResponse*>(response);
+  if (http_request->IsKeepAlive()) {
     return false;
   }
   return true;

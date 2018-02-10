@@ -73,11 +73,6 @@ void IOService::StopIOService() {
 void IOService::OnNewConnection(int local_socket, const InetAddress& peer_addr) {
   CHECK(acceptor_loop_->IsInLoopThread());
 
-  if (!delegate_) {
-    LOG(ERROR) << "New Connection Can't Get IOWorkLoop From NULL delegate";
-    socketutils::CloseSocket(local_socket);
-    return;
-  }
   //max connction reached
   if (!delegate_->CanCreateNewChannel()) {
     socketutils::CloseSocket(local_socket);
@@ -90,33 +85,29 @@ void IOService::OnNewConnection(int local_socket, const InetAddress& peer_addr) 
     socketutils::CloseSocket(local_socket);
     return;
   }
-  VLOG(GLOG_VTRACE) << " New Connection from:" << peer_addr.IpPortAsString();
-
-  net::InetAddress local_addr(socketutils::GetLocalAddrIn(local_socket));
-  auto new_channel = TcpChannel::Create(local_socket,
-                                        local_addr,
-                                        peer_addr,
-                                        io_work_loop,
-                                        ChannelServeType::kServerType);
-
-  //Is peer_addr.IpPortAsString Is unique?
-  new_channel->SetChannelName(peer_addr.IpPortAsString());
-
-  new_channel->SetOwnerLoop(acceptor_loop_);
-  new_channel->SetCloseCallback(std::bind(&IOService::OnChannelClosed,
-                                          this,
-                                          std::placeholders::_1));
 
   RefProtoService proto_service =
     ProtoServiceFactory::Instance().Create(protocol_);
 
-  proto_service->SetMessageDispatcher(delegate_->MessageDispatcher());
-
   ProtoMessageHandler h = std::bind(&IOService::HandleRequest, this, std::placeholders::_1);
   proto_service->SetMessageHandler(h);
 
-  new_channel->SetProtoService(proto_service);
+  net::InetAddress local_addr(socketutils::GetLocalAddrIn(local_socket));
 
+  auto new_channel = TcpChannel::CreateServerChannel(local_socket,
+                                                     local_addr,
+                                                     peer_addr,
+                                                     io_work_loop);
+
+  //TODO: Is peer_addr.IpPortAsString Is unique?
+  const std::string channel_name = peer_addr.IpPortAsString();
+  new_channel->SetChannelName(channel_name);
+  new_channel->SetOwnerLoop(acceptor_loop_);
+  new_channel->SetProtoService(proto_service);
+  new_channel->SetCloseCallback(std::bind(&IOService::OnChannelClosed, this, std::placeholders::_1));
+
+  new_channel->Start();
+  VLOG(GLOG_VTRACE) << " New Connection from:" << channel_name;
   /*
   RcvDataCallback data_cb = std::bind(&ProtoService::OnDataRecieved,
                                       proto_service_,
@@ -140,8 +131,8 @@ void IOService::OnNewConnection(int local_socket, const InetAddress& peer_addr) 
 
 void IOService::OnChannelClosed(const RefTcpChannel& connection) {
   if (!acceptor_loop_->IsInLoopThread()) {
-    acceptor_loop_->PostTask(base::NewClosure(
-        std::bind(&IOService::RemoveConncetion, this, connection)));
+    auto functor = std::bind(&IOService::RemoveConncetion, this, connection);
+    acceptor_loop_->PostTask(base::NewClosure(std::move(functor)));
     return;
   }
   RemoveConncetion(connection);
@@ -151,7 +142,6 @@ void IOService::StoreConnection(const RefTcpChannel connection) {
   CHECK(acceptor_loop_->IsInLoopThread());
 
   connections_.insert(connection);
-  //connections_[connection->ChannelName()] = connection;
 
   channel_count_.store(connections_.size());
 
@@ -178,9 +168,6 @@ void IOService::RemoveConncetion(const RefTcpChannel connection) {
 
 //Running On NetWorkIO Channel Thread
 void IOService::HandleRequest(const RefProtocolMessage& request) {
-  //LOG(INFO) << "Server [" << service_name_ << "] Recv a Request";
-  //current just Handle Work On IO
-  CHECK(request);
 
   WeakPtrTcpChannel weak_channel = request->GetIOCtx().channel;
   RefTcpChannel channel = weak_channel.lock();
@@ -188,27 +175,26 @@ void IOService::HandleRequest(const RefProtocolMessage& request) {
     return;
   }
 
-  CHECK(channel->InIOLoop());
-
-  if (!message_handler_) {//replay default response some type request no response
+  if (!message_handler_) {
     channel->ShutdownChannel();
     return;
   }
 
-  base::StlClourse functor = std::bind(&IOService::HandleRequestOnWorker, this, request);
+  VLOG(GLOG_VTRACE) << "Transmit a request to Worker, request from:" << channel->ChannelName();
 
+  base::StlClourse functor = std::bind(&IOService::HandleRequestOnWorker, this, request);
   bool ok = dispatcher_->TransmitToWorker(functor);
   if (false == ok) {
+    LOG(FATAL) << "Failed Transmit Request To Worker Handler";
     channel->ShutdownChannel();
   }
 }
 
-static std::atomic<int> counter;
-//Run On Worker
 void IOService::HandleRequestOnWorker(const RefProtocolMessage request) {
 
   do {
     if (!dispatcher_->SetWorkContext(request.get())) {
+      LOG(ERROR) << "set SetWorkContext failed";
       break;
     }
     if (message_handler_) {
@@ -219,7 +205,7 @@ void IOService::HandleRequestOnWorker(const RefProtocolMessage request) {
   WeakPtrTcpChannel weak_channel = request->GetIOCtx().channel;
   RefTcpChannel channel = weak_channel.lock();
   if (NULL == channel.get() || false == channel->IsConnected()) {
-    VLOG(GLOG_VTRACE) << __FUNCTION__ << " Channel Has Broken After Handle Request Message";
+    VLOG(GLOG_VERROR) << __FUNCTION__ << " Channel Has Broken After Handle Request Message";
     return;
   }
 
@@ -232,7 +218,6 @@ void IOService::HandleRequestOnWorker(const RefProtocolMessage request) {
   }
 
   bool close = channel->GetProtoService()->CloseAfterMessage(request.get(), response.get());
-  LOG_IF(ERROR, close == false) << "This Connection KeepAlive " << (counter++);
 
   if (channel->InIOLoop()) { //send reply directly
     bool send_success = channel->SendProtoMessage(response);

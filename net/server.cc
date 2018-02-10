@@ -17,9 +17,6 @@ Server::Server(SrvDelegate* delegate)
   client_loop_index_.store(0);
   comming_connections_.store(0);
 
-  dispatcher_ = delegate_->WorkLoadTransfer();
-  CHECK(dispatcher_);
-
   Initialize();
 }
 
@@ -63,7 +60,8 @@ bool Server::RegisterService(const std::string server, ProtoMessageHandler handl
 
   net::InetAddress listenner_addr(sch_ip_port.ip, sch_ip_port.port);
 
-#ifdef NET_ENABLE_REUSER_PORT
+//#ifdef NET_ENABLE_REUSER_PORT
+#ifdef SO_REUSEPORT
   for (auto& ref_loop : ioservice_loops_) {
 
     RefIOService s(new IOService(listenner_addr,
@@ -72,7 +70,7 @@ bool Server::RegisterService(const std::string server, ProtoMessageHandler handl
                                  this));
 
     s->SetProtoMessageHandler(handler);
-    s->SetWorkLoadDispatcher(delegate_->WorkLoadTransfer().get());
+    s->SetWorkLoadDispatcher(delegate_->WorkLoadTransfer());
 
     ioservices_.push_back(std::move(s));
   }
@@ -81,7 +79,7 @@ bool Server::RegisterService(const std::string server, ProtoMessageHandler handl
 
   RefIOService s(new IOService(listenner_addr, sch_ip_port.scheme, loop.get(), this));
   s->SetProtoMessageHandler(handler);
-  s->SetWorkLoadDispatcher(delegate_->WorkLoadTransfer().get());
+  s->SetWorkLoadDispatcher(delegate_->WorkLoadTransfer());
 
   ioservices_.push_back(std::move(s));
 #endif
@@ -98,16 +96,18 @@ void Server::RunAllService() {
 
 bool Server::IncreaseChannelCount() {
   comming_connections_++;
+  LOG(INFO) << "New Connection Now Has <" << comming_connections_ << "> Comming Connections";
   return true;
 }
 
 void Server::DecreaseChannelCount() {
   comming_connections_--;
-  LOG(INFO) << "Now Has <" << comming_connections_ << "> Comming Connections";
+  LOG(INFO) << "A connection Gone, Now Has <" << comming_connections_ << "> Comming Connections";
 }
 
 base::MessageLoop2* Server::GetNextIOWorkLoop() {
-#ifdef NET_ENABLE_REUSER_PORT
+//#ifdef NET_ENABLE_REUSER_PORT
+#ifdef SO_REUSEPORT
   return base::MessageLoop2::Current();
 #else
   return ioworker_loops_[comming_connections_%ioworker_loops_.size()].get();
@@ -148,7 +148,8 @@ void Server::InitIOWorkerLoop() {
 }
 
 void Server::InitIOServiceLoop() {
-#ifdef NET_ENABLE_REUSER_PORT
+//#ifdef NET_ENABLE_REUSER_PORT
+#ifdef SO_REUSEPORT
   ioservice_loops_ = ioworker_loops_;
   LOG(INFO) << "Server Use IOWrokerLoop Handle New Connection...";
 #else

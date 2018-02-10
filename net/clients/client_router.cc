@@ -72,8 +72,6 @@ base::MessageLoop2* ClientRouter::GetLoopForClient() {
 }
 
 void ClientRouter::OnNewClientConnected(int socket_fd, InetAddress& local, InetAddress& remote) {
-  LOG(ERROR) << " OnChannelConnected";
-
   //try get a io work loop for channel, if no loop provide, use default work_loop_;
   base::MessageLoop2* io_loop = GetLoopForClient();
 
@@ -82,7 +80,6 @@ void ClientRouter::OnNewClientConnected(int socket_fd, InetAddress& local, InetA
                                                               remote,
                                                               io_loop);
   new_channel->SetOwnerLoop(work_loop_);
-  //Is peer_addr.IpPortAsString Is unique?
   new_channel->SetChannelName(remote.IpPortAsString());
 
   RefClientChannel client_channel = std::make_shared<ClientChannel>(this, new_channel);
@@ -93,11 +90,14 @@ void ClientRouter::OnNewClientConnected(int socket_fd, InetAddress& local, InetA
                                              std::placeholders::_1));
   new_channel->SetProtoService(proto_service);
 
+  //lat step: enable this channel
+  new_channel->Start();
+
+  VLOG(GLOG_VTRACE) << " ClientRouter::OnNewClientConnected, Channel:" << new_channel->ChannelName();
   channels_.push_back(client_channel);
 }
 
 void ClientRouter::OnClientChannelClosed(RefClientChannel channel) {
-  LOG(ERROR) << " OnClientChannelClosed";
   if (!work_loop_->IsInLoopThread()) {
     work_loop_->PostTask(base::NewClosure(std::bind(&ClientRouter::OnClientChannelClosed, this, channel)));
     return;
@@ -110,7 +110,6 @@ void ClientRouter::OnClientChannelClosed(RefClientChannel channel) {
 
   if (!is_stopping_ && channels_.size() < channel_count_) {
     VLOG(GLOG_VTRACE) << " A Client Channel Broken, RefConnect After: " << reconnect_interval_ << " ms";
-    LOG(ERROR) << " Try To Reconnect To Server:" << server_addr_.IpPortAsString();
     auto functor = std::bind(&Connector::LaunchAConnection, connector_, server_addr_);
     work_loop_->PostDelayTask(base::NewClosure(functor), reconnect_interval_);
   }
@@ -119,13 +118,9 @@ void ClientRouter::OnClientChannelClosed(RefClientChannel channel) {
 void ClientRouter::OnRequestGetResponse(RefProtocolMessage request,
                                         RefProtocolMessage response) {
   CHECK(request);
-
-  if (response) {
-    LOG(INFO) << " Request Got A Resonse " << response->MessageDebug();
-  }
+  VLOG(GLOG_VTRACE) << " This Client Got A Response";
 
   request->SetResponse(response);
-
   dispatcher_->ResumeWorkCtxForRequest(request);
 }
 
@@ -144,7 +139,7 @@ bool ClientRouter::SendClientRequest(RefProtocolMessage& message) {
   CHECK(io_loop);
 
   if (!dispatcher_->SetWorkContext(message.get())) {
-    LOG(FATAL) << "Can't Transfer/Dispatch This Request From Work To IO";
+    LOG(FATAL) << "Can't Transfer/Dispatch This Request From WorkLoop To IOLoop";
     return false;
   }
 
@@ -153,11 +148,6 @@ bool ClientRouter::SendClientRequest(RefProtocolMessage& message) {
   base::StlClourse func = std::bind(&ClientChannel::ScheduleARequest, client, message);
 
   dispatcher_->TransferAndYield(io_loop, func);
-
-  if (message->Response()) {
-    LOG(ERROR) << "Response:" << message->Response()->MessageDebug();
-  }
-  //TODO: Check message status and wheather has a correct response for this request
   return true;
 }
 
@@ -165,5 +155,5 @@ void ClientRouter::SetWorkLoadTransfer(CoroWlDispatcher* dispatcher) {
   dispatcher_ = dispatcher;
 }
 
-}
+}//end namespace net
 

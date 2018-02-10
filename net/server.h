@@ -28,17 +28,15 @@ class SrvDelegate {
 public:
   virtual ~SrvDelegate() {};
 
-  virtual std::shared_ptr<CoroWlDispatcher> WorkLoadTransfer() {
+  virtual WorkLoadDispatcher* WorkLoadTransfer() {
     if (dispatcher_) {
-      return dispatcher_;
+      return dispatcher_.get();
     }
-    dispatcher_ = std::make_shared<CoroWlDispatcher>(HandleRequstInIO());
-    if (false == HandleRequstInIO()) {
-      LOG(INFO) << " Server Handle Work On Separated Loop";
-      dispatcher_->InitWorkLoop(GetWorkerLoopCount());
-    }
+    //dispatcher_.reset(new CoroWlDispatcher(HandleRequstInIO()));
+    dispatcher_.reset(new WorkLoadDispatcher(HandleRequstInIO()));
+    dispatcher_->InitWorkLoop(GetWorkerLoopCount());
     dispatcher_->StartDispatcher();
-    return dispatcher_;
+    return dispatcher_.get();
   };
 
   virtual bool HandleRequstInIO() {return true;}
@@ -47,7 +45,7 @@ public:
   /* IOService Using for Accept New Comming Connections */
   virtual int GetIOServiceLoopCount() {return 1;/*std::thread::hardware_concurrency();*/}
   //IOWorkLoop handle socket IO and the encode/decode to requestmessage or responsemessage
-  virtual int GetIOWorkerLoopCount() {return std::thread::hardware_concurrency();};
+  virtual int GetIOWorkerLoopCount() {return 2*std::thread::hardware_concurrency();};
 
   virtual void ServerIsGoingExit() {};
   virtual void OnServerStoped() {};
@@ -55,7 +53,7 @@ public:
   virtual void BeforeServerRun() {};
   virtual void AfterServerRun() {};
 private:
-  std::shared_ptr<CoroWlDispatcher> dispatcher_;
+  std::unique_ptr<WorkLoadDispatcher> dispatcher_;
 };
 
 class Server : public IOServiceDelegate,
@@ -69,14 +67,7 @@ public:
 
   void RunAllService();
 
-  //WorkLoadDispatcher* MessageDispatcher() override {
-    //return dispatcher_.get();
-  //};
-
   const std::vector<RefMessageLoop> IOworkerLoops() const;
-  WorkLoadDispatcher* MessageDispatcher() override {
-    return dispatcher_.get();
-  }
 public: //override from ioservicedelegate
   bool IncreaseChannelCount() override;
   void DecreaseChannelCount() override;
@@ -104,8 +95,6 @@ private:
 
   std::atomic<uint32_t> client_loop_index_;
   std::atomic<uint64_t> comming_connections_;
-
-  std::shared_ptr<CoroWlDispatcher> dispatcher_;
 };
 
 

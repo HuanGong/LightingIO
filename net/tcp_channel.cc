@@ -19,6 +19,7 @@ RefTcpChannel TcpChannel::CreateClientChannel(int socket_fd,
   conn->Initialize();
   return std::move(conn);
 }
+
 //static
 RefTcpChannel TcpChannel::Create(int socket_fd,
                                  const InetAddress& local,
@@ -31,6 +32,17 @@ RefTcpChannel TcpChannel::Create(int socket_fd,
                                     peer,
                                     loop,
                                     type));
+  conn->Initialize();
+  return std::move(conn);
+}
+
+RefTcpChannel TcpChannel::CreateServerChannel(int socket_fd,
+                                              const InetAddress& local,
+                                              const InetAddress& peer,
+                                              base::MessageLoop2* loop) {
+
+  RefTcpChannel conn(new TcpChannel(socket_fd, local, peer, loop,
+                                    ChannelServeType::kServerType));
   conn->Initialize();
   return std::move(conn);
 }
@@ -48,20 +60,24 @@ TcpChannel::TcpChannel(int socket_fd,
     peer_addr_(peer),
     serve_type_(type) {
 
-  got_data = false;
-  fd_event_ = base::FdEvent::create(socket_fd_, 0);
+  CHECK(work_loop_);
 }
 
 void TcpChannel::Initialize() {
-  //conside move follow to InitConnection ensure enable_shared_from_this work
+
   base::EventPump* event_pump = work_loop_->Pump();
+
+  fd_event_ = base::FdEvent::create(socket_fd_, 0);
   fd_event_->SetDelegate(event_pump->AsFdEventDelegate());
   fd_event_->SetReadCallback(std::bind(&TcpChannel::HandleRead, this));
   fd_event_->SetWriteCallback(std::bind(&TcpChannel::HandleWrite, this));
   fd_event_->SetCloseCallback(std::bind(&TcpChannel::HandleClose, this));
   fd_event_->SetErrorCallback(std::bind(&TcpChannel::HandleError, this));
-
   socketutils::KeepAlive(socket_fd_, true);
+}
+
+void TcpChannel::Start() {
+  CHECK(fd_event_);
 
   auto task = std::bind(&TcpChannel::OnConnectionReady, shared_from_this());
   work_loop_->PostTask(base::NewClosure(std::move(task)));
@@ -69,9 +85,7 @@ void TcpChannel::Initialize() {
 
 TcpChannel::~TcpChannel() {
   VLOG(GLOG_VTRACE) << channal_name_ << " Gone, Fd:" << socket_fd_;
-  if (!got_data) {
-    LOG(ERROR) << " This Channel Not Got Data after Setup Connection";
-  }
+
   CHECK(channel_status_ == DISCONNECTED);
   if (socket_fd_ != -1) {
     socketutils::CloseSocket(socket_fd_);
@@ -79,16 +93,14 @@ TcpChannel::~TcpChannel() {
 }
 
 void TcpChannel::OnConnectionReady() {
-
+  CHECK(InIOLoop());
   if (channel_status_ == CONNECTING) {
 
     base::EventPump* event_pump = work_loop_->Pump();
     event_pump->InstallFdEvent(fd_event_.get());
     fd_event_->EnableReading();
-    //fd_event_->EnableWriting();
 
-    channel_status_ = CONNECTED;
-    OnStatusChanged();
+    SetChannelStatus(CONNECTED);
   } else {
 
     fd_event_.reset();
@@ -96,17 +108,7 @@ void TcpChannel::OnConnectionReady() {
       socketutils::CloseSocket(socket_fd_);
       socket_fd_ = -1;
     }
-    LOG(ERROR) << " Channel Status Changed After Initialize";
-  }
-}
-
-void TcpChannel::OnStatusChanged() {
-  RefTcpChannel guard(shared_from_this());
-  if (status_change_callback_) {
-    status_change_callback_(guard);
-  }
-  if (proto_service_) {
-    proto_service_->OnStatusChanged(guard);
+    LOG(ERROR) << " Channel Status Changed After Enable this Channel";
   }
 }
 
@@ -114,17 +116,21 @@ void TcpChannel::HandleRead() {
   int error = 0;
 
   int32_t bytes_read = in_buffer_.ReadFromSocketFd(socket_fd_, &error);
+  VLOG(GLOG_VTRACE) << " Read " << bytes_read << " bytes from:" << channal_name_;
 
   if (bytes_read > 0) {
-    got_data = true;
     if ( recv_data_callback_ ) {
       recv_data_callback_(shared_from_this(), &in_buffer_);
     }
     if (proto_service_) {
       proto_service_->OnDataRecieved(shared_from_this(), &in_buffer_);
+    } else {
+      LOG(FATAL) << " Not Should Reached, No ProtoService Handle Thoese Data for Channel:" << channal_name_;
     }
   } else if (0 == bytes_read) { //read eof
+
     HandleClose();
+
   } else {
     errno = error;
     HandleError();
@@ -140,7 +146,6 @@ void TcpChannel::HandleWrite() {
 
   int32_t data_size = out_buffer_.CanReadSize();
   if (0 == data_size) {
-    LOG(INFO) << " Noting Need Write In Buffer, fd: " << socket_fd_;
     fd_event_->DisableWriting();
 
     if (schedule_shutdown_) {
@@ -154,9 +159,8 @@ void TcpChannel::HandleWrite() {
 
   if (writen_bytes > 0) {
     out_buffer_.Consume(writen_bytes);
-    if (out_buffer_.CanReadSize() == 0) { //all data writen
 
-      //callback this may write data again
+    if (out_buffer_.CanReadSize() == 0) { //all data writen
       if (finish_write_callback_) {
         finish_write_callback_(shared_from_this());
       }
@@ -182,11 +186,11 @@ bool TcpChannel::SendProtoMessage(RefProtocolMessage message) {
   CHECK(proto_service_);
 
   if (!message) {
-    DLOG(INFO) << "Bad ProtoMessage, ChannelInfo:" << ChannelName() << " Status:" << StatusAsString();
+    VLOG(GLOG_VERROR) << "Bad ProtoMessage, ChannelInfo:" << ChannelName() << " Status:" << StatusAsString();
     return false;
   }
   if (channel_status_ != ChannelStatus::CONNECTED) {
-    DLOG(INFO) << "Channel Is Broken, ChannelInfo:" << ChannelName() << " Status:" << StatusAsString();
+    VLOG(GLOG_VERROR) << "Channel Is Broken, ChannelInfo:" << ChannelName() << " Status:" << StatusAsString();
     return false;
   }
 
@@ -194,6 +198,7 @@ bool TcpChannel::SendProtoMessage(RefProtocolMessage message) {
 
     bool success = proto_service_->EncodeToBuffer(message.get(), &out_buffer_);
     LOG_IF(ERROR, !success) << "Send Failed For Message Encode Failed";
+
     if (!fd_event_->IsWriteEnable()) {
       fd_event_->EnableWriting();
     }
@@ -227,10 +232,9 @@ void TcpChannel::HandleClose() {
   fd_event_->ResetCallback();
   work_loop_->Pump()->RemoveFdEvent(fd_event_.get());
 
-  VLOG(GLOG_VTRACE) << " Channel Status: DISCONNECTED, channel:" << ChannelName();
+  VLOG(GLOG_VTRACE) << "HandleClose, Channel:" << ChannelName() << " Status: DISCONNECTED";
 
-  channel_status_ = DISCONNECTED;
-  OnStatusChanged();
+  SetChannelStatus(DISCONNECTED);
 
   RefTcpChannel guard(shared_from_this());
   if (closed_callback_) {
@@ -238,14 +242,25 @@ void TcpChannel::HandleClose() {
   }
 }
 
-void TcpChannel::ShutdownChannel() {
-  if (!work_loop_->IsInLoopThread()) {
-    auto f = std::bind(&TcpChannel::ShutdownChannel, shared_from_this());
-    work_loop_->PostTask(base::NewClosure(std::move(f)));
-    return;
+void TcpChannel::SetChannelStatus(ChannelStatus st) {
+  channel_status_ = st;
+
+  RefTcpChannel guard(shared_from_this());
+  if (status_change_callback_) {
+    status_change_callback_(guard);
   }
+  if (proto_service_) {
+    proto_service_->OnStatusChanged(guard);
+  }
+}
+
+void TcpChannel::ShutdownChannel() {
+  CHECK(InIOLoop());
+
+  VLOG(GLOG_VTRACE) << "TcpChannel::ShutdownChannel Is Going To Shutdown Channel:" << channal_name_;
+
   if (!fd_event_->IsWriteEnable()) {
-    channel_status_ = DISCONNECTING;
+    SetChannelStatus(DISCONNECTING);
     socketutils::ShutdownWrite(socket_fd_);
   } else {
     schedule_shutdown_ = true;
@@ -258,7 +273,7 @@ void TcpChannel::ForceShutdown() {
     work_loop_->PostTask(base::NewClosure(std::move(f)));
     return;
   }
-  // asume the thing done!
+
   if (channel_status_ == DISCONNECTED) {
     closed_callback_(shared_from_this());
     return;
@@ -271,7 +286,7 @@ int32_t TcpChannel::Send(const uint8_t* data, const int32_t len) {
   CHECK(work_loop_->IsInLoopThread());
 
   if (channel_status_ != CONNECTED) {
-    DLOG(INFO) << "Can't Write Data To a Closed[ing] socket; INFO" << ChannelName();
+    VLOG(GLOG_VERROR) << "Can't Write Data To a Closed[ing] socket; Channal:" << ChannelName();
     return -1;
   }
 
@@ -317,9 +332,11 @@ int32_t TcpChannel::Send(const uint8_t* data, const int32_t len) {
 void TcpChannel::SetChannelName(const std::string name) {
   channal_name_ = name;
 }
+
 void TcpChannel::SetOwnerLoop(base::MessageLoop2* owner) {
   owner_loop_ = owner;
 }
+
 void TcpChannel::SetDataHandleCallback(const RcvDataCallback& callback) {
   recv_data_callback_ = callback;
 }
@@ -336,6 +353,7 @@ void TcpChannel::SetStatusChangedCallback(const ChannelStatusCallback& callback)
 RefProtoService TcpChannel::GetProtoService() const {
   return proto_service_;
 }
+
 void TcpChannel::SetProtoService(RefProtoService proto_service) {
   proto_service_ = proto_service;
 }

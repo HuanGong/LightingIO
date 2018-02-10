@@ -18,13 +18,14 @@ public:
   void StartDispatcher();
 
   bool HandleWorkInIOLoop() const {return work_in_io_;}
+
   base::MessageLoop2* GetNextWorkLoop();
 
-  // brand new dipatcher api
   // must call at Worker Loop, may ioworker or woker according to HandleWorkInIOLoop
   virtual bool SetWorkContext(ProtocolMessage* message);
   // transmit task from IO TO worker loop
   virtual bool TransmitToWorker(base::StlClourse& clourse);
+
 private:
   bool work_in_io_;
   bool started_;

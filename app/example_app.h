@@ -7,6 +7,7 @@
 #include "net/server.h"
 #include <thirdparty/json/json.hpp>
 #include <net/clients/client_router.h>
+#include <net/dispatcher/coro_dispatcher.h>
 
 using json = nlohmann::json;
 
@@ -24,6 +25,11 @@ public:
   };
   void AfterApplicationRun() override {
   };
+
+  //override
+  net::WorkLoadDispatcher* WorkLoadTransfer() {
+    return dispatcher_.get();
+  };
 protected:
   void LoadConfig();
 private:
@@ -32,6 +38,7 @@ private:
 
   //typedef std::vector<RefClientRouter> ClientRouterList;
   std::map<std::string, net::RefClientRouter> clients_;
+  std::unique_ptr<net::CoroWlDispatcher> dispatcher_;
 };
 
 }

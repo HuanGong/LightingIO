@@ -37,7 +37,7 @@ void http_handler(net::RefProtocolMessage message) {
     std::make_shared<net::HttpResponse>(net::IODirectionType::kOutResponse);
   response->SetResponseCode(200);
   response->SetKeepAlive(httpmsg->IsKeepAlive());
-  response->MutableBody() = "Nice to meet your,I'm LightingIO\n";
+  response->MutableBody() = "Nice to meet your,I'm LightingIO";
 
   httpmsg->SetResponse(std::move(response));
 }

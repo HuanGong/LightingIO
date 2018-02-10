@@ -26,8 +26,6 @@ public:
 
   virtual bool CanCreateNewChannel() { return true;}
 
-  virtual WorkLoadDispatcher* MessageDispatcher() {return NULL;};
-
   virtual void IOServiceStarted(const IOService* ioservice) {};
   virtual void IOServiceStoped(const IOService* ioservice) {};
 };

@@ -97,6 +97,7 @@ add_dependencies(common_server
   ltnet
 )
 TARGET_LINK_LIBRARIES(common_server
+  -ltcmalloc
   -lltnet
   -lglog
   -lgflags

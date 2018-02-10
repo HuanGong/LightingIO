@@ -21,6 +21,11 @@ namespace content {
 
 GeneralServerApp::GeneralServerApp() {
   LoadConfig();
+
+  //client must be corodispatcher
+  dispatcher_.reset(new net::CoroWlDispatcher(HandleRequstInIO()));
+  dispatcher_->InitWorkLoop(GetWorkerLoopCount());
+  dispatcher_->StartDispatcher();
 }
 
 GeneralServerApp::~GeneralServerApp() {
@@ -66,7 +71,9 @@ void GeneralServerApp::ContentMain() {
 
       router->SetDelegate(server_.get());
       router->SetupRouter(config);
-      router->SetWorkLoadTransfer(WorkLoadTransfer().get());
+      net::CoroWlDispatcher* coro_transfer_ =
+        static_cast<net::CoroWlDispatcher*>(dispatcher_.get());
+      router->SetWorkLoadTransfer(coro_transfer_);
 
       router->StartRouter();
       clients_[name] = router;
