@@ -31,6 +31,9 @@ public:
 
   static bool RequestToBuffer(const HttpRequest*, IOBuffer*);
   static bool ResponseToBuffer(const HttpResponse*, IOBuffer*);
+
+  void BeforeSendMessage(ProtocolMessage* out_message) override;
+  void BeforeReplyMessage(ProtocolMessage* in, ProtocolMessage* out) override;
 private:
   bool ParseHttpRequest(const RefTcpChannel&, IOBuffer*);
   bool ParseHttpResponse(const RefTcpChannel&, IOBuffer*);

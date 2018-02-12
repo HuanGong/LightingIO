@@ -34,6 +34,7 @@ public:
   bool HasHeaderField(const std::string) const;
   void InsertHeader(const char*, const char*);
   void InsertHeader(const std::string&, const std::string&);
+  const std::string& GetHeader(const std::string&) const;
 
   KeyValMap& MutableParams();
   const std::string& GetUrlParam(const char*);

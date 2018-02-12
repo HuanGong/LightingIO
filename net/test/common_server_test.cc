@@ -38,7 +38,6 @@ void http_handler(net::RefProtocolMessage message) {
   response->SetResponseCode(200);
   response->SetKeepAlive(httpmsg->IsKeepAlive());
   response->MutableBody() = "Nice to meet your,I'm LightingIO";
-
   httpmsg->SetResponse(std::move(response));
 }
 
@@ -50,17 +49,16 @@ int main(int argc, char* argv[]) {
   main_loop.SetLoopName("MainLoop");
   main_loop.Start();
 
-  //net::SrvDelegate delegate;
   net::Application app;
   net::Server server((net::SrvDelegate*)&app);
 
-  //server.RegisterService("line://0.0.0.0:5005",
-  //                       std::bind(handler, std::placeholders::_1));
   server.RegisterService("http://0.0.0.0:5006",
                          std::bind(http_handler, std::placeholders::_1));
+
+  server.RegisterService("line://0.0.0.0:5001",
+                         std::bind(handler, std::placeholders::_1));
 
   server.RunAllService();
 
   main_loop.WaitLoopEnd();
-  LOG(INFO) << __FUNCTION__ << " program end";
 }

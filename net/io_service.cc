@@ -217,6 +217,8 @@ void IOService::HandleRequestOnWorker(const RefProtocolMessage request) {
     return;
   }
 
+  channel->GetProtoService()->BeforeReplyMessage(request.get(), response.get());
+
   bool close = channel->GetProtoService()->CloseAfterMessage(request.get(), response.get());
 
   if (channel->InIOLoop()) { //send reply directly

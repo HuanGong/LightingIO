@@ -61,6 +61,14 @@ void HttpRequest::InsertHeader(const std::string& k, const std::string& v) {
   headers_.insert(std::make_pair(k, v));
 }
 
+const std::string& HttpRequest::GetHeader(const std::string& field) const {
+  auto iter = headers_.find(field);
+  if (iter != headers_.end()) {
+    return iter->second;
+  }
+  return base::kNullString;
+}
+
 KeyValMap& HttpRequest::MutableParams() {
   return params_;
 }

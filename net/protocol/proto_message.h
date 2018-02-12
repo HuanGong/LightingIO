@@ -50,6 +50,8 @@ public:
 
   void SetFailInfo(FailInfo reason);
   FailInfo MessageFailInfo() const;
+  const std::string& FailMessage() const;
+  void AppendFailMessage(std::string m);
 
   void SetResponse(RefProtocolMessage& response);
   void SetResponse(RefProtocolMessage&& response);
@@ -62,6 +64,7 @@ protected:
 private:
   // Work Context
   FailInfo fail_info_;
+  std::string fail_;
   std::string proto_;
   IODirectionType direction_;
   RefProtocolMessage response_;

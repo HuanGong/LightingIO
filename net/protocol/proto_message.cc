@@ -55,4 +55,16 @@ void ProtocolMessage::SetResponse(RefProtocolMessage& response) {
   response_ = response;
 }
 
+const std::string& ProtocolMessage::FailMessage() const {
+  return fail_;
+}
+
+void ProtocolMessage::AppendFailMessage(std::string m) {
+  if (!fail_.empty()) {
+    fail_.append("->").append(m);
+    return;
+  }
+  fail_ = m;
+}
+
 }//end namespace

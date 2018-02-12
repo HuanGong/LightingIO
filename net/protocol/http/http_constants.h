@@ -12,10 +12,14 @@ struct HttpConstant {
   static const std::string kContentType;
   static const std::string kContentLength;
   static const std::string kBadRequest;
+  static const std::string kContentEncoding;
+  static const std::string kAcceptEncoding;
 
   static const std::string kHeaderKeepAlive;
   static const std::string kHeaderNotKeepAlive;
   static const std::string kHeaderDefaultContentType;
+  static const std::string kHeaderGzipEncoding;
+  static const std::string kHeaderSupportedEncoding;
 
   static const char* StatusCodeCStr(int32_t code);
 };

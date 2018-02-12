@@ -44,6 +44,8 @@ SET(BASE_SOURCES
   spin_lock.cc
   #memory
   memory/lazy_instance.cc
+  # gzip compression utils
+  compression_utils/gzip_utils.cc
 )
 
 ADD_LIBRARY(base_shared SHARED
@@ -57,6 +59,7 @@ add_dependencies(base_shared
 TARGET_LINK_LIBRARIES(base_shared
   coro
   glog
+  -lz
   -lpthread
 )
 

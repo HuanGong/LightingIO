@@ -21,7 +21,6 @@ void LineProtoService::OnDataFinishSend(const RefTcpChannel& channel) {
 }
 
 void LineProtoService::OnDataRecieved(const RefTcpChannel& channel, IOBuffer* buf) {
-  //avoid LineMessage allocate
   const uint8_t* line_crlf =  buf->FindCRLF();
   if (!line_crlf) {
     return;
@@ -49,7 +48,7 @@ void LineProtoService::OnDataRecieved(const RefTcpChannel& channel, IOBuffer* bu
   }
 }
 
-bool LineProtoService::DecodeBufferToMessage(IOBuffer* buf, ProtocolMessage* out_msg) {
+bool LineProtoService::DecodeToMessage(IOBuffer* buf, ProtocolMessage* out_msg) {
 
   LineMessage* line_msg = static_cast<LineMessage*>(out_msg);
 
@@ -67,7 +66,7 @@ bool LineProtoService::DecodeBufferToMessage(IOBuffer* buf, ProtocolMessage* out
   return true;
 }
 
-bool LineProtoService::EncodeMessageToBuffer(const ProtocolMessage* msg, IOBuffer* out_buffer) {
+bool LineProtoService::EncodeToBuffer(const ProtocolMessage* msg, IOBuffer* out_buffer) {
   if (msg->Protocol() != "line") {
     return false;
   }
@@ -76,6 +75,10 @@ bool LineProtoService::EncodeMessageToBuffer(const ProtocolMessage* msg, IOBuffe
   out_buffer->WriteString(line_msg->Body());
   out_buffer->WriteRawData("\r\n", 2);
   return true;
+}
+
+bool LineProtoService::CloseAfterMessage(ProtocolMessage* request, ProtocolMessage* response) {
+  return false;
 }
 
 }//end of file

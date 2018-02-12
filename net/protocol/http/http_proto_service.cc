@@ -6,6 +6,7 @@
 #include "http_proto_service.h"
 #include "http_constants.h"
 #include "net/protocol/proto_message.h"
+#include "base/compression_utils/gzip_utils.h"
 
 namespace net {
 
@@ -206,6 +207,10 @@ bool HttpProtoService::RequestToBuffer(const HttpRequest* request, IOBuffer* buf
                         HttpConstant::kHeaderNotKeepAlive);
   }
 
+  if (!request->HasHeaderField(HttpConstant::kAcceptEncoding)) {
+    buffer->WriteString(HttpConstant::kHeaderSupportedEncoding);
+  }
+
   if (!request->HasHeaderField(HttpConstant::kContentLength)) {
     buffer->WriteString(HttpConstant::kContentLength);
     std::string content_len(": ");
@@ -292,6 +297,48 @@ bool HttpProtoService::CloseAfterMessage(ProtocolMessage* request, ProtocolMessa
     return false;
   }
   return true;
+}
+
+void HttpProtoService::BeforeSendMessage(ProtocolMessage* out_message) {
+  if (out_message->MessageDirection() != IODirectionType::kOutRequest) {
+    return;
+  }
+  HttpRequest* request = static_cast<HttpRequest*>(out_message);
+  if (request->Body().size() < 4096 ||
+      request->HasHeaderField(HttpConstant::kContentEncoding)) {
+    return;
+  }
+  //compress the body default
+  std::string compressed_body;
+  if (0 == base::Gzip::compress_gzip(request->Body(), compressed_body)) { //success
+    request->body_ = std::move(compressed_body);
+    request->InsertHeader("Content-Encoding", "gzip");
+  }
+}
+
+void HttpProtoService::BeforeReplyMessage(ProtocolMessage* in, ProtocolMessage* out) {
+  HttpRequest* request = static_cast<HttpRequest*>(in);
+  HttpResponse* response = static_cast<HttpResponse*>(out);
+
+  //response compression if needed
+  if (response->Body().size() > 4096 &&
+      !response->HasHeaderField(HttpConstant::kContentEncoding)) {
+
+    const std::string& accept = request->GetHeader(HttpConstant::kAcceptEncoding);
+    std::string compressed_body;
+    if (accept.find("gzip") != std::string::npos) {
+      if (0 == base::Gzip::compress_gzip(response->Body(), compressed_body)) { //success
+        response->body_ = std::move(compressed_body);
+        response->InsertHeader("Content-Encoding", "gzip");
+      }
+    } else if (accept.find("deflate") != std::string::npos) {
+      if (0 == base::Gzip::compress_deflate(response->Body(), compressed_body)) {
+        response->body_ = std::move(compressed_body);
+        response->InsertHeader("Content-Encoding", "deflate");
+      }
+    }
+  }
+
 }
 
 }//end namespace

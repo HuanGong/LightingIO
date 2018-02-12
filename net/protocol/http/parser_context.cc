@@ -1,7 +1,9 @@
 
 #include "glog/logging.h"
 #include "parser_context.h"
+#include "http_constants.h"
 #include "net/protocol/proto_message.h"
+#include "base/compression_utils/gzip_utils.h"
 
 namespace net {
 
@@ -136,6 +138,27 @@ int ReqParseContext::OnHttpRequestEnd(http_parser* parser) {
   context->current_->http_minor_ = parser->http_minor;
 
   context->current_->method_ = http_method_str((http_method)parser->method);
+  //gzip, inflat
+
+  const std::string kgzip("gzip");
+  const std::string& encoding = context->current_->GetHeader(HttpConstant::kContentEncoding);;
+  if (encoding.find(kgzip) != std::string::npos) {
+    std::string decompress_body;
+    if (0 != base::Gzip::decompress_gzip(context->current_->body_, decompress_body)) {
+      LOG(ERROR) << " Decode gzip HttpRequest Body Failed";
+      context->current_->AppendFailMessage("HttpRequest gzip Decompression Failed");
+      context->current_->body_.clear();
+    }
+    context->current_->body_ = std::move(decompress_body);
+  } else if (encoding.find("deflate") != std::string::npos){
+    std::string decompress_body;
+    if (0 != base::Gzip::decompress_deflate(context->current_->body_, decompress_body)) {
+      LOG(ERROR) << " Decode deflate HttpRequest Body Failed";
+      context->current_->AppendFailMessage("HttpRequest deflate Decompression Failed");
+      context->current_->body_.clear();
+    }
+    context->current_->body_ = std::move(decompress_body);
+  }
   //build params
   //extract host
 
@@ -249,6 +272,26 @@ int ResParseContext::OnHttpResponseEnd(http_parser* parser) {
   context->current_->http_major_ = parser->http_major;
   context->current_->http_minor_ = parser->http_minor;
   context->current_->status_code_ = parser->status_code;
+
+  const std::string& encoding = context->current_->GetHeader(HttpConstant::kContentEncoding);;
+  if (encoding.find("gzip") != std::string::npos) {
+    std::string decompress_body;
+    if (0 != base::Gzip::decompress_gzip(context->current_->body_, decompress_body)) {
+      LOG(ERROR) << " Decode gzip HttpRequest Body Failed";
+      context->current_->AppendFailMessage("HttpRequest gzip Decompression Failed");
+      //context->current_->body_.clear();
+    }
+    context->current_->body_ = std::move(decompress_body);
+  }
+  else if (encoding.find("deflate") != std::string::npos) {
+    std::string decompress_body;
+    if (0 != base::Gzip::decompress_deflate(context->current_->body_, decompress_body)) {
+      LOG(ERROR) << " Decode deflate HttpRequest Body Failed";
+      context->current_->AppendFailMessage("HttpRequest deflate Decompression Failed");
+      //context->current_->body_.clear();
+    }
+    context->current_->body_ = std::move(decompress_body);
+  }
 
   context->messages_.push_back(std::move(context->current_));
   context->current_.reset();

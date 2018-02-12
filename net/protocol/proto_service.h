@@ -21,6 +21,11 @@ public:
 
   virtual bool EncodeToBuffer(const ProtocolMessage* msg, IOBuffer* out_buffer);
   virtual bool DecodeToMessage(IOBuffer* buffer, ProtocolMessage* out_msg);
+
+  //Before send [request type] message, in normal case, this was used for
+  //async clients request
+  virtual void BeforeSendMessage(ProtocolMessage* out_message) {};
+  virtual void BeforeReplyMessage(ProtocolMessage* in, ProtocolMessage* out) {};
   const std::string& Protocol() {return protocol_;};
 
   virtual const RefProtocolMessage DefaultResponse(const RefProtocolMessage&) {return NULL;}
