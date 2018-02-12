@@ -121,7 +121,7 @@ bool MessageLoop2Test() {
 
     sleep(1);
   }
-
+  return true;
 }
 
 bool FdEventTest() {
@@ -196,6 +196,7 @@ bool TimerEventTest() {
     timer->SetTimerTask(base::NewClosure([&]() {
       LOG(INFO) << "timer1(once) Invoked";
     }));
+    timer_id = timer_id; //jsut make gcc happy
   }
 
   {
@@ -216,6 +217,7 @@ bool TimerEventTest() {
       LOG(INFO) << "timer3( for quit ) Invoked";
       loop.Quit();
     }));
+    timer_id3 = timer_id3; //make gcc happy
   }
 
   loop.Run();

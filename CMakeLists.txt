@@ -7,6 +7,7 @@ set(CMAKE_CONFIG_DIR ${CMAKE_SOURCE_DIR}/cmake_config)
 include(${CMAKE_CONFIG_DIR}/include_path.cmake)
 include(${CMAKE_CONFIG_DIR}/package_deps.cmake)
 #include(${CMAKE_CONFIG_DIR}/googletest.cmake)
+include(${CMAKE_CONFIG_DIR}/global_config.cmake)
 
 IF(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE RelWithDebInfo)

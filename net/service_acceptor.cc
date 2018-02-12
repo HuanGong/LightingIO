@@ -56,6 +56,7 @@ bool ServiceAcceptor::StartListen() {
   listenning_ = true;
   socketutils::ListenSocket(socket_fd_);
   LOG(INFO) << " Start Listen on:" << address_.IpPortAsString();
+  return true;
 }
 
 void ServiceAcceptor::StopListen() {

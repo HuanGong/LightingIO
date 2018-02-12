@@ -60,8 +60,7 @@ bool Server::RegisterService(const std::string server, ProtoMessageHandler handl
 
   net::InetAddress listenner_addr(sch_ip_port.ip, sch_ip_port.port);
 
-//#ifdef NET_ENABLE_REUSER_PORT
-#ifdef SO_REUSEPORT
+#if defined SO_REUSEPORT && defined NET_ENABLE_REUSER_PORT
   for (auto& ref_loop : ioservice_loops_) {
 
     RefIOService s(new IOService(listenner_addr,
@@ -106,8 +105,8 @@ void Server::DecreaseChannelCount() {
 }
 
 base::MessageLoop2* Server::GetNextIOWorkLoop() {
-//#ifdef NET_ENABLE_REUSER_PORT
-#ifdef SO_REUSEPORT
+
+#if defined SO_REUSEPORT && defined NET_ENABLE_REUSER_PORT
   return base::MessageLoop2::Current();
 #else
   return ioworker_loops_[comming_connections_%ioworker_loops_.size()].get();
@@ -148,8 +147,7 @@ void Server::InitIOWorkerLoop() {
 }
 
 void Server::InitIOServiceLoop() {
-//#ifdef NET_ENABLE_REUSER_PORT
-#ifdef SO_REUSEPORT
+#if defined SO_REUSEPORT && defined NET_ENABLE_REUSER_PORT
   ioservice_loops_ = ioworker_loops_;
   LOG(INFO) << "Server Use IOWrokerLoop Handle New Connection...";
 #else

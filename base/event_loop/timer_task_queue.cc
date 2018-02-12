@@ -40,6 +40,7 @@ bool TimerTaskQueue::CancelTimerEvent(uint32_t timer_index) {
   auto& timerevent = timer_events_[timer_index];
   timerevent.reset();
   reusable_timerid_.push(timer_index);
+  return true;
 }
 
 uint64_t TimerTaskQueue::HandleExpiredTimer() {
