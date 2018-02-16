@@ -22,6 +22,8 @@ set(LTNET_SOURCE
   protocol/http/http_constants.cc
   protocol/http/parser_context.cc
   protocol/http/http_proto_service.cc
+  protocol/raw/raw_message.cc
+  protocol/raw/raw_proto_service.cc
   #dispatcher
   dispatcher/coro_dispatcher.cc
   dispatcher/workload_dispatcher.cc

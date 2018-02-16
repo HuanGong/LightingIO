@@ -54,6 +54,8 @@ int ReqParseContext::OnHttpRequestBegin(http_parser* parser) {
   }
   context->current_ = (std::make_shared<HttpRequest>(IODirectionType::kInRequest));
 
+  context->current_->url_.clear();
+
   return 0;
 }
 
@@ -62,7 +64,6 @@ int ReqParseContext::OnUrlParsed(http_parser* parser, const char *url_start, siz
   CHECK(context);
 
   context->current_->url_.append(url_start, url_len);
-
   return 0;
 }
 
