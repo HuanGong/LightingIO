@@ -47,7 +47,11 @@ public:
   void StartRouter();
   void StopRouter();
 
+  template <class M>
   bool SendClientRequest(RefProtocolMessage& message);
+
+  template<class T>
+  bool SendRecieve(std::shared_ptr<T>& message);
   //override from ConnectorDelegate
   void OnClientConnectFailed() override;
   void OnNewClientConnected(int fd, InetAddress& loc, InetAddress& remote) override;

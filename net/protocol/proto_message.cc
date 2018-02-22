@@ -67,4 +67,20 @@ void ProtocolMessage::AppendFailMessage(std::string m) {
   fail_ = m;
 }
 
+const char* ProtocolMessage::DirectionTypeStr() const {
+  switch(MessageDirection()) {
+    case IODirectionType::kInRequest:
+      return "HttpRequest In";
+    case IODirectionType::kOutRequest:
+      return "HttpRequest OUT";
+    case IODirectionType::kOutResponse:
+      return "HttpResponse OUT";
+    case IODirectionType::kInReponse:
+      return "HttpResponse IN";
+    default:
+      return "kUnknownType";
+  }
+  return "kUnknownType";
+}
+
 }//end namespace

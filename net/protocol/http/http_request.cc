@@ -93,7 +93,7 @@ const std::string& HttpRequest::Method() const {
   return method_;
 }
 
-const std::string HttpRequest::MessageDebug() {
+const std::string HttpRequest::MessageDebug() const {
   std::ostringstream oss;
   oss << "{\"type\": \"" << DirectionTypeStr() << "\""
       << ", \"http_major\": " << (int)http_major_
@@ -107,27 +107,11 @@ const std::string HttpRequest::MessageDebug() {
   oss << ", \"keep_alive\": " << keepalive_
       << ", \"body\": \"" << body_ << "\""
       << "}";
-  return oss.str();
+  return std::move(oss.str());
 }
 
 void HttpRequest::SetMethod(const std::string method) {
   method_ = str::to_upper_copy(method);
-}
-
-const char* HttpRequest::DirectionTypeStr() {
-  switch(MessageDirection()) {
-    case IODirectionType::kInRequest:
-      return "HttpRequest In";
-    case IODirectionType::kOutRequest:
-      return "HttpRequest OUT";
-    case IODirectionType::kOutResponse:
-      return "HttpResponse OUT";
-    case IODirectionType::kInReponse:
-      return "HttpResponse IN";
-    default:
-      return "kUnknownType";
-  }
-  return "kUnknownType";
 }
 
 bool HttpRequest::IsKeepAlive() const {

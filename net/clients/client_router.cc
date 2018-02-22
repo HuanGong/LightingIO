@@ -38,7 +38,8 @@ void ClientRouter::SetupRouter(const RouterConf& config) {
 
 void ClientRouter::StartRouter() {
   for (uint32_t i = 0; i < channel_count_; i++) {
-    work_loop_->PostTask(base::NewClosure(std::bind(&Connector::LaunchAConnection, connector_, server_addr_)));
+    auto functor = std::bind(&Connector::LaunchAConnection, connector_, server_addr_);
+    work_loop_->PostTask(base::NewClosure(functor));
   }
 }
 
@@ -153,6 +154,12 @@ bool ClientRouter::SendClientRequest(RefProtocolMessage& message) {
 
 void ClientRouter::SetWorkLoadTransfer(CoroWlDispatcher* dispatcher) {
   dispatcher_ = dispatcher;
+}
+
+template<class T>
+bool ClientRouter::SendRecieve(std::shared_ptr<T>& message) {
+  RefProtocolMessage m = std::static_pointer_cast<ProtocolMessage>(message);
+  return SendClientRequest(m);
 }
 
 }//end namespace net

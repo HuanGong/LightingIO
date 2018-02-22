@@ -7,7 +7,13 @@
 
 namespace net {
 
-typedef struct {
+typedef struct _HT {
+  _HT()
+    : code(0),
+      method(0),
+      frame_size(0),
+      sequence_id(0) {
+  }
   /* use for status code*/
   uint8_t code;
   /* Method of this message*/
@@ -26,15 +32,19 @@ public:
   RawMessage(IODirectionType t);
   ~RawMessage();
 
-  std::string& MutableContent();
+  //std::string& MutableContent();
   const std::string& Content() const;
+  void SetContent(const std::string& body);
 
   const RawHeader& Header();
   void SetCode(uint8_t code);
   void SetMethod(uint8_t method);
   void SetFrameSize(uint32_t frame_size);
   void SetSequenceId(uint32_t sequence_id);
+
+  const std::string MessageDebug() const override;
 private:
+  std::string& MutableContent() {return content_;}
   friend class RawProtoService;
 
   RawHeader header_;

@@ -8,7 +8,7 @@ namespace net {
 
 class RawProtoService : public ProtoService {
 public:
-  RawProtoService(IODirectionType type);
+  RawProtoService();
   ~RawProtoService();
 
   // override from ProtoService
