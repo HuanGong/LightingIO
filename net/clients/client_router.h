@@ -48,6 +48,13 @@ public:
   void StopRouter();
 
   bool SendClientRequest(RefProtocolMessage& message);
+
+  template<class T>
+  bool SendRecieve(T& message) {
+    RefProtocolMessage m = std::static_pointer_cast<ProtocolMessage>(message);
+    return SendClientRequest(m);
+  }
+
   //override from ConnectorDelegate
   void OnClientConnectFailed() override;
   void OnNewClientConnected(int fd, InetAddress& loc, InetAddress& remote) override;
@@ -57,7 +64,9 @@ public:
   void OnRequestGetResponse(RefProtocolMessage, RefProtocolMessage) override;
 
 private:
+  //Get a io work loop for channel, if no loop provide, use default work_loop_;
   base::MessageLoop2* GetLoopForClient();
+
   std::string protocol_;
   uint32_t channel_count_;
   uint32_t reconnect_interval_; //ms

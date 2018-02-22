@@ -57,7 +57,8 @@ public:
   void SetResponse(RefProtocolMessage&& response);
   RefProtocolMessage& Response() {return response_;}
 
-  virtual const std::string MessageDebug() {return "";};
+  const char* DirectionTypeStr() const;
+  virtual const std::string MessageDebug() const {return "";};
 protected:
   IOContext io_context_;
   WorkContext work_context_;

@@ -53,7 +53,7 @@ const std::string& HttpResponse::GetHeader(const std::string& field) const {
   return base::kNullString;
 }
 
-const std::string HttpResponse::MessageDebug() {
+const std::string HttpResponse::MessageDebug() const {
   std::ostringstream oss;
   oss << "{\"type\": \"" << DirectionTypeStr() << "\""
       << ", \"http_major\": " << (int)http_major_
@@ -67,22 +67,6 @@ const std::string HttpResponse::MessageDebug() {
       << ", \"body\": \"" << body_ << "\""
       << "}";
   return oss.str();
-}
-
-const char* HttpResponse::DirectionTypeStr() {
-  switch(MessageDirection()) {
-    case IODirectionType::kInRequest:
-      return "HttpResponse In";
-    case IODirectionType::kOutRequest:
-      return "HttpResponse OUT";
-    case IODirectionType::kOutResponse:
-      return "HttpResponse OUT";
-    case IODirectionType::kInReponse:
-      return "HttpResponse IN";
-    default:
-      return "kUnknownType";
-  }
-  return "kUnknownType";
 }
 
 bool HttpResponse::IsKeepAlive() const {

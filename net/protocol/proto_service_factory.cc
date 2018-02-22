@@ -3,6 +3,7 @@
 #include "proto_service_factory.h"
 #include "line/line_proto_service.h"
 #include "http/http_proto_service.h"
+#include "raw/raw_proto_service.h"
 
 namespace net {
 
@@ -41,6 +42,9 @@ void ProtoServiceFactory::InitInnerDefault() {
   }));
   creators_.insert(std::make_pair("http", []()->RefProtoService {
     return RefProtoService(new HttpProtoService);
+  }));
+  creators_.insert(std::make_pair("raw", []()->RefProtoService {
+    return RefProtoService(new RawProtoService);
   }));
 }
 

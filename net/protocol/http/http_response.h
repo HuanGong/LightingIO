@@ -34,7 +34,7 @@ public:
   bool IsKeepAlive() const;
   void SetKeepAlive(bool alive);
 
-  const std::string MessageDebug() override;
+  const std::string MessageDebug() const override;
 
   uint16_t ResponseCode() const;
   void SetResponseCode(uint16_t code);
@@ -44,8 +44,6 @@ public:
 private:
   friend class HttpProtoService;
   friend class ResParseContext;
-
-  const char* DirectionTypeStr();
 
   bool keepalive_;
   uint8_t http_major_;

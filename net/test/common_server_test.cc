@@ -5,6 +5,7 @@
 #include <glog/logging.h>
 #include "../protocol/proto_service.h"
 #include "../protocol/line/line_message.h"
+#include "../protocol/raw/raw_message.h"
 #include "../protocol/http/http_request.h"
 #include "../protocol/http/http_response.h"
 #include "../protocol/http/http_proto_service.h"
@@ -43,6 +44,11 @@ void http_handler(net::RefProtocolMessage message) {
   httpmsg->SetResponse(std::move(response));
 }
 
+void raw_handler(net::RefProtocolMessage message) {
+  net::RawMessage* request = static_cast<net::RawMessage*>(message.get());
+  LOG(INFO) << "I Got A RawRequest:\n" << request->MessageDebug();
+}
+
 int main(int argc, char* argv[]) {
   //google::InitGoogleLogging(argv[0]);  // 初始化 glog
   //google::ParseCommandLineFlags(&argc, &argv, true);  // 初始化 gflags
@@ -53,11 +59,14 @@ int main(int argc, char* argv[]) {
   net::Application app;
   net::Server server((net::SrvDelegate*)&app);
 
-  server.RegisterService("http://0.0.0.0:5006",
-                         std::bind(http_handler, std::placeholders::_1));
+  //server.RegisterService("http://0.0.0.0:5006",
+  //                       std::bind(http_handler, std::placeholders::_1));
 
-  server.RegisterService("line://0.0.0.0:5001",
-                         std::bind(handler, std::placeholders::_1));
+  //server.RegisterService("line://0.0.0.0:5001",
+  //                       std::bind(handler, std::placeholders::_1));
+
+  server.RegisterService("raw://0.0.0.0:5002",
+                         std::bind(raw_handler, std::placeholders::_1));
 
   server.RunAllService();
 

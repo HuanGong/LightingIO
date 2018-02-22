@@ -169,18 +169,22 @@ void IOService::RemoveConncetion(const RefTcpChannel connection) {
 //Running On NetWorkIO Channel Thread
 void IOService::HandleRequest(const RefProtocolMessage& request) {
 
+  LOG(INFO) << "IOService::HandleRequest handle a request";
   WeakPtrTcpChannel weak_channel = request->GetIOCtx().channel;
   RefTcpChannel channel = weak_channel.lock();
   if (!channel) {
+    LOG(INFO) << "No Handler handle this request, channel has gone";
     return;
   }
 
   if (!message_handler_) {
+    LOG(INFO) << "No Handler handle this request";
     channel->ShutdownChannel();
     return;
   }
 
-  VLOG(GLOG_VTRACE) << "Transmit a request to Worker, request from:" << channel->ChannelName();
+  //VLOG(GLOG_VTRACE) << "Transmit a request to Worker, request from:" << channel->ChannelName();
+  LOG(INFO) << "Transmit a request to Worker, request from:" << channel->ChannelName();
 
   base::StlClourse functor = std::bind(&IOService::HandleRequestOnWorker, this, request);
   bool ok = dispatcher_->TransmitToWorker(functor);
@@ -198,6 +202,7 @@ void IOService::HandleRequestOnWorker(const RefProtocolMessage request) {
       break;
     }
     if (message_handler_) {
+      LOG(ERROR) << "Service Handler Handle InComming Message";
       message_handler_(request);
     }
   } while(0);

@@ -46,10 +46,9 @@ public:
   int VersionMajor() const {return http_major_;}
   int VersionMinor() const {return http_minor_;}
 
-  const std::string MessageDebug() override;
+  const std::string MessageDebug() const override;
 private:
   void ParseUrlToParams();
-  const char* DirectionTypeStr();
 private:
   friend class HttpProtoService;
   friend class ReqParseContext;
