@@ -85,6 +85,7 @@ void TcpChannel::Start() {
 
 TcpChannel::~TcpChannel() {
   VLOG(GLOG_VTRACE) << channal_name_ << " Gone, Fd:" << socket_fd_;
+  LOG(INFO) << channal_name_ << " Gone, Fd:" << socket_fd_;
 
   CHECK(channel_status_ == DISCONNECTED);
   if (socket_fd_ != -1) {
@@ -104,7 +105,7 @@ void TcpChannel::OnConnectionReady() {
   } else {
 
     fd_event_.reset();
-    if (socket_fd_ > 0) {
+    if (socket_fd_ != -1) {
       socketutils::CloseSocket(socket_fd_);
       socket_fd_ = -1;
     }
@@ -119,18 +120,12 @@ void TcpChannel::HandleRead() {
   VLOG(GLOG_VTRACE) << " Read " << bytes_read << " bytes from:" << channal_name_;
 
   if (bytes_read > 0) {
+    proto_service_->OnDataRecieved(shared_from_this(), &in_buffer_);
     if ( recv_data_callback_ ) {
       recv_data_callback_(shared_from_this(), &in_buffer_);
     }
-    if (proto_service_) {
-      proto_service_->OnDataRecieved(shared_from_this(), &in_buffer_);
-    } else {
-      LOG(FATAL) << " Not Should Reached, No ProtoService Handle Thoese Data for Channel:" << channal_name_;
-    }
   } else if (0 == bytes_read) { //read eof
-
     HandleClose();
-
   } else {
     errno = error;
     HandleError();
@@ -218,12 +213,15 @@ bool TcpChannel::SendProtoMessage(RefProtocolMessage message) {
 void TcpChannel::HandleError() {
   int err = socketutils::GetSocketError(socket_fd_);
   thread_local static char t_err_buff[128];
-  LOG(ERROR) << " Socket Error, fd:[" << socket_fd_ << "], error info: [" << strerror_r(err, t_err_buff, sizeof t_err_buff) << " ]";
+  LOG(ERROR) << " Socket Error, fd:[" << socket_fd_
+             << "], error info: [" << strerror_r(err, t_err_buff, sizeof t_err_buff)
+             << "]";
 }
 
 void TcpChannel::HandleClose() {
   CHECK(work_loop_->IsInLoopThread());
 
+  RefTcpChannel guard(shared_from_this());
   if (channel_status_ == DISCONNECTED) {
     return;
   }
@@ -236,7 +234,6 @@ void TcpChannel::HandleClose() {
 
   SetChannelStatus(DISCONNECTED);
 
-  RefTcpChannel guard(shared_from_this());
   if (closed_callback_) {
     closed_callback_(guard);
   }
@@ -257,7 +254,10 @@ void TcpChannel::SetChannelStatus(ChannelStatus st) {
 void TcpChannel::ShutdownChannel() {
   CHECK(InIOLoop());
 
-  VLOG(GLOG_VTRACE) << "TcpChannel::ShutdownChannel Is Going To Shutdown Channel:" << channal_name_;
+  VLOG(GLOG_VTRACE) << "TcpChannel::ShutdownChannel " << channal_name_;
+  if (channel_status_ == DISCONNECTED) {
+    return;
+  }
 
   if (!fd_event_->IsWriteEnable()) {
     SetChannelStatus(DISCONNECTING);
@@ -268,16 +268,7 @@ void TcpChannel::ShutdownChannel() {
 }
 
 void TcpChannel::ForceShutdown() {
-  if (!work_loop_->IsInLoopThread()) {
-    auto f = std::bind(&TcpChannel::ForceShutdown, shared_from_this());
-    work_loop_->PostTask(base::NewClosure(std::move(f)));
-    return;
-  }
-
-  if (channel_status_ == DISCONNECTED) {
-    closed_callback_(shared_from_this());
-    return;
-  }
+  CHECK(InIOLoop());
 
   HandleClose();
 }

@@ -38,7 +38,7 @@ void SendRequest() {
   net::RefProtocolMessage req = std::static_pointer_cast<net::ProtocolMessage>(request);
 
   if (router->SendClientRequest(req)) {
-    LOG(ERROR) << "Haha, My Request Back ................. Wow!!!!";
+    LOG(ERROR) << "Haha, My HttpRequest Back ................. Wow!!!!";
   }
 }
 
@@ -51,14 +51,14 @@ void SendRawRequest() {
   raw_request->SetMethod(12);
   raw_request->SetSequenceId(100);
 
-  net::RefProtocolMessage req = std::static_pointer_cast<net::ProtocolMessage>(raw_request);
-  if (raw_router->SendClientRequest(req)) {
+  if (raw_router->SendRecieve<net::RefRawMessage>(raw_request)) {
     LOG(ERROR) << "Haha, My Raw Request Back ............. Wow!!!!";
   }
 }
 
 int main(int argc, char* argv[]) {
 
+  google::ParseCommandLineFlags(&argc, &argv, true);  // 初始化 gflags
 
   net::CoroWlDispatcher* dispatcher_ = new net::CoroWlDispatcher(true);
   dispatcher_->InitWorkLoop(4);
@@ -70,26 +70,27 @@ int main(int argc, char* argv[]) {
   loop.Start();
   wloop.Start();
 
-  //router = new net::ClientRouter(&loop, server_address);
-  //router->SetWorkLoadTransfer(dispatcher_);
-  //loop.PostTask(base::NewClosure(std::bind(&net::ClientRouter::StartRouter, router)));
-
   raw_router = new net::ClientRouter(&loop, raw_server_address);
-
   net::RouterConf raw_router_config;
   raw_router_config.protocol = "raw";
   raw_router_config.connections = 2;
   raw_router_config.recon_interal = 5000;
   raw_router_config.message_timeout = 1000;
-
   raw_router->SetupRouter(raw_router_config);
   raw_router->SetWorkLoadTransfer(dispatcher_);
   loop.PostTask(base::NewClosure(std::bind(&net::ClientRouter::StartRouter, raw_router)));
 
-  sleep(5);
+#if 0
+  router = new net::ClientRouter(&loop, server_address);
+  router->SetWorkLoadTransfer(dispatcher_);
+  loop.PostTask(base::NewClosure(std::bind(&net::ClientRouter::StartRouter, router)));
+#endif
 
-  //base::StlClosure closure = std::bind(SendRequest);
-  //base::CoroScheduler::RunAsCoroInLoop(&wloop, closure);
+  sleep(5);
+#if 0
+  base::StlClosure closure = std::bind(SendRequest);
+  base::CoroScheduler::RunAsCoroInLoop(&wloop, closure);
+#endif
 
   base::StlClosure send_raw_request = std::bind(SendRawRequest);
   base::CoroScheduler::RunAsCoroInLoop(&wloop, send_raw_request);
