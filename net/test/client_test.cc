@@ -58,6 +58,7 @@ void SendRawRequest() {
 
 int main(int argc, char* argv[]) {
 
+  google::ParseCommandLineFlags(&argc, &argv, true);  // 初始化 gflags
 
   net::CoroWlDispatcher* dispatcher_ = new net::CoroWlDispatcher(true);
   dispatcher_->InitWorkLoop(4);

@@ -51,7 +51,7 @@ void raw_handler(net::RefProtocolMessage message) {
 
 int main(int argc, char* argv[]) {
   //google::InitGoogleLogging(argv[0]);  // 初始化 glog
-  //google::ParseCommandLineFlags(&argc, &argv, true);  // 初始化 gflags
+  google::ParseCommandLineFlags(&argc, &argv, true);  // 初始化 gflags
   base::MessageLoop2 main_loop;
   main_loop.SetLoopName("MainLoop");
   main_loop.Start();
