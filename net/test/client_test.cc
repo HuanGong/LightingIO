@@ -56,21 +56,6 @@ void SendRawRequest() {
   }
 }
 
-void SendRawRequest() {
-  net::RefRawMessage raw_request =
-    std::make_shared<net::RawMessage>(net::IODirectionType::kOutRequest);
-  std::string content("this is a raw request");
-  raw_request->SetContent(content);
-  raw_request->SetCode(12);
-  raw_request->SetMethod(12);
-  raw_request->SetSequenceId(100);
-
-  net::RefProtocolMessage req = std::static_pointer_cast<net::ProtocolMessage>(raw_request);
-  if (raw_router->SendClientRequest(req)) {
-    LOG(ERROR) << "Haha, My Raw Request Back ............. Wow!!!!";
-  }
-}
-
 int main(int argc, char* argv[]) {
 
   google::ParseCommandLineFlags(&argc, &argv, true);  // 初始化 gflags
