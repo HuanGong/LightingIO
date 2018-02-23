@@ -53,8 +53,6 @@ void Connector::OnWrite(WeakPtrFdEvent weak_fdevent) {
     return ;
   }
 
-  LOG(ERROR) << "OnWrite ";
-
   int socket_fd = fd_event->fd();
 
   if (net::socketutils::IsSelfConnect(socket_fd)) {
@@ -78,7 +76,7 @@ void Connector::OnError(WeakPtrFdEvent weak_fdevent) {
     return;
   }
   CleanUpBadChannel(event);
-  LOG(ERROR) << "Occur ERROR When Setting up Client Channel";
+  delegate_->OnClientConnectFailed();
 }
 
 void Connector::DiscardAllConnectingClient() {

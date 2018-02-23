@@ -14,7 +14,7 @@ RefClientChannel ClientChannel::Create(Delegate* delegate, RefTcpChannel& channe
 
 ClientChannel::ClientChannel(Delegate* delegate, RefTcpChannel& channel)
   : delegate_(delegate),
-    message_timeout_(10000),
+    message_timeout_(0),
     channel_(channel) {
 
   CHECK(delegate_);
@@ -25,6 +25,7 @@ ClientChannel::ClientChannel(Delegate* delegate, RefTcpChannel& channel)
 }
 
 ClientChannel::~ClientChannel() {
+  VLOG(GLOG_VTRACE) << "ClientChannel " << channel_->ChannelName() << " Gone";
 }
 
 bool ClientChannel::ScheduleARequest(RefProtocolMessage request) {
@@ -42,8 +43,8 @@ bool ClientChannel::ScheduleARequest(RefProtocolMessage request) {
 }
 
 void ClientChannel::OnChannelClosed(RefTcpChannel channel) {
-  VLOG(GLOG_VTRACE) << "Client's TcpChannel Closed";
   CHECK(channel_->InIOLoop());
+  VLOG(GLOG_VTRACE) << " OnClientChannelClosed, Channel:" << channel_->ChannelName();
 
   RefProtocolMessage request = requests_keeper_->InProgressRequest();
   if (request) {
@@ -60,8 +61,8 @@ void ClientChannel::OnChannelClosed(RefTcpChannel channel) {
     OnRequestFailed(next_request, FailInfo::kChannelBroken);
   };
 
-  VLOG(GLOG_VTRACE) << " OnClientChannelClosed, Channel:" << channel_->ChannelName();
-  delegate_->OnClientChannelClosed(shared_from_this());
+  std::shared_ptr<ClientChannel> guard = shared_from_this();
+  delegate_->OnClientChannelClosed(guard);
 }
 
 void ClientChannel::OnResponseMessage(RefProtocolMessage response) {
@@ -86,8 +87,6 @@ bool ClientChannel::TryFireNextRequest() {
     return false;
   }
 
-  LOG(ERROR) << " Try Send A Request by tcp Channel";
-
   bool success = false;
   do {
 
@@ -100,10 +99,13 @@ bool ClientChannel::TryFireNextRequest() {
 
     if (success) {
       requests_keeper_->SetCurrent(next_request);
-
-      auto functor = std::bind(&ClientChannel::OnRequestTimeout, shared_from_this(), next_request);
-      IOLoop()->PostDelayTask(base::NewClosure(functor), message_timeout_);
-
+      if (message_timeout_) {
+        LOG(INFO) << " Schedule A Timeout For Outing Request";
+        auto functor = std::bind(&ClientChannel::OnRequestTimeout,
+                                 shared_from_this(),
+                                 next_request);
+        IOLoop()->PostDelayTask(base::NewClosure(functor), message_timeout_);
+      }
     } else {
       //Notify Woker[Sender] For Failed Request Sending
       OnRequestFailed(next_request, FailInfo::kChannelBroken);
@@ -116,20 +118,22 @@ bool ClientChannel::TryFireNextRequest() {
 void ClientChannel::OnRequestTimeout(RefProtocolMessage request) {
   CHECK(channel_->InIOLoop());
 
+  //TODO: impl a cancelable timerevent
   if (request != requests_keeper_->InProgressRequest()) {
-    LOG(INFO) << " This Request Has Got Response, Ignore this Timeout";
+    VLOG(GLOG_VTRACE) << " This Request Has Got Response, Ignore Timeout";
     return;
   }
 
   if (channel_->IsConnected()) {
-    channel_->ForceShutdown();
+    LOG(INFO) << " ShutdownChannel for Timeout";
+    channel_->ShutdownChannel();
+    //channel_->ForceShutdown();
   } else {
     OnChannelClosed(channel_);
   }
 }
 
 void ClientChannel::OnRequestFailed(RefProtocolMessage& request, FailInfo reason) {
-  //on weak up for failed reason
   request->SetFailInfo(reason);
   delegate_->OnRequestGetResponse(request, kNullResponse);
 }
@@ -140,14 +144,15 @@ void ClientChannel::OnBackResponse(RefProtocolMessage& request, RefProtocolMessa
 
 void ClientChannel::CloseClientChannel() {
   if (channel_->InIOLoop()) {
-    channel_->ForceShutdown();
+    //channel_->ForceShutdown();
+    channel_->ShutdownChannel();
     return;
   }
-  IOLoop()->PostTask(base::NewClosure(std::bind(&TcpChannel::ForceShutdown, channel_)));
+  auto functor = std::bind(&TcpChannel::ShutdownChannel, channel_);
+  IOLoop()->PostTask(base::NewClosure(functor));
 }
 
 void ClientChannel::OnSendFinished(RefTcpChannel channel) {
-  LOG(INFO) << " ClientChannel::OnSendFinished";
 }
 
 void ClientChannel::SetRequestTimeout(uint32_t ms) {
