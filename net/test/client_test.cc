@@ -42,17 +42,22 @@ void SendRequest() {
   }
 }
 
-void SendRawRequest() {
+void SendRawRequest(int sequence_id) {
   net::RefRawMessage raw_request =
     std::make_shared<net::RawMessage>(net::IODirectionType::kOutRequest);
   std::string content("this is a raw request");
   raw_request->SetContent(content);
   raw_request->SetCode(12);
   raw_request->SetMethod(12);
-  raw_request->SetSequenceId(100);
+  raw_request->SetSequenceId(sequence_id);
 
   if (raw_router->SendRecieve<net::RefRawMessage>(raw_request)) {
-    LOG(ERROR) << "Haha, My Raw Request Back ............. Wow!!!!";
+    //LOG(ERROR) << "Haha, My Raw Request Back ............. Wow!!!!";
+    auto& response = raw_request->Response();
+    if (response) {
+      net::RawMessage* raw_response = static_cast<net::RawMessage*>(response.get());
+      LOG(ERROR) << "Get RawResponse:\n" << raw_response->MessageDebug();
+    }
   }
 }
 
@@ -73,7 +78,7 @@ int main(int argc, char* argv[]) {
   raw_router = new net::ClientRouter(&loop, raw_server_address);
   net::RouterConf raw_router_config;
   raw_router_config.protocol = "raw";
-  raw_router_config.connections = 2;
+  raw_router_config.connections = 1;
   raw_router_config.recon_interal = 5000;
   raw_router_config.message_timeout = 1000;
   raw_router->SetupRouter(raw_router_config);
@@ -92,8 +97,10 @@ int main(int argc, char* argv[]) {
   base::CoroScheduler::RunAsCoroInLoop(&wloop, closure);
 #endif
 
-  base::StlClosure send_raw_request = std::bind(SendRawRequest);
-  base::CoroScheduler::RunAsCoroInLoop(&wloop, send_raw_request);
+  for (int i = 0; i < 10; i++) {
+    base::StlClosure send_raw_request = std::bind(SendRawRequest, i);
+    base::CoroScheduler::RunAsCoroInLoop(&wloop, send_raw_request);
+  }
 
   loop.WaitLoopEnd();
   delete router;

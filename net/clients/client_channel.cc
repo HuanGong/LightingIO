@@ -89,13 +89,10 @@ bool ClientChannel::TryFireNextRequest() {
 
   bool success = false;
   do {
-
     RefProtocolMessage next_request = requests_keeper_->PopNextRequest();
-    if (!next_request) {
-      return false;
-    }
+    if (!next_request) {return false;}
 
-    bool success = channel_->SendProtoMessage(next_request);
+    success = channel_->SendProtoMessage(next_request);
 
     if (success) {
       requests_keeper_->SetCurrent(next_request);

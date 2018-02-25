@@ -2,6 +2,8 @@
 #include "raw_message.h"
 
 namespace net {
+//static
+const uint32_t RawMessage::kRawHeaderSize = sizeof(RawHeader);
 
 RawMessage::RawMessage(IODirectionType t)
   : ProtocolMessage(t ,"raw") {
@@ -30,10 +32,13 @@ void RawMessage::SetFrameSize(uint32_t frame_size) {
 }
 
 void RawMessage::SetContent(const std::string& body) {
-  static const uint32_t header_size = sizeof(RawHeader);
-
   content_ = body;
-  header_.frame_size = header_size + body.size();
+  header_.frame_size = kRawHeaderSize + content_.size();
+}
+
+void RawMessage::SetContent(const char* content) {
+  content_ = content;
+  header_.frame_size = kRawHeaderSize + content_.size();
 }
 
 void RawMessage::SetSequenceId(uint32_t sequence_id) {

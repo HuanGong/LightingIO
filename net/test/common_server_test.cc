@@ -10,6 +10,9 @@
 #include "../protocol/http/http_response.h"
 #include "../protocol/http/http_proto_service.h"
 
+#include <unistd.h>
+#include <random>
+
 namespace net {
 
 class Application: public SrvDelegate {
@@ -47,6 +50,18 @@ void http_handler(net::RefProtocolMessage message) {
 void raw_handler(net::RefProtocolMessage message) {
   net::RawMessage* request = static_cast<net::RawMessage*>(message.get());
   LOG(INFO) << "I Got A RawRequest:\n" << request->MessageDebug();
+  auto response = std::make_shared<net::RawMessage>(net::IODirectionType::kOutResponse);
+
+  /*For test for async::coroutine_type_client*/
+  std::default_random_engine e;
+  std::uniform_int_distribution<unsigned> u(0, 1000);
+  usleep(u(e));
+
+  response->SetCode(0);
+  response->SetMethod(12);
+  response->SetSequenceId(request->Header().sequence_id);
+  response->SetContent("Raw Response for RawRequest");
+  request->SetResponse(std::move(response));
 }
 
 int main(int argc, char* argv[]) {
