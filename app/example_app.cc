@@ -47,7 +47,7 @@ void GeneralServerApp::ContentMain() {
   }
 
   json j_clients = manifest_["clients"];
-  if (j_service.is_array()) {
+  if (j_clients.is_array()) {
     for (auto& client : j_clients) {
       std::string address = client["address"];
 
@@ -67,7 +67,7 @@ void GeneralServerApp::ContentMain() {
       std::string name = client["name"];
 
       net::InetAddress server_address(sch_ip_port.ip, sch_ip_port.port);
-      std::shared_ptr<net::ClientRouter> router(new net::ClientRouter(MainLoop(), server_address));
+      net::RefClientRouter router(new net::ClientRouter(MainLoop(), server_address));
 
       router->SetDelegate(server_.get());
       router->SetupRouter(config);

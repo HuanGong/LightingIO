@@ -1,5 +1,6 @@
 #ifndef LIGHTING_NET_ENDIAN_H
 #define LIGHTING_NET_ENDIAN_H
+
 /* a network to local endian and local to network endian utils
  * copy form chenshuo's muduo library
  * */

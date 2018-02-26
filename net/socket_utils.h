@@ -4,7 +4,7 @@
 #include <arpa/inet.h>
 #include <string>
 
-/* about this code, a beeter refrence is muduo code, most of its from chenshuo's impliment*/
+/* about this code, a beeter refrence is muduo code, most of this from chenshuo's impliment*/
 namespace net {
 namespace socketutils {
 
