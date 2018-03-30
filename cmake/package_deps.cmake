@@ -5,4 +5,6 @@ if(CCACHE_FOUND)
   set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
 endif(CCACHE_FOUND)
 
-find_package(glog)
+find_package(GLOG REQUIRED)
+find_package(ZLIB REQUIRED)
+find_package(Tcmalloc)

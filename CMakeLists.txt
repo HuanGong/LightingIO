@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 2.8)
 
 project(LightingIO)
 
-set(CMAKE_CONFIG_DIR ${CMAKE_SOURCE_DIR}/cmake_config)
+set(CMAKE_CONFIG_DIR ${CMAKE_SOURCE_DIR}/cmake)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CONFIG_DIR}/Modules)
+MESSAGE(STATUS "CMAKE_MODULE_PATH: ${CMAKE_MODULE_PATH}")
 
 include(${CMAKE_CONFIG_DIR}/include_path.cmake)
 include(${CMAKE_CONFIG_DIR}/package_deps.cmake)
