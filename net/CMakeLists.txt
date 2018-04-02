@@ -35,88 +35,70 @@ set(LTNET_SOURCE
   clients/client_router.cc
 )
 
-#ADD_LIBRARY(ltnet STATIC
-ADD_LIBRARY(ltnet SHARED
+SET(LTNETEXECUTE_LINKLIBS
+  ${Tcmalloc_LIBRARIES}
+  ltnet
+  ltbase
+  http_parser
+  ${GLOG_LIBRARY}
+  ${ZLIB_LIBRARIES}
+  coro
+  gflags
+  unwind
+  pthread
+)
+
+SET(LTNET_DEPENDENCY
+  ltbase
+  http_parser
+)
+
+ADD_LIBRARY(ltnet STATIC
   ${LTNET_SOURCE}
 )
 
-TARGET_LINK_LIBRARIES(ltnet
-  -lglog
-  -lgflags
-  -lhttp_parser
-  -lbase_shared
-  -lpthread
-)
+# 指定静态库的输出名称#set_target_properties(ltnet_static PROPERTIES OUTPUT_NAME "ltnet")
+# 使动态库和静态库同时存在
+#set_target_properties(ltnet PROPERTIES CLEAN_DIRECT_OUTPUT 1)
+#set_target_properties(ltnet_static PROPERTIES CLEAN_DIRECT_OUTPUT 1)
+
 add_dependencies(ltnet
-  http_parser
-  base_shared
+  ${LTNET_DEPENDENCY}
 )
 
 ADD_EXECUTABLE(reuseport_test
   test/reuseport_test.cc
 )
-add_dependencies(reuseport_test
-  ltnet
-)
 TARGET_LINK_LIBRARIES(reuseport_test
-  -lltnet
-  -lglog
-  -lbase_shared
-  -lpthread
+  ${LTNETEXECUTE_LINKLIBS}
 )
 
 ADD_EXECUTABLE(acceptor_test
   test/acceptor_test.cc
 )
-add_dependencies(acceptor_test
-  ltnet
-)
 TARGET_LINK_LIBRARIES(acceptor_test
-  -lltnet
-  -lglog
-  -lgflags
-  -lbase_shared
-  -lpthread
+  ${LTNETEXECUTE_LINKLIBS}
 )
+
 
 ADD_EXECUTABLE(ioservice_test
   test/io_service_test.cc
 )
-add_dependencies(ioservice_test
-  ltnet
-)
 TARGET_LINK_LIBRARIES(ioservice_test
-  -lltnet
-  -lglog
-  -lbase_shared
-  -lpthread
+  ${LTNETEXECUTE_LINKLIBS}
 )
+
 
 ADD_EXECUTABLE(common_server
   test/common_server_test.cc
 )
-add_dependencies(common_server
-  ltnet
-)
 TARGET_LINK_LIBRARIES(common_server
-  -ltcmalloc
-  -lltnet
-  -lglog
-  -lgflags
-  -lbase_shared
-  -lpthread
+  ${LTNETEXECUTE_LINKLIBS}
 )
 
 ADD_EXECUTABLE(client_test
   test/client_test.cc
 )
-add_dependencies(client_test
-  ltnet
-)
 TARGET_LINK_LIBRARIES(client_test
-  -lltnet
-  -lglog
-  -lgflags
-  -lbase_shared
-  -lpthread
+  ${LTNETEXECUTE_LINKLIBS}
 )

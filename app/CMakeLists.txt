@@ -7,32 +7,30 @@ set(LTCONTENT_SOURCE
   example_app.cc
 )
 
-#ADD_LIBRARY(ltnet STATIC
-ADD_LIBRARY(ltcontent SHARED
-  ${LTCONTENT_SOURCE}
+SET(LTCONTENTEXE_LINKLIBS
+  ltcontent
+  ltnet
+  ltbase
+  ${GLOG_LIBRARY}
+  ${ZLIB_LIBRARIES}
+  http_parser
+  coro
+  gflags
+  unwind
+  pthread
 )
 
-TARGET_LINK_LIBRARIES(ltcontent
-  -lglog
-  -lgflags
-  -lltnet
-  -lhttp_parser
-  -lbase_shared
-  -lpthread
+ADD_LIBRARY(ltcontent STATIC
+  ${LTCONTENT_SOURCE}
 )
 add_dependencies(ltcontent
   ltnet
-  base_shared
+  ltbase
 )
-
 add_executable(lt_app
   main.cc
 )
-add_dependencies(lt_app
-  ltcontent
-)
 TARGET_LINK_LIBRARIES(lt_app
-  -lltcontent
-  -lgflags
+  ${LTCONTENTEXE_LINKLIBS}
 )
 

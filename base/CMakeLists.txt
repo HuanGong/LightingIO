@@ -4,11 +4,6 @@ SET(CMAKE_C_COMPILER g++)
 ADD_DEFINITIONS(-std=c++1y)
 ADD_DEFINITIONS(-fPIC)
 
-# libevent.so path
-LINK_DIRECTORIES(
-  ${CMAKE_BINARY_DIR}/thirdparty/libevent/lib
-)
-
 include(ExternalProject)
 ExternalProject_Add(concurrentqueue
   CONFIGURE_COMMAND ""
@@ -48,45 +43,37 @@ SET(BASE_SOURCES
   compression_utils/gzip_utils.cc
 )
 
-ADD_LIBRARY(base_shared SHARED
+SET(LTBASE_DEPENDENCY
+  coro
+)
+
+SET(LTBASEEXECUTE_LINKLIBS
+  ltbase
+  ${GLOG_LIBRARY}
+  ${ZLIB_LIBRARIES}
+  coro
+  gflags
+  unwind
+  pthread
+)
+
+ADD_LIBRARY(ltbase STATIC
   ${BASE_SOURCES}
 )
-
-add_dependencies(base_shared
-  coro
+add_dependencies(ltbase
+  ${LTBASE_DEPENDENCY}
 )
-
-TARGET_LINK_LIBRARIES(base_shared
-  coro
-  glog
-  -lz
-  -lpthread
-)
-
-#messageloop test
-#ADD_EXECUTABLE(messageloop_test
-#  message_loop/messageloop_test.cc
-#)
-#TARGET_LINK_LIBRARIES(messageloop_test
-#  coro
-#  glog
-#  base_shared
-#)
 
 ADD_EXECUTABLE(eventloop_test
   event_loop/test/run_loop_test.cc
 )
 TARGET_LINK_LIBRARIES(eventloop_test
-  glog
-  base_shared
+  ${LTBASEEXECUTE_LINKLIBS}
 )
 
 ADD_EXECUTABLE(coro2_test
   coroutine/test_main.cc
 )
 TARGET_LINK_LIBRARIES(coro2_test
-  glog
-  coro
-  base_shared
+  ${LTBASEEXECUTE_LINKLIBS}
 )
-
