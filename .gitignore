@@ -2,4 +2,5 @@ build/
 lib/
 
 *.o
+*.user
 
