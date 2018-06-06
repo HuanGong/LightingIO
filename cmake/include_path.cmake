@@ -10,10 +10,8 @@ include_directories(
   ${CMAKE_SOURCE_DIR}/thirdparty
   ${CMAKE_BINARY_DIR}/thirdparty
 
-  #glog
-  ${CMAKE_BINARY_DIR}/thirdparty/glog
-  ${CMAKE_SOURCE_DIR}/thirdparty/glog/src
-
   #coro
   ${CMAKE_BINARY_DIR}/thirdparty/libcoro
+
+  ${GLOG_INCLUDE_DIR}
 )
