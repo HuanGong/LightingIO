@@ -191,7 +191,7 @@ bool HttpProtoService::RequestToBuffer(const HttpRequest* request, IOBuffer* buf
   buffer->WriteString(HttpConstant::kBlankSpace);
 
   char v[11]; //"HTTP/1.1\r\n"
-  snprintf(v, 11, "HTTP/%d.%d\r\n", request->VersionMajor(), request->VersionMinor());
+  snprintf(v, 11, "HTTP/1.%d\r\n", request->VersionMinor() == 1 ? 1 : 0);
   buffer->WriteRawData(v, 10);
 
   for (const auto& header : request->Headers()) {

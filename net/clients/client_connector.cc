@@ -24,12 +24,11 @@ bool Connector::LaunchAConnection(net::InetAddress& address) {
 
       base::RefFdEvent fdevent = base::FdEvent::create(sockfd, 0);
 
+      //Important, must weak ptr
       WeakPtrFdEvent weak_fdevent(fdevent);
-
       fdevent->SetWriteCallback(std::bind(&Connector::OnWrite, this, weak_fdevent));
       fdevent->SetErrorCallback(std::bind(&Connector::OnError, this, weak_fdevent));
       fdevent->SetCloseCallback(std::bind(&Connector::OnError, this, weak_fdevent));
-      fdevent->SetDelegate(loop_->Pump()->AsFdEventDelegate());
 
       InitEvent(fdevent);
       connecting_sockets_.insert(fdevent);

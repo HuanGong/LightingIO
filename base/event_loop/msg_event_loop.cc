@@ -146,7 +146,6 @@ MessageLoop2::MessageLoop2()
   wakeup_event_ = FdEvent::create(wakeup_pipe_out_, EPOLLIN);
   CHECK(wakeup_event_);
 
-  wakeup_event_->SetDelegate(event_pump_->AsFdEventDelegate());
   wakeup_event_->SetReadCallback(std::bind(&MessageLoop2::OnWakeup, this));
 
   running_.clear();

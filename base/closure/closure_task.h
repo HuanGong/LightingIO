@@ -5,6 +5,7 @@
 #include <memory>
 #include <queue>
 #include <assert.h>
+#include <functional>
 #include "glog/logging.h"
 
 #include "base/base_micro.h"

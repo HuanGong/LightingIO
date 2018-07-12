@@ -25,8 +25,8 @@ public:
   void Run();
   void Quit();
 
-  void InstallFdEvent(FdEvent *fd_event);
-  void RemoveFdEvent(FdEvent* fd_event);
+  bool InstallFdEvent(FdEvent *fd_event);
+  bool RemoveFdEvent(FdEvent* fd_event);
 
   void UpdateFdEvent(FdEvent* fd_event) override;
 
@@ -43,7 +43,6 @@ protected:
 
 private:
   bool running_;
-  int32_t prefect_timeout_;
 
   std::vector<FdEvent*> active_events_;
   std::unique_ptr<IoMultiplexer> multiplexer_;

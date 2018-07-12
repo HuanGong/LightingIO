@@ -18,11 +18,12 @@ flags = [
     '-isystem', '/usr/include/asm-generic',
 
     '-I', '.',
-    '-I', './base',
-    '-I', './net',
-    '-I', './lighting',
-    '-I', './thirdparty',
-    '-I', './thirdparty/concurrentqueue',
+    '-I', 'base',
+    '-I', 'net',
+    '-I', 'lighting',
+    '-I', 'component',
+    '-I', 'thirdparty',
+    '-I', 'thirdparty/concurrentqueue',
 ]
 
 compilation_database_folder = ''

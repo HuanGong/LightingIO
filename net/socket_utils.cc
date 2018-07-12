@@ -10,6 +10,7 @@
 
 #include "glog/logging.h"
 
+#include <sys/uio.h>
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <base/base_constants.h>

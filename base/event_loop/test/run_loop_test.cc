@@ -140,7 +140,6 @@ bool FdEventTest() {
   std::cout << "read fd" << read_fd << " write fd:" << write_fd << std::endl;
 
   base::FdEvent fd_ev(read_fd, EPOLLIN | EPOLLRDHUP | EPOLLHUP);
-  fd_ev.SetDelegate(&loop);
   fd_ev.SetReadCallback([&]() {
     int value = 0;
     int count = read(fd_ev.fd(), (char*)&value, sizeof(int));
