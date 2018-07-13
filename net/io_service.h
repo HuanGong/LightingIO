@@ -7,7 +7,7 @@
 #include "net_callback.h"
 #include "service_acceptor.h"
 #include "dispatcher/workload_dispatcher.h"
-#include "base/event_loop/msg_event_loop.h"
+#include "base/event_loop/message_loop.h"
 
 namespace net {
 

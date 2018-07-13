@@ -1,7 +1,7 @@
 #ifndef APP_CONTENT_H_H
 #define APP_CONTENT_H_H
 
-#include <base/event_loop/msg_event_loop.h>
+#include <base/event_loop/message_loop.h>
 
 namespace content {
 
