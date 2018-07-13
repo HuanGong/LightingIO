@@ -31,63 +31,58 @@ int IoMultiplexerEpoll::WaitingIO(FdEventList& active_list, int32_t timeout_ms) 
   }
 
   for (int idx = 0; idx < turn_active_count; idx++) {
-    auto fd_event_pair = fdev_map_.find(ep_events_[idx].data.fd);
 
-    assert(fd_event_pair != fdev_map_.end());
+    FdEvent* fd_ev = (FdEvent*)(ep_events_[idx].data.ptr);
+    CHECK(fd_ev);
 
-    FdEvent* pfd_ev = fd_event_pair->second;
-
-    assert(pfd_ev->fd() == ep_events_[idx].data.fd);
-
-    pfd_ev->SetRcvEvents(ep_events_[idx].events);
-
-    active_list.push_back(pfd_ev);
+    fd_ev->SetRcvEvents(ep_events_[idx].events);
+    active_list.push_back(fd_ev);
   }
   return turn_active_count;
 }
 
 void IoMultiplexerEpoll::AddFdEvent(FdEvent* fd_ev) {
-  assert(fd_ev);
-  epoll_add(fd_ev->fd(), fd_ev->MonitorEvents());
-  fdev_map_[fd_ev->fd()] = fd_ev;
+  EpollCtl(fd_ev, EPOLL_CTL_ADD);
+  if (listen_events_.Attatched(fd_ev)) {
+    listen_events_.remove(fd_ev);
+  }
+  listen_events_.push_back(fd_ev);
 }
 
 void IoMultiplexerEpoll::DelFdEvent(FdEvent* fd_ev) {
-  assert(fd_ev);
-  auto iter = fdev_map_.find(fd_ev->fd());
-  assert(iter != fdev_map_.end());
-  epoll_del(fd_ev->fd(), fd_ev->MonitorEvents());
-  fdev_map_.erase(iter);
-}
 
-void IoMultiplexerEpoll::UpdateFdEvent(FdEvent* fd_ev) {
-  assert(fd_ev);
-  epoll_mod(fd_ev->fd(), fd_ev->MonitorEvents());
-  fdev_map_[fd_ev->fd()] = fd_ev;
-}
-
-void IoMultiplexerEpoll::epoll_del(int fd, uint32_t events) {
-  this->epoll_ctl(fd, events, EPOLL_CTL_DEL);
-}
-void IoMultiplexerEpoll::epoll_add(int fd, uint32_t events) {
-  this->epoll_ctl(fd, events, EPOLL_CTL_ADD);
-}
-void IoMultiplexerEpoll::epoll_mod(int fd, uint32_t events) {
-  this->epoll_ctl(fd, events, EPOLL_CTL_MOD);
-}
-void IoMultiplexerEpoll::epoll_ctl(int fd, uint32_t events, int op) {
-  struct epoll_event ev;
-  ev.data.fd = fd;
-  ev.events = events;
-  int ret = ::epoll_ctl(epoll_fd_, op, fd, &ev);
-  if (ret != 0) {
-    int32_t e = errno;
-    LOG(ERROR) << "epoll_ctl failed, option:" << epollopt_to_string(op) << " fd:" << fd << " events:" << events << " errno:" << e;
-    CHECK(false);
+  EpollCtl(fd_ev, EPOLL_CTL_DEL);
+  if (listen_events_.Attatched(fd_ev)) {
+    listen_events_.remove(fd_ev);
+  } else {
+    LOG(ERROR) << "Attept Remove A FdEvent From Another Holder";
   }
 }
 
-std::string IoMultiplexerEpoll::epollopt_to_string(int opt) {
+void IoMultiplexerEpoll::UpdateFdEvent(FdEvent* fd_ev) {
+  if (!listen_events_.Attatched(fd_ev)) {
+    listen_events_.push_back(fd_ev);
+  }
+  EpollCtl(fd_ev, EPOLL_CTL_MOD);
+}
+
+int IoMultiplexerEpoll::EpollCtl(FdEvent* fdev, int opt) {
+  struct epoll_event ev;
+
+  int fd = fdev->fd();
+  ev.data.ptr = fdev;
+  ev.events = fdev->MonitorEvents();
+
+  int ret = ::epoll_ctl(epoll_fd_, opt, fd, &ev);
+  if (ret != 0) {
+    int32_t e = errno;
+    LOG(ERROR) << "epoll_ctl error:" << EpollOptToString(opt) << " fd:" << fd << " events:" << ev.events << " errno:" << e;
+    CHECK(false);
+  }
+  return 0;
+}
+
+std::string IoMultiplexerEpoll::EpollOptToString(int opt) {
   switch(opt) {
     case EPOLL_CTL_ADD:
       return "EPOLL_CTL_ADD";

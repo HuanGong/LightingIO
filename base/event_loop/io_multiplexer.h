@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "fd_event.h"
+#include "queue/double_linked_list.h"
 
 namespace base {
 
@@ -22,10 +23,8 @@ public:
   virtual int WaitingIO(FdEventList& active_list, int32_t timeout_ms) = 0;
 
   uint32_t WatchingFdCounts() const;
-  bool HasFdEvent(const FdEvent* fd_ev);
 protected:
-  typedef std::map<int, FdEvent*> FdEventMap;
-  FdEventMap fdev_map_;
+  DLinkedList<FdEvent> listen_events_;
 
 private:
   DISALLOW_COPY_AND_ASSIGN(IoMultiplexer);

@@ -33,7 +33,6 @@ void ServiceAcceptor::InitListener() {
   socketutils::BindSocketFd(socket_fd_, address_.AsSocketAddr());
 
   socket_event_ = base::FdEvent::create(socket_fd_, 0);
-  socket_event_->SetDelegate(event_pump_->AsFdEventDelegate());
   socket_event_->SetReadCallback(
     std::bind(&ServiceAcceptor::HandleCommingConnection, this));
 

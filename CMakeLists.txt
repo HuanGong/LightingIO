@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 2.8)
 
 project(LightingIO)
 
+# for generate ycm complete database
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 set(CMAKE_CONFIG_DIR ${CMAKE_SOURCE_DIR}/cmake)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CONFIG_DIR}/Modules)
 MESSAGE(STATUS "CMAKE_MODULE_PATH: ${CMAKE_MODULE_PATH}")

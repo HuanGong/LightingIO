@@ -17,9 +17,16 @@ class IoMultiplexer;
 typedef std::function<void()> QuitClourse;
 typedef std::shared_ptr<FdEvent> RefFdEvent;
 
+class PumpDelegate {
+public:
+  virtual void BeforePumpRun() {};
+  virtual void AfterPumpRun() {};
+};
+
 class EventPump : public FdEvent::Delegate {
 public:
   EventPump();
+  EventPump(PumpDelegate* d);
   ~EventPump();
 
   void Run();
@@ -37,11 +44,13 @@ public:
   bool IsInLoopThread() const;
 
   bool Running() { return running_; }
-  inline FdEvent::Delegate* AsFdEventDelegate() {return this;}
+  void SetLoopThreadId(std::thread::id id) {tid_ = id;}
 protected:
   int64_t HandleTimerTask();
+  inline FdEvent::Delegate* AsFdEventDelegate() {return this;}
 
 private:
+  PumpDelegate* delegate_;
   bool running_;
 
   std::vector<FdEvent*> active_events_;

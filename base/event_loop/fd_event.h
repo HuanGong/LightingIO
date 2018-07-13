@@ -7,10 +7,11 @@
 #include <sys/epoll.h>
 #include <sys/poll.h>
 #include "base/base_micro.h"
+#include "base/queue/double_linked_list.h"
 
 namespace base {
 
-class FdEvent {
+class FdEvent : public EnableDoubleLinked<FdEvent> {
 public:
   /* when a fdevent is changed or be modify be user, we need to notify the poller
      change the events we care about */

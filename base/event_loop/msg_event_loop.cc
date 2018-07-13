@@ -134,7 +134,7 @@ MessageLoop2::MessageLoop2()
   status_.store(ST_INITING);
   has_join_.store(0);
 
-  event_pump_.reset(new EventPump());
+  event_pump_.reset(new EventPump(this));
 
   int fds[2];
   bool ret = CreateLocalNoneBlockingPipe(fds);
@@ -217,13 +217,18 @@ void MessageLoop2::WaitLoopEnd() {
   }
 }
 
+void MessageLoop2::BeforePumpRun() {
+}
+
+void MessageLoop2::AfterPumpRun() {
+}
+
 void MessageLoop2::ThreadMain() {
-
   threadlocal_current_ = this;
-
-  event_pump_->InstallFdEvent(wakeup_event_.get());
+  event_pump_->SetLoopThreadId(std::this_thread::get_id());
 
   status_.store(ST_STARTED);
+  event_pump_->InstallFdEvent(wakeup_event_.get());
 
   //delegate_->BeforeLoopRun();
   LOG(INFO) << "MessageLoop: " << loop_name_ << " Start Runing";
@@ -231,11 +236,10 @@ void MessageLoop2::ThreadMain() {
   event_pump_->Run();
 
   //delegate_->AfterLoopRun();
-
   LOG(INFO) << "MessageLoop: " << loop_name_ << " Stop Runing";
   event_pump_->RemoveFdEvent(wakeup_event_.get());
-  threadlocal_current_ = NULL;
   status_.store(ST_STOPED);
+  threadlocal_current_ = NULL;
 }
 
 void MessageLoop2::PostDelayTask(std::unique_ptr<QueuedTask> task, uint32_t ms) {

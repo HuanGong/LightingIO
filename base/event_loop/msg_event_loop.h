@@ -22,7 +22,7 @@ enum LoopState {
   ST_STOPED  = 3
 };
 
-class MessageLoop2 {
+class MessageLoop2 : public PumpDelegate {
   public:
     static MessageLoop2* Current();
 
@@ -50,6 +50,10 @@ class MessageLoop2 {
 
     void QuitLoop();
     EventPump* Pump() { return event_pump_.get(); }
+
+
+    void BeforePumpRun() override;
+    void AfterPumpRun() override;
   private:
     void ThreadMain();
 

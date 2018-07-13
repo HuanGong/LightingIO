@@ -7,7 +7,14 @@
 namespace base {
 
 EventPump::EventPump()
-  : running_(false) {
+  : delegate_(NULL),
+    running_(false) {
+  multiplexer_.reset(new base::IoMultiplexerEpoll());
+}
+
+EventPump::EventPump(PumpDelegate* d)
+  : delegate_(d),
+    running_(false) {
   multiplexer_.reset(new base::IoMultiplexerEpoll());
 }
 
@@ -16,14 +23,13 @@ EventPump::~EventPump() {
 }
 
 void EventPump::Run() {
-
-  tid_ = std::this_thread::get_id();
-
   //sigpipe
   Signal::signal(SIGPIPE, []() { LOG(ERROR) << "sigpipe."; });
 
+  if (delegate_) {
+    delegate_->BeforePumpRun();
+  }
   running_ = true;
-
   while (running_) {
 
     int32_t perfect_timeout = timer_queue_.HandleExpiredTimer();
@@ -36,7 +42,12 @@ void EventPump::Run() {
       fd_event->HandleEvent();
     }
   }
+
   running_ = false;
+
+  if (delegate_) {
+    delegate_->AfterPumpRun();
+  }
 }
 
 void EventPump::Quit() {
