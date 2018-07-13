@@ -23,7 +23,7 @@ public:
   virtual void AfterPumpRun() {};
 };
 
-class EventPump : public FdEvent::Delegate {
+class EventPump : public FdEvent::FdEventWatcher {
 public:
   EventPump();
   EventPump(PumpDelegate* d);
@@ -47,7 +47,7 @@ public:
   void SetLoopThreadId(std::thread::id id) {tid_ = id;}
 protected:
   int64_t HandleTimerTask();
-  inline FdEvent::Delegate* AsFdEventDelegate() {return this;}
+  inline FdEvent::FdEventWatcher* AsFdEventDelegate() {return this;}
 
 private:
   PumpDelegate* delegate_;

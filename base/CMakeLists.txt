@@ -20,8 +20,6 @@ SET(BASE_SOURCES
   time/timestamp.cc
   time/time_utils.cc
   utils/ns_convertor.cc
-  #messageloop
-  #message_loop/message_loop.cc
   #coroutine
   coroutine/coroutine.cc
   coroutine/coroutine_scheduler.cc

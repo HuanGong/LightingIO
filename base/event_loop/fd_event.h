@@ -13,11 +13,10 @@ namespace base {
 
 class FdEvent : public EnableDoubleLinked<FdEvent> {
 public:
-  /* when a fdevent is changed or be modify be user, we need to notify the poller
-     change the events we care about */
-  class Delegate {
+  /* interface notify poller update polling events*/
+  class FdEventWatcher {
     public:
-      virtual ~Delegate() {}
+      virtual ~FdEventWatcher() {}
       virtual void UpdateFdEvent(FdEvent* fd_event) = 0;
   };
 
@@ -31,8 +30,8 @@ public:
   FdEvent(int fd, uint32_t events);
   ~FdEvent();
 
-  void SetDelegate(Delegate* d);
-  Delegate* EventDelegate() {return delegate_;}
+  void SetDelegate(FdEventWatcher* d);
+  FdEventWatcher* EventDelegate() {return delegate_;}
 
   void HandleEvent();
   void ResetCallback();
@@ -74,7 +73,7 @@ private:
   }
   std::string events2string(uint32_t event);
 
-  Delegate* delegate_;
+  FdEventWatcher* delegate_;
 
   int fd_;
   uint32_t events_;

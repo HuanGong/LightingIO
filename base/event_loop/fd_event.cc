@@ -13,7 +13,7 @@ FdEvent::FdEvent(int fd, uint32_t event):
 FdEvent::~FdEvent() {
 }
 
-void FdEvent::SetDelegate(Delegate* d) {
+void FdEvent::SetDelegate(FdEventWatcher* d) {
   delegate_ = d;
 }
 
