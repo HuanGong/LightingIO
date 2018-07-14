@@ -43,24 +43,24 @@ int main(int argc, char** argv) {
 #if 0
   int count = 0;
 
-  base::MessageLoop2 loop;
+  base::MessageLoop loop;
   loop.SetLoopName("loop1");
   loop.Start();
 
-  base::MessageLoop2 l2;
+  base::MessageLoop l2;
   l2.SetLoopName("loop2");
   l2.Start();
 
-  base::MessageLoop2 l3;
+  base::MessageLoop l3;
   l3.SetLoopName("loop3");
   l3.Start();
   sleep(2);
 
-  std::vector<base::MessageLoop2*> loops = {&loop, &l2, &l3};
+  std::vector<base::MessageLoop*> loops = {&loop, &l2, &l3};
 
   auto new_connection = [&](int fd, const net::InetAddress& peer) {
 
-    base::MessageLoop2* loop = base::MessageLoop2::Current();
+    base::MessageLoop* loop = base::MessageLoop::Current();
     LOG(INFO) << " New Connection from:" << peer.IpPortAsString() << " on loop:" << loop->LoopName();
 
     net::InetAddress local(net::socketutils::GetLocalAddrIn(fd));
@@ -81,7 +81,7 @@ int main(int argc, char** argv) {
 
   std::vector<net::RefServiceAcceptor> acceptors;
 
-  for (base::MessageLoop2* l : loops) {
+  for (base::MessageLoop* l : loops) {
 
     l->PostTask(base::NewClosure([=, &acceptors]() {
 
@@ -95,7 +95,7 @@ int main(int argc, char** argv) {
     }));
   }
 
-  for (base::MessageLoop2* l : loops) {
+  for (base::MessageLoop* l : loops) {
     l->WaitLoopEnd();
   }
 #endif

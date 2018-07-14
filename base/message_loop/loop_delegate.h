@@ -3,13 +3,13 @@
 
 namespace base {
 
-class MessageLoop2;
+class MessageLoop;
 
 class LoopDelegate {
 public:
   virtual ~LoopDelegate();
-  virtual void BeforeMessageLoopRun(base::MessageLoop2* l) = 0;
-  virtual void AfterMessageLoopRun(base::MessageLoop2* l) = 0;
+  virtual void BeforeMessageLoopRun(base::MessageLoop* l) = 0;
+  virtual void AfterMessageLoopRun(base::MessageLoop* l) = 0;
 }
 
 }

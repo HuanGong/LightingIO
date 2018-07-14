@@ -29,7 +29,7 @@ public:
 
 class Connector {
 public:
-  Connector(base::MessageLoop2* loop, ConnectorDelegate* delegate);
+  Connector(base::MessageLoop* loop, ConnectorDelegate* delegate);
   ~Connector() {};
 
   bool LaunchAConnection(net::InetAddress& address);
@@ -44,7 +44,7 @@ private:
   void CleanUpBadChannel(base::RefFdEvent& event);
 
 private:
-  base::MessageLoop2* loop_;
+  base::MessageLoop* loop_;
   ConnectorDelegate* delegate_;
   std::set<base::RefFdEvent> connecting_sockets_;
 };

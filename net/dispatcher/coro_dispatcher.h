@@ -11,7 +11,7 @@ public:
   CoroWlDispatcher(bool handle_in_io);
   ~CoroWlDispatcher();
 
-  void TransferAndYield(base::MessageLoop2* ioloop, base::StlClourse);
+  void TransferAndYield(base::MessageLoop* ioloop, base::StlClourse);
   bool ResumeWorkCtxForRequest(RefProtocolMessage& request);
 
   // brand new api

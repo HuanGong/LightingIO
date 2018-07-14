@@ -15,7 +15,7 @@ namespace net {
 
 IOService::IOService(const InetAddress addr,
                      const std::string protocol,
-                     base::MessageLoop2* workloop,
+                     base::MessageLoop* workloop,
                      IOServiceDelegate* delegate)
   : protocol_(protocol),
     acceptor_loop_(workloop),
@@ -80,7 +80,7 @@ void IOService::OnNewConnection(int local_socket, const InetAddress& peer_addr) 
     return;
   }
 
-  base::MessageLoop2* io_work_loop = delegate_->GetNextIOWorkLoop();
+  base::MessageLoop* io_work_loop = delegate_->GetNextIOWorkLoop();
   if (!io_work_loop) {
     socketutils::CloseSocket(local_socket);
     return;

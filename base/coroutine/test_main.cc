@@ -14,9 +14,9 @@ void coro_fun() {
 
 int main() {
 
-  std::vector<base::MessageLoop2*> loops;
+  std::vector<base::MessageLoop*> loops;
   for (int i = 0; i < 4; i++) {
-    base::MessageLoop2* loop = new base::MessageLoop2();
+    base::MessageLoop* loop = new base::MessageLoop();
     loop->SetLoopName(std::to_string(i));
     loop->Start();
     loops.push_back(loop);
@@ -25,7 +25,7 @@ int main() {
 
   int i = 0;
   do {
-    base::MessageLoop2* loop = loops[i % loops.size()];
+    base::MessageLoop* loop = loops[i % loops.size()];
 
     loop->PostTask(base::NewClosure([]() {
 

@@ -3,7 +3,7 @@
 
 namespace net {
 
-Connector::Connector(base::MessageLoop2* loop, ConnectorDelegate* delegate)
+Connector::Connector(base::MessageLoop* loop, ConnectorDelegate* delegate)
   : loop_(loop),
     delegate_(delegate) {
   CHECK(delegate_);

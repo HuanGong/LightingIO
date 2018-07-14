@@ -5,7 +5,7 @@
 
 namespace net {
 
-ClientRouter::ClientRouter(base::MessageLoop2* loop, const InetAddress& server)
+ClientRouter::ClientRouter(base::MessageLoop* loop, const InetAddress& server)
   : protocol_("http"),
     channel_count_(1),
     reconnect_interval_(5000),
@@ -66,8 +66,8 @@ void ClientRouter::OnClientConnectFailed() {
 }
 
 
-base::MessageLoop2* ClientRouter::GetLoopForClient() {
-  base::MessageLoop2* io_loop = NULL;
+base::MessageLoop* ClientRouter::GetLoopForClient() {
+  base::MessageLoop* io_loop = NULL;
   if (delegate_) {
     io_loop = delegate_->NextIOLoopForClient();
   }
@@ -75,7 +75,7 @@ base::MessageLoop2* ClientRouter::GetLoopForClient() {
 }
 
 void ClientRouter::OnNewClientConnected(int socket_fd, InetAddress& local, InetAddress& remote) {
-  base::MessageLoop2* io_loop = GetLoopForClient();
+  base::MessageLoop* io_loop = GetLoopForClient();
 
   RefTcpChannel new_channel = TcpChannel::CreateClientChannel(socket_fd,
                                                               local,
@@ -140,7 +140,7 @@ bool ClientRouter::SendClientRequest(RefProtocolMessage& message) {
   uint32_t index = router_counter_ % channels_.size();
 
   RefClientChannel& client = channels_[index];
-  base::MessageLoop2* io_loop = client->IOLoop();
+  base::MessageLoop* io_loop = client->IOLoop();
   CHECK(io_loop);
 
   if (!dispatcher_->SetWorkContext(message.get())) {

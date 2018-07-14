@@ -10,7 +10,7 @@ namespace net {
 
 class WorkLoadDispatcher {
 public:
-  typedef std::shared_ptr<base::MessageLoop2> RefMessageLoop;
+  typedef std::shared_ptr<base::MessageLoop> RefMessageLoop;
   WorkLoadDispatcher(bool work_in_io);
   virtual ~WorkLoadDispatcher() {};
 
@@ -19,7 +19,7 @@ public:
 
   bool HandleWorkInIOLoop() const {return work_in_io_;}
 
-  base::MessageLoop2* GetNextWorkLoop();
+  base::MessageLoop* GetNextWorkLoop();
 
   // must call at Worker Loop, may ioworker or woker according to HandleWorkInIOLoop
   virtual bool SetWorkContext(ProtocolMessage* message);

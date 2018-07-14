@@ -33,7 +33,7 @@ void Server::Initialize() {
                        std::bind(&Server::ExitServerSignalHandler, this));
 }
 
-base::MessageLoop2* Server::NextIOLoopForClient() {
+base::MessageLoop* Server::NextIOLoopForClient() {
   if (0 == ioworker_loops_.size()) {
     return NULL;
   }
@@ -104,10 +104,10 @@ void Server::DecreaseChannelCount() {
   LOG(INFO) << "A connection Gone, Now Has <" << comming_connections_ << "> Comming Connections";
 }
 
-base::MessageLoop2* Server::GetNextIOWorkLoop() {
+base::MessageLoop* Server::GetNextIOWorkLoop() {
 
 #if defined SO_REUSEPORT && defined NET_ENABLE_REUSER_PORT
-  return base::MessageLoop2::Current();
+  return base::MessageLoop::Current();
 #else
   return ioworker_loops_[comming_connections_%ioworker_loops_.size()].get();
 #endif
@@ -138,7 +138,7 @@ void Server::InitIOWorkerLoop() {
   const static std::string name_prefix("IOWorkerLoop:");
   int count = delegate_->GetIOWorkerLoopCount();
   for (int i = 0; i < count; i++) {
-    RefMessageLoop loop(new base::MessageLoop2);
+    RefMessageLoop loop(new base::MessageLoop);
     loop->SetLoopName(name_prefix + std::to_string(i));
     loop->Start();
     ioworker_loops_.push_back(std::move(loop));
@@ -154,7 +154,7 @@ void Server::InitIOServiceLoop() {
   const static std::string name_prefix("IOServiceLoop:");
   int count = delegate_->GetIOServiceLoopCount();
   for (int i = 0; i < count; i++) {
-    RefMessageLoop loop(new base::MessageLoop2);
+    RefMessageLoop loop(new base::MessageLoop);
     loop->SetLoopName(name_prefix + std::to_string(i));
     loop->Start();
     ioservice_loops_.push_back(std::move(loop));

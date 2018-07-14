@@ -22,7 +22,7 @@ public:
 
   static CoroScheduler* TlsCurrent();
 
-  static void RunAsCoroInLoop(base::MessageLoop2* target_loop, StlClosure& t);
+  static void RunAsCoroInLoop(base::MessageLoop* target_loop, StlClosure& t);
   static void CreateAndSchedule(CoroClosure& task);
 
   intptr_t CurrentCoroId();

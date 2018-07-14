@@ -33,17 +33,17 @@ public:
   static RefTcpChannel Create(int socket_fd,
                               const InetAddress& local,
                               const InetAddress& peer,
-                              base::MessageLoop2* loop,
+                              base::MessageLoop* loop,
                               ChannelServeType type);
 
   static RefTcpChannel CreateClientChannel(int socket_fd,
                                            const InetAddress& local,
                                            const InetAddress& remote,
-                                           base::MessageLoop2* loop);
+                                           base::MessageLoop* loop);
   static RefTcpChannel CreateServerChannel(int socket_fd,
                                            const InetAddress& local,
                                            const InetAddress& peer,
-                                           base::MessageLoop2* loop);
+                                           base::MessageLoop* loop);
 
   ~TcpChannel();
 
@@ -51,7 +51,7 @@ public:
 
   const std::string& ChannelName() {return channal_name_;}
   void SetChannelName(const std::string name);
-  void SetOwnerLoop(base::MessageLoop2* owner);
+  void SetOwnerLoop(base::MessageLoop* owner);
   void SetDataHandleCallback(const RcvDataCallback& callback);
   void SetFinishSendCallback(const FinishSendCallback& callback);
   void SetCloseCallback(const ChannelClosedCallback& callback);
@@ -68,7 +68,7 @@ public:
   const std::string StatusAsString();
   bool InIOLoop() const;
   bool IsConnected() const;
-  base::MessageLoop2* IOLoop() const;
+  base::MessageLoop* IOLoop() const;
   bool IsServerChannel() const;
   bool IsClientChannel() const;
   RefProtoService GetProtoService() const;
@@ -85,15 +85,15 @@ private:
   TcpChannel(int socket_fd,
              const InetAddress& loc,
              const InetAddress& peer,
-             base::MessageLoop2* loop,
+             base::MessageLoop* loop,
              ChannelServeType type);
   void OnConnectionReady();
 private:
   /* all the io thing happend in work loop,
    * and the life cycle managered by ownerloop
    * */
-  base::MessageLoop2* work_loop_;
-  base::MessageLoop2* owner_loop_;
+  base::MessageLoop* work_loop_;
+  base::MessageLoop* owner_loop_;
 
   bool schedule_shutdown_;
   ChannelStatus channel_status_;

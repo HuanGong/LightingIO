@@ -20,12 +20,12 @@
 #include "net/protocol/raw/raw_message.h"
 #include "net/protocol/raw/raw_proto_service.h"
 
-base::MessageLoop2 loop;
-base::MessageLoop2 wloop;
+base::MessageLoop loop;
+base::MessageLoop wloop;
 net::InetAddress server_address("0.0.0.0", 5006);
 net::InetAddress raw_server_address("0.0.0.0", 5002);
 
-net::ClientRouter*  router; //(base::MessageLoop2*, const InetAddress&);
+net::ClientRouter*  router; //(base::MessageLoop*, const InetAddress&);
 net::ClientRouter* raw_router;
 net::RefHttpRequest g_request;
 net::RefTcpChannel g_channel;

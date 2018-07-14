@@ -20,7 +20,7 @@ CoroWlDispatcher::CoroWlDispatcher(bool handle_in_io)
 CoroWlDispatcher::~CoroWlDispatcher() {
 }
 
-void CoroWlDispatcher::TransferAndYield(base::MessageLoop2* ioloop, base::StlClourse clourse) {
+void CoroWlDispatcher::TransferAndYield(base::MessageLoop* ioloop, base::StlClourse clourse) {
   CHECK(ioloop);
   CHECK(base::CoroScheduler::TlsCurrent()->CurrentCoro());
   ioloop->PostTask(base::NewClosure(std::move(clourse)));
@@ -49,11 +49,11 @@ bool CoroWlDispatcher::ResumeWorkCtxForRequest(RefProtocolMessage& request) {
 
 bool CoroWlDispatcher::SetWorkContext(ProtocolMessage* message) {
   CHECK(message);
-  if ((base::MessageLoop2::Current() &&
+  if ((base::MessageLoop::Current() &&
       base::CoroScheduler::TlsCurrent()->CurrentCoro() &&
       !base::CoroScheduler::TlsCurrent()->InRootCoroutine())) {
     auto& work_context = message->GetWorkCtx();
-    work_context.coro_loop = base::MessageLoop2::Current();
+    work_context.coro_loop = base::MessageLoop::Current();
     work_context.weak_coro = base::CoroScheduler::TlsCurrent()->CurrentCoro();
     return true;
   }
@@ -67,7 +67,7 @@ bool CoroWlDispatcher::TransmitToWorker(base::StlClourse& closure) {
     return true;
   }
 
-  base::MessageLoop2* loop = GetNextWorkLoop();
+  base::MessageLoop* loop = GetNextWorkLoop();
   if (NULL == loop) {
     return false;
   }

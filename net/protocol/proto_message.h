@@ -29,7 +29,7 @@ typedef struct {
 } IOContext;
 
 typedef struct {
-  base::MessageLoop2* coro_loop;
+  base::MessageLoop* coro_loop;
   std::weak_ptr<base::Coroutine> weak_coro;
 } WorkContext;
 

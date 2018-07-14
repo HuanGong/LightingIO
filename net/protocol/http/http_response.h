@@ -20,6 +20,8 @@ public:
   HttpResponse(IODirectionType t);
   ~HttpResponse();
 
+  static RefHttpResponse NewOutResponseWithCode(uint16_t code);
+
   std::string& MutableBody();
   const std::string& Body() const;
 

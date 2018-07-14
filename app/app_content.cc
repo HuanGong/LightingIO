@@ -14,7 +14,7 @@ App::App() {
 App::~App() {
 }
 
-base::MessageLoop2* App::MainLoop() {
+base::MessageLoop* App::MainLoop() {
   return &content_loop_;
 }
 

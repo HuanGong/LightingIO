@@ -18,7 +18,7 @@ CoroScheduler* CoroScheduler::TlsCurrent() {
 
 
 //static
-void CoroScheduler::RunAsCoroInLoop(base::MessageLoop2* target_loop, StlClosure& t) {
+void CoroScheduler::RunAsCoroInLoop(base::MessageLoop* target_loop, StlClosure& t) {
   CHECK(target_loop && t);
 
   StlClosure coro_functor = std::bind(&CoroScheduler::CreateAndSchedule, t);

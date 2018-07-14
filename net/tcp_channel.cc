@@ -12,7 +12,7 @@ namespace net {
 RefTcpChannel TcpChannel::CreateClientChannel(int socket_fd,
                                               const InetAddress& local,
                                               const InetAddress& remote,
-                                              base::MessageLoop2* loop) {
+                                              base::MessageLoop* loop) {
 
   RefTcpChannel conn(new TcpChannel(socket_fd, local, remote,
                                     loop, ChannelServeType::kClientType));
@@ -24,7 +24,7 @@ RefTcpChannel TcpChannel::CreateClientChannel(int socket_fd,
 RefTcpChannel TcpChannel::Create(int socket_fd,
                                  const InetAddress& local,
                                  const InetAddress& peer,
-                                 base::MessageLoop2* loop,
+                                 base::MessageLoop* loop,
                                  ChannelServeType type) {
 
   RefTcpChannel conn(new TcpChannel(socket_fd,
@@ -39,7 +39,7 @@ RefTcpChannel TcpChannel::Create(int socket_fd,
 RefTcpChannel TcpChannel::CreateServerChannel(int socket_fd,
                                               const InetAddress& local,
                                               const InetAddress& peer,
-                                              base::MessageLoop2* loop) {
+                                              base::MessageLoop* loop) {
 
   RefTcpChannel conn(new TcpChannel(socket_fd, local, peer, loop,
                                     ChannelServeType::kServerType));
@@ -50,7 +50,7 @@ RefTcpChannel TcpChannel::CreateServerChannel(int socket_fd,
 TcpChannel::TcpChannel(int socket_fd,
                        const InetAddress& loc,
                        const InetAddress& peer,
-                       base::MessageLoop2* loop,
+                       base::MessageLoop* loop,
                        ChannelServeType type)
   : work_loop_(loop),
     owner_loop_(NULL),
@@ -321,7 +321,7 @@ void TcpChannel::SetChannelName(const std::string name) {
   channal_name_ = name;
 }
 
-void TcpChannel::SetOwnerLoop(base::MessageLoop2* owner) {
+void TcpChannel::SetOwnerLoop(base::MessageLoop* owner) {
   owner_loop_ = owner;
 }
 
@@ -362,7 +362,7 @@ const std::string TcpChannel::StatusAsString() {
   return "UNKNOWN";
 }
 
-base::MessageLoop2* TcpChannel::IOLoop() const {
+base::MessageLoop* TcpChannel::IOLoop() const {
   return work_loop_;
 }
 bool TcpChannel::InIOLoop() const {

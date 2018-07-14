@@ -11,7 +11,7 @@ public:
   virtual ~App();
 
   void RunApplication();
-  base::MessageLoop2* MainLoop();
+  base::MessageLoop* MainLoop();
 protected:
   virtual void ContentMain();
 
@@ -19,7 +19,7 @@ protected:
   virtual void AfterApplicationRun() = 0;
 
 private:
-  base::MessageLoop2 content_loop_;
+  base::MessageLoop content_loop_;
 };
 
 } //namespace content

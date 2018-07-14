@@ -19,7 +19,7 @@ void WorkLoadDispatcher::InitWorkLoop(const int32_t count) {
 
   for (int32_t i = 0; i < count; i++) {
     const static std::string name_prefix("WorkLoop:");
-    RefMessageLoop loop(new base::MessageLoop2);
+    RefMessageLoop loop(new base::MessageLoop);
     loop->SetLoopName(name_prefix + std::to_string(i));
     work_loops_.push_back(std::move(loop));
   }
@@ -32,7 +32,7 @@ void WorkLoadDispatcher::StartDispatcher() {
   }
 }
 
-base::MessageLoop2* WorkLoadDispatcher::GetNextWorkLoop() {
+base::MessageLoop* WorkLoadDispatcher::GetNextWorkLoop() {
   if (work_loops_.size() && !work_in_io_) {
     int32_t index = round_robin_counter_ % work_loops_.size();
     round_robin_counter_++;
@@ -44,7 +44,7 @@ base::MessageLoop2* WorkLoadDispatcher::GetNextWorkLoop() {
 bool WorkLoadDispatcher::SetWorkContext(ProtocolMessage* message) {
   CHECK(message);
   auto& work_context = message->GetWorkCtx();
-  work_context.coro_loop = base::MessageLoop2::Current();
+  work_context.coro_loop = base::MessageLoop::Current();
   return work_context.coro_loop != NULL;
 }
 
@@ -53,7 +53,7 @@ bool WorkLoadDispatcher::TransmitToWorker(base::StlClourse& clourse) {
     clourse();
     return true;
   }
-  base::MessageLoop2* loop = GetNextWorkLoop();
+  base::MessageLoop* loop = GetNextWorkLoop();
   if (loop) {
     loop->PostTask(base::NewClosure(clourse));
     return true;

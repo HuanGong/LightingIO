@@ -156,7 +156,7 @@ void ClientChannel::SetRequestTimeout(uint32_t ms) {
   message_timeout_ = ms; //ms
 }
 
-base::MessageLoop2* ClientChannel::IOLoop() {
+base::MessageLoop* ClientChannel::IOLoop() {
   return channel_->IOLoop();
 }
 

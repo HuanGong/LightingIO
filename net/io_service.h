@@ -16,7 +16,7 @@ class IOService;
 class IOServiceDelegate {
 public:
   virtual ~IOServiceDelegate(){};
-  virtual base::MessageLoop2* GetNextIOWorkLoop() = 0;
+  virtual base::MessageLoop* GetNextIOWorkLoop() = 0;
 
   /* use for couting connection numbers and limit
    * max connections; return false when reach limits,
@@ -37,7 +37,7 @@ public:
    * begin */
   IOService(const InetAddress local,
             const std::string protocol,
-            base::MessageLoop2* workloop,
+            base::MessageLoop* workloop,
             IOServiceDelegate* delegate);
 
   ~IOService();
@@ -45,7 +45,7 @@ public:
   void StartIOService();
   void StopIOService();
 
-  base::MessageLoop2* AcceptorLoop() { return acceptor_loop_; }
+  base::MessageLoop* AcceptorLoop() { return acceptor_loop_; }
   const std::string& IOServiceName() const {return service_name_;}
 
   void SetWorkLoadDispatcher(WorkLoadDispatcher* d);
@@ -68,7 +68,7 @@ private:
   std::string protocol_;
   RefServiceAcceptor acceptor_;
 
-  base::MessageLoop2* acceptor_loop_;
+  base::MessageLoop* acceptor_loop_;
 
   /* interface to owner and handler */
   IOServiceDelegate* delegate_;

@@ -76,7 +76,7 @@ public:
     acceptor_loop_.QuitLoop();
   };
 
-  base::MessageLoop2* GetNextIOWorkLoop() {
+  base::MessageLoop* GetNextIOWorkLoop() {
     return &iowork_loop_;
   }
   bool IncreaseChannelCount() {
@@ -102,8 +102,8 @@ private:
     acceptor_loop_.PostTask(
       base::NewClosure(std::bind(&IOService::StopIOService, ioservice_)));
   }
-  base::MessageLoop2 iowork_loop_;
-  base::MessageLoop2 acceptor_loop_;
+  base::MessageLoop iowork_loop_;
+  base::MessageLoop acceptor_loop_;
 
   RefIOService ioservice_;
   RefProtoService tcp_protoservice_;

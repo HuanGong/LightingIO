@@ -7,7 +7,7 @@
 
 int main(int argc, char** argv) {
 
-  base::MessageLoop2 loop;
+  base::MessageLoop loop;
   LOG(INFO) << "Call Start";
   loop.Start();
   LOG(INFO) << "Started";

@@ -39,9 +39,7 @@ void http_handler(net::RefProtocolMessage message) {
   net::HttpProtoService::RequestToBuffer(httpmsg, &buffer);
   LOG(INFO) << "I Got HttpRequest Raw:\n" << buffer.AsString();
 
-  net::RefHttpResponse response =
-    std::make_shared<net::HttpResponse>(net::IODirectionType::kOutResponse);
-  response->SetResponseCode(200);
+  net::RefHttpResponse response = net::HttpResponse::NewOutResponseWithCode(200);
   response->SetKeepAlive(httpmsg->IsKeepAlive());
   response->MutableBody() = "Nice to meet your,I'm LightingIO\n";
   httpmsg->SetResponse(std::move(response));
@@ -67,21 +65,21 @@ void raw_handler(net::RefProtocolMessage message) {
 int main(int argc, char* argv[]) {
   //google::InitGoogleLogging(argv[0]);  // 初始化 glog
   google::ParseCommandLineFlags(&argc, &argv, true);  // 初始化 gflags
-  base::MessageLoop2 main_loop;
+  base::MessageLoop main_loop;
   main_loop.SetLoopName("MainLoop");
   main_loop.Start();
 
   net::Application app;
   net::Server server((net::SrvDelegate*)&app);
 
-  //server.RegisterService("http://0.0.0.0:5006",
-  //                       std::bind(http_handler, std::placeholders::_1));
+  server.RegisterService("http://0.0.0.0:5006",
+                         std::bind(http_handler, std::placeholders::_1));
 
   //server.RegisterService("line://0.0.0.0:5001",
   //                       std::bind(handler, std::placeholders::_1));
 
-  server.RegisterService("raw://0.0.0.0:5002",
-                         std::bind(raw_handler, std::placeholders::_1));
+  //server.RegisterService("raw://0.0.0.0:5002",
+  //                       std::bind(raw_handler, std::placeholders::_1));
 
   server.RunAllService();
 

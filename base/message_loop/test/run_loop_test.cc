@@ -13,7 +13,7 @@
 #include "../linux_signal.h"
 
 
-bool MessageLoop2Test();
+bool MessageLoopTest();
 bool FdEventTest();
 bool TimerEventTest();
 
@@ -44,25 +44,25 @@ int main(int argc, char** argv) {
   while(1) {
     sleep(10);
   }
-  //MessageLoop2Test();
+  //MessageLoopTest();
   return 0;
 }
 
-bool MessageLoop2Test() {
+bool MessageLoopTest() {
 #if 0
   {
-    base::MessageLoop2 loop;
+    base::MessageLoop loop;
     sleep(1);
   }
 
   {
-    base::MessageLoop2 loop;
+    base::MessageLoop loop;
     loop.Start();
     sleep(1);
   }
 
   {
-    base::MessageLoop2 loop;
+    base::MessageLoop loop;
     loop.Start();
     loop.PostTask(base::NewClosure([&]() {
       LOG(INFO) << "PostTask Worked";
@@ -73,7 +73,7 @@ bool MessageLoop2Test() {
   }
   //delay task
   {
-    base::MessageLoop2 loop;
+    base::MessageLoop loop;
     loop.Start();
 
     LOG(INFO) << "Post A 1 second Task @" << base::time_us();
@@ -97,10 +97,10 @@ bool MessageLoop2Test() {
 #endif
 
   {
-    base::MessageLoop2 loop;
+    base::MessageLoop loop;
     loop.Start();
     {
-      base::MessageLoop2 reply_loop;
+      base::MessageLoop reply_loop;
       reply_loop.Start();
 
       loop.PostTaskAndReply(

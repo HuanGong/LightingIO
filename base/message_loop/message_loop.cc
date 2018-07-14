@@ -28,9 +28,9 @@ static const char kQuit = 1;
 static const char kRunTask = 2;
 static const char kRunReplyTask = 3;
 
-static thread_local MessageLoop2* threadlocal_current_ = NULL;
+static thread_local MessageLoop* threadlocal_current_ = NULL;
 //static
-MessageLoop2* MessageLoop2::Current() {
+MessageLoop* MessageLoop::Current() {
   return threadlocal_current_;
 }
 
@@ -42,7 +42,7 @@ void IgnoreSigPipeSignalOnCurrentThread2() {
   pthread_sigmask(SIG_BLOCK, &sigpipe_mask, nullptr);
 }
 
-class MessageLoop2::ReplyTaskOwner {
+class MessageLoop::ReplyTaskOwner {
 public:
   ReplyTaskOwner(std::unique_ptr<QueuedTask> reply)
     : reply_(std::move(reply)) {
@@ -63,7 +63,7 @@ private:
   bool run_task_ = false;
 };
 
-class MessageLoop2::SetTimerTask : public QueuedTask {
+class MessageLoop::SetTimerTask : public QueuedTask {
  public:
   SetTimerTask(std::unique_ptr<QueuedTask> task, uint32_t milliseconds)
     : task_(std::move(task)),
@@ -74,14 +74,14 @@ class MessageLoop2::SetTimerTask : public QueuedTask {
   bool Run() override {
     uint32_t post_time = time_ms() - posted_;
     uint32_t new_time = post_time > milliseconds_ ? 0 : milliseconds_ - post_time;
-    CHECK(MessageLoop2::Current() != NULL);
+    CHECK(MessageLoop::Current() != NULL);
     if (new_time == 0) {
       LOG(INFO) <<  "Direct RUN Delay Task";
       task_->Run();
       task_.release();
     } else {
       LOG(INFO) <<  "Post Delay Again:" << new_time << " ms";
-      MessageLoop2::Current()->PostDelayTask(std::move(task_), new_time);
+      MessageLoop::Current()->PostDelayTask(std::move(task_), new_time);
     }
     return true;
   }
@@ -91,11 +91,11 @@ class MessageLoop2::SetTimerTask : public QueuedTask {
   const uint32_t posted_;
 };
 
-class MessageLoop2::PostAndReplyTask : public QueuedTask {
+class MessageLoop::PostAndReplyTask : public QueuedTask {
 public:
   PostAndReplyTask(std::unique_ptr<QueuedTask> task,
                    std::unique_ptr<QueuedTask> reply,
-                   MessageLoop2* run_reply_loop,
+                   MessageLoop* run_reply_loop,
                    int reply_wakeup_pipe)
     : task_(std::move(task)),
       reply_wakeup_pipe_(reply_wakeup_pipe),
@@ -122,11 +122,11 @@ private:
   }
 
   std::unique_ptr<QueuedTask> task_;
-  int reply_wakeup_pipe_; //owner by MessageLoop2 who run this replytask;
+  int reply_wakeup_pipe_; //owner by MessageLoop who run this replytask;
   scoped_refptr<RefCountedObject<ReplyTaskOwner>> reply_task_owner_;
 };
 
-MessageLoop2::MessageLoop2()
+MessageLoop::MessageLoop()
   : running_(ATOMIC_FLAG_INIT),
     wakeup_pipe_in_(0),
     wakeup_pipe_out_(0) {
@@ -146,16 +146,16 @@ MessageLoop2::MessageLoop2()
   wakeup_event_ = FdEvent::create(wakeup_pipe_out_, EPOLLIN);
   CHECK(wakeup_event_);
 
-  wakeup_event_->SetReadCallback(std::bind(&MessageLoop2::OnWakeup, this));
+  wakeup_event_->SetReadCallback(std::bind(&MessageLoop::OnWakeup, this));
 
   running_.clear();
 }
 
-MessageLoop2::~MessageLoop2() {
+MessageLoop::~MessageLoop() {
 
   CHECK(!IsInLoopThread());
 
-  LOG(ERROR) << " MessageLoop2::~MessageLoop2 Gone " << loop_name_;
+  LOG(ERROR) << " MessageLoop::~MessageLoop Gone " << loop_name_;
   struct timespec ts;
   char message = kQuit;
   while (write(wakeup_pipe_in_, &message, sizeof(message)) != sizeof(message)) {
@@ -182,29 +182,29 @@ MessageLoop2::~MessageLoop2() {
   event_pump_.reset();
 }
 
-void MessageLoop2::SetLoopName(std::string name) {
+void MessageLoop::SetLoopName(std::string name) {
   loop_name_ = name;
 }
 
-bool MessageLoop2::IsInLoopThread() const {
+bool MessageLoop::IsInLoopThread() const {
   return event_pump_ && event_pump_->IsInLoopThread();
 }
 
-void MessageLoop2::Start() {
+void MessageLoop::Start() {
   bool run = running_.test_and_set(std::memory_order_acquire);
   if (run == true) {
     LOG(ERROR) << " Messageloop Can't Start Twice";
     return;
   }
 
-  thread_ptr_.reset(new std::thread(std::bind(&MessageLoop2::ThreadMain, this)));
+  thread_ptr_.reset(new std::thread(std::bind(&MessageLoop::ThreadMain, this)));
 
   do {
     std::this_thread::sleep_for(std::chrono::microseconds(1));
   } while(status_ != ST_STARTED);
 }
 
-void MessageLoop2::WaitLoopEnd() {
+void MessageLoop::WaitLoopEnd() {
   int32_t expect = 0, replace = 1;
   bool has_set = has_join_.compare_exchange_strong(expect, replace);
   if (has_set == false) {
@@ -217,13 +217,13 @@ void MessageLoop2::WaitLoopEnd() {
   }
 }
 
-void MessageLoop2::BeforePumpRun() {
+void MessageLoop::BeforePumpRun() {
 }
 
-void MessageLoop2::AfterPumpRun() {
+void MessageLoop::AfterPumpRun() {
 }
 
-void MessageLoop2::ThreadMain() {
+void MessageLoop::ThreadMain() {
   threadlocal_current_ = this;
   event_pump_->SetLoopThreadId(std::this_thread::get_id());
 
@@ -242,7 +242,7 @@ void MessageLoop2::ThreadMain() {
   threadlocal_current_ = NULL;
 }
 
-void MessageLoop2::PostDelayTask(std::unique_ptr<QueuedTask> task, uint32_t ms) {
+void MessageLoop::PostDelayTask(std::unique_ptr<QueuedTask> task, uint32_t ms) {
   if (status_ != ST_STARTED) {
     LOG(ERROR) << "MessageLoop: " << loop_name_ << " Not Started";
     return;
@@ -256,7 +256,7 @@ void MessageLoop2::PostDelayTask(std::unique_ptr<QueuedTask> task, uint32_t ms) 
   }
 }
 
-void MessageLoop2::PostTask(std::unique_ptr<QueuedTask> task) {
+void MessageLoop::PostTask(std::unique_ptr<QueuedTask> task) {
   if (status_ != ST_STARTED) {
     LOG(ERROR) << "MessageLoop: " << loop_name_ << " Not Started";
     return;
@@ -296,7 +296,7 @@ void MessageLoop2::PostTask(std::unique_ptr<QueuedTask> task) {
 }
 
 //static
-void MessageLoop2::OnWakeup() {
+void MessageLoop::OnWakeup() {
   DCHECK(wakeup_event_->fd() == wakeup_pipe_out_);
 
   char buf;
@@ -342,9 +342,9 @@ void MessageLoop2::OnWakeup() {
   }
 }
 
-void MessageLoop2::PostTaskAndReply(std::unique_ptr<QueuedTask> task,
+void MessageLoop::PostTaskAndReply(std::unique_ptr<QueuedTask> task,
                                    std::unique_ptr<QueuedTask> reply,
-                                   MessageLoop2* reply_loop) {
+                                   MessageLoop* reply_loop) {
   CHECK(reply_loop);
 
   std::unique_ptr<QueuedTask> wrapper(new PostAndReplyTask(std::move(task),
@@ -354,7 +354,7 @@ void MessageLoop2::PostTaskAndReply(std::unique_ptr<QueuedTask> task,
   PostTask(std::move(wrapper));
 }
 
-bool MessageLoop2::PostTaskAndReply(std::unique_ptr<QueuedTask> task,
+bool MessageLoop::PostTaskAndReply(std::unique_ptr<QueuedTask> task,
                                    std::unique_ptr<QueuedTask> reply) {
   if (NULL == Current()) {
     LOG(ERROR) << "The Reply loop is NULL!";
@@ -364,13 +364,13 @@ bool MessageLoop2::PostTaskAndReply(std::unique_ptr<QueuedTask> task,
   return true;
 }
 
-void MessageLoop2::PrepareReplyTask(scoped_refptr<ReplyTaskOwnerRef> reply_task) {
+void MessageLoop::PrepareReplyTask(scoped_refptr<ReplyTaskOwnerRef> reply_task) {
   DCHECK(reply_task);
   std::unique_lock<std::mutex> lck(pending_lock_);
   pending_replies_.push_back(std::move(reply_task));
 }
 
-bool MessageLoop2::InstallSigHandler(int sig, const SigHandler handler) {
+bool MessageLoop::InstallSigHandler(int sig, const SigHandler handler) {
   if (status_ != ST_STARTED) return false;
 
   if (!IsInLoopThread()) {
@@ -383,7 +383,7 @@ bool MessageLoop2::InstallSigHandler(int sig, const SigHandler handler) {
   return true;
 }
 
-void MessageLoop2::QuitLoop() {
+void MessageLoop::QuitLoop() {
   event_pump_->Quit();
 }
 

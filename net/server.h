@@ -16,7 +16,7 @@
 
 namespace net {
 
-typedef std::shared_ptr<base::MessageLoop2> RefMessageLoop;
+typedef std::shared_ptr<base::MessageLoop> RefMessageLoop;
 typedef std::map<std::string, RefProtoService> ProtoserviceMap;
 
 #define SERVER_EXIT_SIG 44
@@ -71,14 +71,14 @@ public:
 public: //override from ioservicedelegate
   bool IncreaseChannelCount() override;
   void DecreaseChannelCount() override;
-  base::MessageLoop2* GetNextIOWorkLoop() override;
+  base::MessageLoop* GetNextIOWorkLoop() override;
 
   bool CanCreateNewChannel() { return true;}
   void IOServiceStarted(const IOService* ioservice) override;
   void IOServiceStoped(const IOService* ioservice) override;
 
   //override form client routerdelegate
-  base::MessageLoop2* NextIOLoopForClient() override;
+  base::MessageLoop* NextIOLoopForClient() override;
 private:
   void Initialize();
 

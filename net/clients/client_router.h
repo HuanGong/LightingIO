@@ -28,7 +28,7 @@ typedef struct {
 
 class RouterDelegate {
 public:
-  virtual base::MessageLoop2* NextIOLoopForClient() = 0;
+  virtual base::MessageLoop* NextIOLoopForClient() = 0;
 };
 
 class ClientRouter;
@@ -37,7 +37,7 @@ typedef std::shared_ptr<ClientRouter> RefClientRouter;
 class ClientRouter : public ConnectorDelegate,
                      public ClientChannel::Delegate {
 public:
-  ClientRouter(base::MessageLoop2*, const InetAddress&);
+  ClientRouter(base::MessageLoop*, const InetAddress&);
   ~ClientRouter();
 
   void SetDelegate(RouterDelegate* delegate);
@@ -64,7 +64,7 @@ public:
 
 private:
   //Get a io work loop for channel, if no loop provide, use default work_loop_;
-  base::MessageLoop2* GetLoopForClient();
+  base::MessageLoop* GetLoopForClient();
 
   std::string protocol_;
   uint32_t channel_count_;
@@ -74,7 +74,7 @@ private:
   uint32_t message_timeout_; //ms
 
   const InetAddress server_addr_;
-  base::MessageLoop2* work_loop_;
+  base::MessageLoop* work_loop_;
   bool is_stopping_;
 
   RefConnector connector_;

@@ -29,7 +29,7 @@ public:
   ClientChannel(Delegate*, RefTcpChannel&);
   virtual ~ClientChannel();
 
-  base::MessageLoop2* IOLoop();
+  base::MessageLoop* IOLoop();
   void SetRequestTimeout(uint32_t ms);
   bool ScheduleARequest(RefProtocolMessage request);
   void OnResponseMessage(RefProtocolMessage message);

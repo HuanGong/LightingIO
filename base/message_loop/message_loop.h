@@ -22,12 +22,12 @@ enum LoopState {
   ST_STOPED  = 3
 };
 
-class MessageLoop2 : public PumpDelegate {
+class MessageLoop : public PumpDelegate {
   public:
-    static MessageLoop2* Current();
+    static MessageLoop* Current();
 
-    MessageLoop2();
-    virtual ~MessageLoop2();
+    MessageLoop();
+    virtual ~MessageLoop();
 
     void PostTask(std::unique_ptr<QueuedTask> task);
 
@@ -36,7 +36,7 @@ class MessageLoop2 : public PumpDelegate {
 
     void PostTaskAndReply(std::unique_ptr<QueuedTask> task,
                           std::unique_ptr<QueuedTask> reply,
-                          MessageLoop2* reply_queue);
+                          MessageLoop* reply_queue);
     bool PostTaskAndReply(std::unique_ptr<QueuedTask> task,
                           std::unique_ptr<QueuedTask> reply);
 

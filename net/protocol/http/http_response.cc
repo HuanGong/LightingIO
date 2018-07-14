@@ -8,6 +8,13 @@
 
 namespace net {
 
+//static
+RefHttpResponse HttpResponse::NewOutResponseWithCode(uint16_t code) {
+  auto r = std::make_shared<HttpResponse>(IODirectionType::kOutResponse);
+  r->SetResponseCode(code);
+  return std::move(r);
+}
+
 HttpResponse::HttpResponse(IODirectionType t)
   : ProtocolMessage(t, "http"),
   keepalive_(false),
