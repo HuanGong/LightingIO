@@ -3,7 +3,7 @@
 #include "glog/logging.h"
 #include "../tcp_channel.h"
 #include "../io_service.h"
-#include "base/event_loop/linux_signal.h"
+#include "base/message_loop/linux_signal.h"
 
 namespace net {
 

@@ -24,15 +24,15 @@ SET(BASE_SOURCES
   coroutine/coroutine.cc
   coroutine/coroutine_scheduler.cc
   #new eventloop
-  event_loop/fd_event.cc
-  event_loop/timer_event.cc
-  event_loop/event_pump.cc
-  event_loop/linux_signal.cpp
-  event_loop/file_util_linux.cc
-  event_loop/io_multiplexer.cc
-  event_loop/io_multiplexer_epoll.cc
-  event_loop/timer_task_queue.cc
-  event_loop/message_loop.cc
+  message_loop/fd_event.cc
+  message_loop/timer_event.cc
+  message_loop/event_pump.cc
+  message_loop/linux_signal.cpp
+  message_loop/file_util_linux.cc
+  message_loop/io_multiplexer.cc
+  message_loop/io_multiplexer_epoll.cc
+  message_loop/timer_task_queue.cc
+  message_loop/message_loop.cc
   #spin lock
   spin_lock.cc
   #memory
@@ -63,7 +63,7 @@ add_dependencies(ltbase
 )
 
 ADD_EXECUTABLE(eventloop_test
-  event_loop/test/run_loop_test.cc
+  message_loop/test/run_loop_test.cc
 )
 TARGET_LINK_LIBRARIES(eventloop_test
   ${LTBASEEXECUTE_LINKLIBS}

@@ -2,7 +2,7 @@
 #include "app_content.h"
 #include "glog/logging.h"
 #include <base/closure/closure_task.h>
-#include <base/event_loop/message_loop.h>
+#include <base/message_loop/message_loop.h>
 
 namespace content {
 
