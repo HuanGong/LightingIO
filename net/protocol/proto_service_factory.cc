@@ -17,10 +17,13 @@ ProtoServiceFactory::ProtoServiceFactory() {
   InitInnerDefault();
 }
 
+//Static
 RefProtoService ProtoServiceFactory::Create(const std::string& proto) {
   static RefProtoService _null;
-  if (creators_[proto]) {
-    return creators_[proto]();
+
+  auto& builder = Instance().creators_[proto];
+  if (builder) {
+    return builder();
   }
   LOG(ERROR) << __FUNCTION__ << " Protocol:" << proto << " Not Supported";
   return _null;

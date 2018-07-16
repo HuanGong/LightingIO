@@ -19,6 +19,7 @@ typedef std::shared_ptr<FdEvent> RefFdEvent;
 
 class PumpDelegate {
 public:
+  virtual void RunNestedTask() {};
   virtual void BeforePumpRun() {};
   virtual void AfterPumpRun() {};
 };

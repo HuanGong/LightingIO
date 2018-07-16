@@ -25,102 +25,33 @@ int main(int argc, char** argv) {
   //TimerEventTest();
   //static void signal(int sig, const std::function<void()>& handler);
 
-  LOG(INFO) << "Signal 9 install";
-  base::Signal::signal(9, [](){
-    LOG(INFO) << "Signal 9 triggled , i can do something here";
-    std::cout << "get sinale 9" << std::endl;;
-    exit(0);
-  });
-  LOG(INFO) << "Signal 2 install";
-  base::Signal::signal(2, [](){
-    std::cout << "get sinale 2" << std::endl;;
-    LOG(INFO) << "Signal 2 ctrl-c triggled , i can do something here";
-  });
-  LOG(INFO) << "Signal 10 install";
-  base::Signal::signal(10, [](){
-    std::cout << "get sinale 10" << std::endl;;
-    LOG(INFO) << "Signal 10 customer signal triggled , i can do something here";
-  });
-  while(1) {
-    sleep(10);
-  }
-  //MessageLoopTest();
+  MessageLoopTest();
   return 0;
 }
 
 bool MessageLoopTest() {
-#if 0
+  base::MessageLoop loop;
+  loop.SetLoopName("main_loop");
+  loop.Start();
+
+  base::MessageLoop reply_loop;
+  reply_loop.SetLoopName("reply_loop");
+  reply_loop.Start();
   {
-    base::MessageLoop loop;
-    sleep(1);
+
+    loop.PostTaskAndReply(base::NewClosure([&](){
+        LOG(INFO) << "PostTaskAndReply task run";
+      }), base::NewClosure([&]() {
+        LOG(INFO) << "PostTaskAndReply reply run";
+        reply_loop.Pump()->Quit();
+        loop.PostTask(base::NewClosure([&]() {
+          loop.Pump()->Quit();
+        }));
+      }), &reply_loop);
   }
 
-  {
-    base::MessageLoop loop;
-    loop.Start();
-    sleep(1);
-  }
-
-  {
-    base::MessageLoop loop;
-    loop.Start();
-    loop.PostTask(base::NewClosure([&]() {
-      LOG(INFO) << "PostTask Worked";
-      loop.Pump()->Quit();
-    }));
-    loop.WaitLoopEnd();
-    sleep(1);
-  }
-  //delay task
-  {
-    base::MessageLoop loop;
-    loop.Start();
-
-    LOG(INFO) << "Post A 1 second Task @" << base::time_us();
-    loop.PostDelayTask(base::NewClosure([&]() {
-      LOG(INFO) << "1 second task Run @" << base::time_us();
-    }), 1000);
-
-    LOG(INFO) << "Post A 0 second Task @" << base::time_us();
-    loop.PostDelayTask(base::NewClosure([&]() {
-      LOG(INFO) << "0 second task Run @" << base::time_us();
-    }), 0);
-
-    sleep(2);
-    loop.PostTask(base::NewClosure([&]() {
-      loop.Pump()->Quit();
-    }));
-
-    loop.WaitLoopEnd();
-    sleep(1);
-  }
-#endif
-
-  {
-    base::MessageLoop loop;
-    loop.Start();
-    {
-      base::MessageLoop reply_loop;
-      reply_loop.Start();
-
-      loop.PostTaskAndReply(
-        base::NewClosure([&](){
-          LOG(INFO) << "PostTaskAndReply task run";
-        }), base::NewClosure([&]() {
-          LOG(INFO) << "PostTaskAndReply reply run";
-          reply_loop.Pump()->Quit();
-        }), &reply_loop);
-    }
-
-    sleep(2);
-    loop.PostTask(base::NewClosure([&]() {
-      loop.Pump()->Quit();
-    }));
-    loop.WaitLoopEnd();
-    //reply_loop.WaitLoopEnd();
-
-    sleep(1);
-  }
+  reply_loop.WaitLoopEnd();
+  loop.WaitLoopEnd();
   return true;
 }
 

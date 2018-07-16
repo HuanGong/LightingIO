@@ -32,11 +32,11 @@ void ServiceAcceptor::InitListener() {
   socketutils::ReUseSocketPort(socket_fd_, true);
   socketutils::BindSocketFd(socket_fd_, address_.AsSocketAddr());
 
-  socket_event_ = base::FdEvent::create(socket_fd_, 0);
+  socket_event_ = base::FdEvent::Create(socket_fd_, 0);
   socket_event_->SetReadCallback(
     std::bind(&ServiceAcceptor::HandleCommingConnection, this));
 
-  LOG(ERROR) << " Server Accept Socket Fd:" << socket_fd_;
+  VLOG(GLOG_VTRACE) << " Server Accept Socket Fd:" << socket_fd_;
 }
 
 bool ServiceAcceptor::StartListen() {

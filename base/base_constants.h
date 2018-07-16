@@ -4,10 +4,7 @@
 #include <string>
 
 namespace base {
-
   static const std::string kNullString;
-
-
 }
 
 #define GLOG_VTRACE 16

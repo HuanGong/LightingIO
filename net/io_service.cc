@@ -86,8 +86,7 @@ void IOService::OnNewConnection(int local_socket, const InetAddress& peer_addr) 
     return;
   }
 
-  RefProtoService proto_service =
-    ProtoServiceFactory::Instance().Create(protocol_);
+  RefProtoService proto_service = ProtoServiceFactory::Create(protocol_);
 
   ProtoMessageHandler h = std::bind(&IOService::HandleRequest, this, std::placeholders::_1);
   proto_service->SetMessageHandler(h);
@@ -107,24 +106,8 @@ void IOService::OnNewConnection(int local_socket, const InetAddress& peer_addr) 
   new_channel->SetCloseCallback(std::bind(&IOService::OnChannelClosed, this, std::placeholders::_1));
 
   new_channel->Start();
+
   VLOG(GLOG_VTRACE) << " New Connection from:" << channel_name;
-  /*
-  RcvDataCallback data_cb = std::bind(&ProtoService::OnDataRecieved,
-                                      proto_service_,
-                                      std::placeholders::_1,
-                                      std::placeholders::_2);
-  new_channel->SetDataHandleCallback(std::move(data_cb));
-
-  ChannelStatusCallback status_cb = std::bind(&ProtoService::OnStatusChanged,
-                                              proto_service_,
-                                              std::placeholders::_1);
-  new_channel->SetStatusChangedCallback(std::move(status_cb));
-
-  FinishSendCallback finish_writen = std::bind(&ProtoService::OnDataFinishSend,
-                                               proto_service_,
-                                               std::placeholders::_1);
-  new_channel->SetFinishSendCallback(std::move(finish_writen));
-  */
 
   StoreConnection(new_channel);
 }
@@ -169,7 +152,8 @@ void IOService::RemoveConncetion(const RefTcpChannel connection) {
 //Running On NetWorkIO Channel Thread
 void IOService::HandleRequest(const RefProtocolMessage& request) {
 
-  LOG(INFO) << "IOService::HandleRequest handle a request";
+  VLOG(GLOG_VTRACE) << "IOService::HandleRequest handle a request";
+
   WeakPtrTcpChannel weak_channel = request->GetIOCtx().channel;
   RefTcpChannel channel = weak_channel.lock();
   if (!channel) {

@@ -23,7 +23,7 @@ public:
   typedef std::function<void()> EventCallback;
   typedef std::shared_ptr<FdEvent> RefFdEvent;
 
-  static RefFdEvent create(int fd, uint32_t events) {
+  static RefFdEvent Create(int fd, uint32_t events) {
       return std::make_shared<FdEvent>(fd, events);
   }
 

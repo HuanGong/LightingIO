@@ -14,9 +14,9 @@ typedef std::function<RefProtoService(void)> ProtoserviceCreator;
 class ProtoServiceFactory {
 public:
   static ProtoServiceFactory& Instance();
+  static RefProtoService Create(const std::string& proto);
 
   ProtoServiceFactory();
-  RefProtoService Create(const std::string& proto);
   // not thread safe,
   // this can cover the default protoservice or add new protocol support
   void RegisterCreator(const std::string, ProtoserviceCreator);

@@ -88,8 +88,8 @@ bool Server::RegisterService(const std::string server, ProtoMessageHandler handl
 
 void Server::RunAllService() {
 
-  for (auto& server : ioservices_) {
-    server->StartIOService();
+  for (auto& service : ioservices_) {
+    service->StartIOService();
   }
 }
 

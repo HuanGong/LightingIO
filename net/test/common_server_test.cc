@@ -15,12 +15,16 @@
 
 namespace net {
 
+
 class Application: public SrvDelegate {
 public:
   ~Application() {
   }
 };
+
 }//end namespace
+
+std::string g_response;
 
 void handler(net::RefProtocolMessage message) {
   CHECK(message.get());
@@ -37,11 +41,10 @@ void http_handler(net::RefProtocolMessage message) {
   net::HttpRequest* httpmsg = static_cast<net::HttpRequest*>(message.get());
   net::IOBuffer buffer;
   net::HttpProtoService::RequestToBuffer(httpmsg, &buffer);
-  LOG(INFO) << "I Got HttpRequest Raw:\n" << buffer.AsString();
 
   net::RefHttpResponse response = net::HttpResponse::NewOutResponseWithCode(200);
   response->SetKeepAlive(httpmsg->IsKeepAlive());
-  response->MutableBody() = "Nice to meet your,I'm LightingIO\n";
+  response->MutableBody() = g_response;
   httpmsg->SetResponse(std::move(response));
 }
 
@@ -63,26 +66,26 @@ void raw_handler(net::RefProtocolMessage message) {
 }
 
 int main(int argc, char* argv[]) {
+  for (int i = 0; i < 102; i++) {
+    g_response.append("uolowe");
+  }
   //google::InitGoogleLogging(argv[0]);  // 初始化 glog
   google::ParseCommandLineFlags(&argc, &argv, true);  // 初始化 gflags
-  base::MessageLoop main_loop;
-  main_loop.SetLoopName("MainLoop");
-  main_loop.Start();
 
   net::Application app;
   net::Server server((net::SrvDelegate*)&app);
 
+  base::MessageLoop main_loop;
+  main_loop.SetLoopName("MainLoop");
+  main_loop.Start();
+
   server.RegisterService("http://0.0.0.0:5006",
                          std::bind(http_handler, std::placeholders::_1));
-
   //server.RegisterService("line://0.0.0.0:5001",
   //                       std::bind(handler, std::placeholders::_1));
-
   //server.RegisterService("raw://0.0.0.0:5002",
   //                       std::bind(raw_handler, std::placeholders::_1));
 
   server.RunAllService();
-
   main_loop.WaitLoopEnd();
 }
-

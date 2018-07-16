@@ -65,7 +65,7 @@ TcpChannel::TcpChannel(int socket_fd,
 
 void TcpChannel::Initialize() {
 
-  fd_event_ = base::FdEvent::create(socket_fd_, 0);
+  fd_event_ = base::FdEvent::Create(socket_fd_, 0);
   fd_event_->SetReadCallback(std::bind(&TcpChannel::HandleRead, this));
   fd_event_->SetWriteCallback(std::bind(&TcpChannel::HandleWrite, this));
   fd_event_->SetCloseCallback(std::bind(&TcpChannel::HandleClose, this));

@@ -41,6 +41,10 @@ void EventPump::Run() {
     for (auto& fd_event : active_events_) {
       fd_event->HandleEvent();
     }
+   
+    if (delegate_) {
+      delegate_->RunNestedTask();
+    }
   }
 
   running_ = false;

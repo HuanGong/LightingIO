@@ -69,9 +69,17 @@ TARGET_LINK_LIBRARIES(eventloop_test
   ${LTBASEEXECUTE_LINKLIBS}
 )
 
+ADD_EXECUTABLE(eventloop_benchmark
+  message_loop/test/benchmark.cc
+)
+TARGET_LINK_LIBRARIES(eventloop_benchmark
+  ${LTBASEEXECUTE_LINKLIBS}
+)
+
 ADD_EXECUTABLE(coro2_test
   coroutine/test_main.cc
 )
 TARGET_LINK_LIBRARIES(coro2_test
   ${LTBASEEXECUTE_LINKLIBS}
 )
+

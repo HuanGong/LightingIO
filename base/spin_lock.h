@@ -1,5 +1,8 @@
 // this is copy from a zhihui post, thanks for his implimention
 
+#ifndef _BASE_SPIN_LOCK_H_H
+#define  _BASE_SPIN_LOCK_H_H
+
 #include <memory>
 #include <unistd.h>
 #include <atomic>
@@ -29,3 +32,5 @@ private:
 };
 
 }
+
+#endif

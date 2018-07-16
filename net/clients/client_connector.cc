@@ -22,7 +22,7 @@ bool Connector::LaunchAConnection(net::InetAddress& address) {
     case EISCONN:
     case EINPROGRESS: {
 
-      base::RefFdEvent fdevent = base::FdEvent::create(sockfd, 0);
+      base::RefFdEvent fdevent = base::FdEvent::Create(sockfd, 0);
 
       //Important, must weak ptr
       WeakPtrFdEvent weak_fdevent(fdevent);

@@ -12,7 +12,7 @@
 namespace net {
 
 class IOService;
-
+/* IOserviceDelegate Provide the some notify to its owner and got the IOWork loop for IO*/
 class IOServiceDelegate {
 public:
   virtual ~IOServiceDelegate(){};
