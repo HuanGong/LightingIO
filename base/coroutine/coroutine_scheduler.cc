@@ -2,20 +2,16 @@
 #include "glog/logging.h"
 #include "coroutine_scheduler.h"
 #include "closure/closure_task.h"
-#include <iostream>
+#include "memory/lazy_instance.h"
 
 namespace base {
 
-static thread_local CoroScheduler* scheduler_=nullptr;
-
 //static thread safe
 CoroScheduler* CoroScheduler::TlsCurrent() {
-  if (!scheduler_) {
-    scheduler_ = new CoroScheduler();
-  }
-  return scheduler_;
+  //static thread_local base::LazyInstance<CoroScheduler> scheduler = LAZY_INSTANCE_INIT;
+  static thread_local CoroScheduler scheduler;
+  return &scheduler;
 }
-
 
 //static
 void CoroScheduler::RunAsCoroInLoop(base::MessageLoop* target_loop, StlClosure& t) {

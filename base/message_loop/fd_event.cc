@@ -64,6 +64,7 @@ int FdEvent::fd() const {
 
 void FdEvent::HandleEvent() {
   VLOG(GLOG_VTRACE) << "FdEvent::handle_event: " << RcvEventAsString();
+  LOG(INFO) << "FdEvent::handle_event: " << RcvEventAsString();
   /* in normal case, this caused by peer close fd */
   do {
     if ((revents_ & EPOLLHUP) && !(revents_ & EPOLLIN)) {

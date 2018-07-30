@@ -51,7 +51,6 @@ Coroutine::Coroutine(int stack_size, bool main)
     memset(&coro_ctx_, 0, sizeof(coro_ctx_));
     {
       base::SpinLockGuard guard(g_coro_lock);
-      //std::unique_lock<std::mutex> lck(g_coro_mutex);
       coro_create(&coro_ctx_, &Coroutine::run_coroutine, this, stack_.sptr, stack_.ssze);
     }
   }

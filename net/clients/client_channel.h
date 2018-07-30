@@ -24,7 +24,7 @@ public:
     virtual void OnRequestGetResponse(RefProtocolMessage, RefProtocolMessage) = 0;
   };
 
-  RefClientChannel Create(Delegate* delegate, RefTcpChannel& channel);
+  static RefClientChannel Create(Delegate* delegate, RefTcpChannel& channel);
 
   ClientChannel(Delegate*, RefTcpChannel&);
   virtual ~ClientChannel();

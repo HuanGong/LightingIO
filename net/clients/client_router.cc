@@ -84,10 +84,10 @@ void ClientRouter::OnNewClientConnected(int socket_fd, InetAddress& local, InetA
   new_channel->SetOwnerLoop(work_loop_);
   new_channel->SetChannelName(remote.IpPortAsString());
 
-  RefClientChannel client_channel = std::make_shared<ClientChannel>(this, new_channel);
+  RefClientChannel client_channel = ClientChannel::Create(this, new_channel);
   client_channel->SetRequestTimeout(message_timeout_);
 
-  RefProtoService proto_service = ProtoServiceFactory::Instance().Create(protocol_);
+  RefProtoService proto_service = ProtoServiceFactory::Create(protocol_);
   proto_service->SetMessageHandler(std::bind(&ClientChannel::OnResponseMessage,
                                              client_channel.get(),
                                              std::placeholders::_1));

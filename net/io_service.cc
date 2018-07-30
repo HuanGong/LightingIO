@@ -87,6 +87,10 @@ void IOService::OnNewConnection(int local_socket, const InetAddress& peer_addr) 
   }
 
   RefProtoService proto_service = ProtoServiceFactory::Create(protocol_);
+  if (!proto_service) {
+    socketutils::CloseSocket(local_socket);
+    return;
+  }
 
   ProtoMessageHandler h = std::bind(&IOService::HandleRequest, this, std::placeholders::_1);
   proto_service->SetMessageHandler(h);

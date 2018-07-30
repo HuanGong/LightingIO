@@ -8,6 +8,7 @@ namespace net {
 
 const static RefProtocolMessage kNullResponse;
 
+//static
 RefClientChannel ClientChannel::Create(Delegate* delegate, RefTcpChannel& channel) {
   return std::make_shared<ClientChannel>(delegate, channel);
 }
