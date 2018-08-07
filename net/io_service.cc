@@ -24,6 +24,7 @@ IOService::IOService(const InetAddress addr,
     is_stopping_(false) {
 
   CHECK(delegate_);
+
   service_name_ = addr.IpPortAsString();
   acceptor_.reset(new ServiceAcceptor(acceptor_loop_->Pump(), addr));
   acceptor_->SetNewConnectionCallback(std::bind(&IOService::OnNewConnection,
@@ -33,7 +34,7 @@ IOService::IOService(const InetAddress addr,
 }
 
 IOService::~IOService() {
-
+  LOG(INFO) << "IOServce protocol " << protocol_ << " Gone";
 }
 
 void IOService::StartIOService() {
@@ -132,9 +133,7 @@ void IOService::StoreConnection(const RefTcpChannel connection) {
 
   channel_count_.store(connections_.size());
 
-  if (delegate_) {
-    delegate_->IncreaseChannelCount();
-  }
+  delegate_->IncreaseChannelCount();
 }
 
 void IOService::RemoveConncetion(const RefTcpChannel connection) {
@@ -144,12 +143,10 @@ void IOService::RemoveConncetion(const RefTcpChannel connection) {
 
   channel_count_.store(connections_.size());
 
-  if (delegate_) {
-    delegate_->DecreaseChannelCount();
+  delegate_->DecreaseChannelCount();
 
-    if (is_stopping_ && connections_.size() == 0) {
-      delegate_->IOServiceStoped(this);
-    }
+  if (is_stopping_ && connections_.size() == 0) {
+    delegate_->IOServiceStoped(this);
   }
 }
 
@@ -166,7 +163,7 @@ void IOService::HandleRequest(const RefProtocolMessage& request) {
   }
 
   if (!message_handler_) {
-    LOG(INFO) << "No Handler handle this request";
+    LOG(ERROR) << "No Handler handle this request";
     channel->ShutdownChannel();
     return;
   }

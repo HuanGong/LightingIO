@@ -126,8 +126,7 @@ MessageLoop::MessageLoop()
 
   wakeup_event_ = FdEvent::Create(wakeup_pipe_out_, EPOLLIN);
   CHECK(wakeup_event_);
-
-  wakeup_event_->SetReadCallback(std::bind(&MessageLoop::OnWakeup, this));
+  wakeup_event_->SetReadCallback(std::bind(&MessageLoop::OnHandleCommand, this));
 
   task_event_fd_ = ::eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
   task_event_ = FdEvent::Create(task_event_fd_, EPOLLIN);
@@ -147,26 +146,22 @@ MessageLoop::~MessageLoop() {
   CHECK(!IsInLoopThread());
 
   LOG(INFO) << " MessageLoop " << LoopName() << " Gone...";
-  CHECK(false);
-  struct timespec ts;
-  char message = kQuit;
-  while (write(wakeup_pipe_in_, &message, sizeof(message)) != sizeof(message)) {
+  while (write(wakeup_pipe_in_, &kQuit, sizeof(kQuit)) != sizeof(kQuit)) {
     LOG_IF(ERROR, EAGAIN == errno) << "Write to pipe Failed:" << errno;
-    ts.tv_sec = 0;
-    ts.tv_nsec = 1000000;
-    nanosleep(&ts, nullptr);
+    std::this_thread::sleep_for(std::chrono::microseconds(1));
   }
 
   WaitLoopEnd();
-  status_.store(ST_STOPED);
 
   wakeup_event_.reset();
-
   IgnoreSigPipeSignalOnCurrentThread2();
-
   close(wakeup_pipe_in_);
-  close(wakeup_pipe_out_);
+  //close(wakeup_pipe_out_);
 
+  task_event_.reset();
+  reply_event_.reset();
+  task_event_fd_ = -1;
+  reply_event_fd_ = -1;
   wakeup_pipe_in_ = -1;
   wakeup_pipe_out_ = -1;
 
@@ -183,7 +178,7 @@ bool MessageLoop::IsInLoopThread() const {
 
 void MessageLoop::Start() {
   bool run = running_.test_and_set(std::memory_order_acquire);
-  LOG_IF(ERROR, run) << "Messageloop " << LoopName() << " aready runing...";
+  LOG_IF(INFO, run) << "Messageloop " << LoopName() << " aready runing...";
   if (run) {return;}
 
   thread_ptr_.reset(new std::thread(std::bind(&MessageLoop::ThreadMain, this)));
@@ -193,17 +188,15 @@ void MessageLoop::Start() {
   } while(status_ != ST_STARTED);
 }
 
-void MessageLoop::WaitLoopEnd() {
-  int32_t expect = 0, replace = 1;
-  bool has_set = has_join_.compare_exchange_strong(expect, replace);
-  if (has_set == false) {
-    LOG(INFO) << " Loop " << LoopName() << "'s Thread Has Join by Others";
-    return;
-  }
-
-  if (thread_ptr_ && thread_ptr_->joinable()) {
+void MessageLoop::WaitLoopEnd(int32_t ms) {
+  int32_t has_join = has_join_.exchange(1);
+  if (has_join == 0 && thread_ptr_ && thread_ptr_->joinable()) {
     thread_ptr_->join();
   }
+
+  do {
+    std::this_thread::sleep_for(std::chrono::milliseconds(ms));
+  } while(status_ == ST_STARTED);
 }
 
 void MessageLoop::BeforePumpRun() {
@@ -327,7 +320,6 @@ void MessageLoop::RunScheduledTask(ScheduledTaskType type) {
     case ScheduledTaskType::TaskTypeReply: {
 
       base::SpinLockGuard guard(future_reply_lock_);
-      
       for (auto iter = future_replys_.begin(); iter != future_replys_.end();) {
         if ((*iter)->IsCommited()) {
           (*iter)->InvokeReply();
@@ -345,7 +337,7 @@ void MessageLoop::RunScheduledTask(ScheduledTaskType type) {
 }
 
 //static
-void MessageLoop::OnWakeup() {
+void MessageLoop::OnHandleCommand() {
   DCHECK(wakeup_event_->fd() == wakeup_pipe_out_);
 
   char buf;

@@ -7,10 +7,15 @@ namespace base {
 FdEvent::FdEvent(int fd, uint32_t event):
   delegate_(NULL),
   fd_(fd),
-  events_(event) {
+  events_(event),
+  owner_fd_life_(true) {
 }
 
 FdEvent::~FdEvent() {
+  LOG(INFO) << "Fd Event Gone" << fd_;
+  if (owner_fd_life_) {
+    ::close(fd_);
+  }
 }
 
 void FdEvent::SetDelegate(FdEventWatcher* d) {
@@ -56,10 +61,6 @@ void FdEvent::Update() {
 
 void FdEvent::SetCloseCallback(const EventCallback &cb) {
   close_callback_ = cb;
-}
-
-int FdEvent::fd() const {
-  return fd_;
 }
 
 void FdEvent::HandleEvent() {

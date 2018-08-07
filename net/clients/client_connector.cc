@@ -47,8 +47,9 @@ bool Connector::LaunchAConnection(net::InetAddress& address) {
 
 void Connector::OnWrite(WeakPtrFdEvent weak_fdevent) {
   base::RefFdEvent fd_event = weak_fdevent.lock();
+
   if (!fd_event) {
-    LOG(ERROR) << __FUNCTION__ << " FdEvent Has Gone!";
+    LOG(ERROR) << __FUNCTION__ << " FdEvent Has Gone Before Connection Setup";
     return ;
   }
 
@@ -61,6 +62,8 @@ void Connector::OnWrite(WeakPtrFdEvent weak_fdevent) {
   }
 
   loop_->Pump()->RemoveFdEvent(fd_event.get());
+
+  fd_event->GiveupOwnerFd();
   connecting_sockets_.erase(fd_event);
 
   net::InetAddress remote_addr(net::socketutils::GetPeerAddrIn(socket_fd));
@@ -94,10 +97,12 @@ void Connector::InitEvent(base::RefFdEvent& fd_event) {
 }
 
 void Connector::CleanUpBadChannel(base::RefFdEvent& event) {
+
   int socket_fd = event->fd();
-  loop_->Pump()->RemoveFdEvent(event.get());
+
   event->ResetCallback();
-  net::socketutils::CloseSocket(socket_fd);
+  loop_->Pump()->RemoveFdEvent(event.get());
+
   connecting_sockets_.erase(event);
 
   LOG(INFO) << "Now Has " << connecting_sockets_.size() << " In Connecting Progress";

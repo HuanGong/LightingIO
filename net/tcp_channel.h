@@ -45,6 +45,11 @@ public:
                                            const InetAddress& peer,
                                            base::MessageLoop* loop);
 
+  TcpChannel(int socket_fd,
+             const InetAddress& loc,
+             const InetAddress& peer,
+             base::MessageLoop* loop,
+             ChannelServeType type);
   ~TcpChannel();
 
   void Start();
@@ -58,7 +63,7 @@ public:
   void SetStatusChangedCallback(const ChannelStatusCallback& callback);
   void SetProtoService(RefProtoService proto_service);
 
-  /* send a protocol*/
+  /* send a protocol message*/
   bool SendProtoMessage(RefProtocolMessage message);
   /* return -1 in error, return 0 when success*/
   int32_t Send(const uint8_t* data, const int32_t len);
@@ -73,8 +78,6 @@ public:
   bool IsClientChannel() const;
   RefProtoService GetProtoService() const;
 protected:
-  void Initialize();
-
   void HandleRead();
   void HandleWrite();
   void HandleError();
@@ -82,11 +85,6 @@ protected:
 
   void SetChannelStatus(ChannelStatus st);
 private:
-  TcpChannel(int socket_fd,
-             const InetAddress& loc,
-             const InetAddress& peer,
-             base::MessageLoop* loop,
-             ChannelServeType type);
   void OnConnectionReady();
 private:
   /* all the io thing happend in work loop,
@@ -98,7 +96,6 @@ private:
   bool schedule_shutdown_;
   ChannelStatus channel_status_;
 
-  int socket_fd_;
   base::RefFdEvent fd_event_;
 
   InetAddress local_addr_;

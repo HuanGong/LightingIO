@@ -15,6 +15,15 @@ DEFINE_string(config, "./manifest.json", "The application Manifest config file")
 
 void HanleMessage(net::RefProtocolMessage message) {
   LOG(INFO) << "Got A INCOMMING Message";
+
+  net::HttpRequest* httpmsg = static_cast<net::HttpRequest*>(message.get());
+  //net::IOBuffer buffer;
+  //net::HttpProtoService::RequestToBuffer(httpmsg, &buffer);
+
+  net::RefHttpResponse response = net::HttpResponse::NewOutResponseWithCode(200);
+  response->SetKeepAlive(httpmsg->IsKeepAlive());
+  response->MutableBody() = "abcadsfasdfakdj;alksdjf;askdfja;sdkfja;sdlkfja;sdfkl";
+  httpmsg->SetResponse(std::move(response));
 }
 
 namespace content {

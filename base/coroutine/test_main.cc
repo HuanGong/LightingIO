@@ -31,7 +31,7 @@ int main() {
 
       base::CoroClosure functor = std::bind(coro_fun);
 
-      base::CoroScheduler::CreateAndSchedule(functor);
+      base::CoroScheduler::CreateAndTransfer(functor);
 
       LOG(INFO) << "coro create and excuted success";
     }));

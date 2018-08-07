@@ -10,65 +10,60 @@ namespace net {
 ServiceAcceptor::ServiceAcceptor(base::EventPump* pump, const InetAddress& address)
   : listenning_(false),
     event_pump_(pump),
-    socket_fd_(0),
     address_(address) {
   CHECK(event_pump_);
-  //CHECK(event_pump_->IsInLoopThread());
+
   InitListener();
-  //socket_event_->EnableReading();
 }
 
 ServiceAcceptor::~ServiceAcceptor() {
   //CHECK(event_pump_->IsInLoopThread());
-  if (socket_fd_) {
-    socketutils::CloseSocket(socket_fd_);
-  }
+  CHECK(listenning_ == false);
+
+  socket_event_.reset();
 }
 
 void ServiceAcceptor::InitListener() {
-  socket_fd_ = socketutils::CreateNonBlockingSocket(address_.SocketFamily());
+  int socket_fd = socketutils::CreateNonBlockingSocket(address_.SocketFamily());
   //reuse socket addr and port if possible
-  socketutils::ReUseSocketAddress(socket_fd_, true);
-  socketutils::ReUseSocketPort(socket_fd_, true);
-  socketutils::BindSocketFd(socket_fd_, address_.AsSocketAddr());
+  socketutils::ReUseSocketAddress(socket_fd, true);
+  socketutils::ReUseSocketPort(socket_fd, true);
+  socketutils::BindSocketFd(socket_fd, address_.AsSocketAddr());
 
-  socket_event_ = base::FdEvent::Create(socket_fd_, 0);
-  socket_event_->SetReadCallback(
-    std::bind(&ServiceAcceptor::HandleCommingConnection, this));
+  socket_event_ = base::FdEvent::Create(socket_fd, 0);
+  socket_event_->SetCloseCallback(std::bind(&ServiceAcceptor::OnAccepterError, this));
+  socket_event_->SetErrorCallback(std::bind(&ServiceAcceptor::OnAccepterError, this));
+  socket_event_->SetReadCallback(std::bind(&ServiceAcceptor::HandleCommingConnection, this));
 
-  VLOG(GLOG_VTRACE) << " Server Accept Socket Fd:" << socket_fd_;
+  VLOG(GLOG_VTRACE) << " Server Accept Socket Fd:" << socket_fd;
 }
 
 bool ServiceAcceptor::StartListen() {
   CHECK(event_pump_->IsInLoopThread());
+
   if (listenning_) {
     LOG(ERROR) << " Aready Listen on:" << address_.IpPortAsString();
     return true;
-  }
-  if (!socket_event_) {
-    InitListener();
   }
 
   event_pump_->InstallFdEvent(socket_event_.get());
   socket_event_->EnableReading();
 
   listenning_ = true;
-  socketutils::ListenSocket(socket_fd_);
+  socketutils::ListenSocket(socket_event_->fd());
   LOG(INFO) << " Start Listen on:" << address_.IpPortAsString();
   return true;
 }
 
 void ServiceAcceptor::StopListen() {
   CHECK(event_pump_->IsInLoopThread());
+
   if (!listenning_) {
     return;
   }
 
-  socket_event_->DisableReading();
+  socket_event_->DisableAll();
   event_pump_->RemoveFdEvent(socket_event_.get());
-  socket_event_.reset();
-  socketutils::CloseSocket(socket_fd_);
-  socket_fd_ = 0;
   LOG(INFO) << " Stop Listen on:" << address_.IpPortAsString();
 }
 
@@ -79,7 +74,7 @@ void ServiceAcceptor::SetNewConnectionCallback(const NewConnectionCallback& cb) 
 void ServiceAcceptor::HandleCommingConnection() {
 
   struct sockaddr_in client_socket_in;
-  int peer_fd = socketutils::AcceptSocket(socket_fd_, &client_socket_in);
+  int peer_fd = socketutils::AcceptSocket(socket_event_->fd(), &client_socket_in);
 
   if (peer_fd <= 0) {
     LOG(ERROR) << "AcceptSocket Failed";
@@ -95,6 +90,15 @@ void ServiceAcceptor::HandleCommingConnection() {
   } else {
     socketutils::CloseSocket(peer_fd);
   }
+}
+
+void ServiceAcceptor::OnAccepterError() {
+  CHECK(event_pump_->IsInLoopThread());
+
+  LOG(ERROR) << "Acceptor" << socket_event_->fd() << " Occur Error, Relaunch It";
+  // Relaunch This server 
+  InitListener();
+  StartListen();
 }
 
 }//end namespace net

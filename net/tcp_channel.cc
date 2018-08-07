@@ -9,16 +9,6 @@
 
 namespace net {
 
-RefTcpChannel TcpChannel::CreateClientChannel(int socket_fd,
-                                              const InetAddress& local,
-                                              const InetAddress& remote,
-                                              base::MessageLoop* loop) {
-
-  RefTcpChannel conn(new TcpChannel(socket_fd, local, remote,
-                                    loop, ChannelServeType::kClientType));
-  conn->Initialize();
-  return std::move(conn);
-}
 
 //static
 RefTcpChannel TcpChannel::Create(int socket_fd,
@@ -27,13 +17,7 @@ RefTcpChannel TcpChannel::Create(int socket_fd,
                                  base::MessageLoop* loop,
                                  ChannelServeType type) {
 
-  RefTcpChannel conn(new TcpChannel(socket_fd,
-                                    local,
-                                    peer,
-                                    loop,
-                                    type));
-  conn->Initialize();
-  return std::move(conn);
+  return std::make_shared<TcpChannel>(socket_fd, local, peer, loop, type);
 }
 
 RefTcpChannel TcpChannel::CreateServerChannel(int socket_fd,
@@ -41,10 +25,15 @@ RefTcpChannel TcpChannel::CreateServerChannel(int socket_fd,
                                               const InetAddress& peer,
                                               base::MessageLoop* loop) {
 
-  RefTcpChannel conn(new TcpChannel(socket_fd, local, peer, loop,
-                                    ChannelServeType::kServerType));
-  conn->Initialize();
-  return std::move(conn);
+  return std::make_shared<TcpChannel>(socket_fd, local, peer, loop, kServerType);
+}
+
+RefTcpChannel TcpChannel::CreateClientChannel(int socket_fd,
+                                              const InetAddress& local,
+                                              const InetAddress& remote,
+                                              base::MessageLoop* loop) {
+
+  return std::make_shared<TcpChannel>(socket_fd, local, remote, loop, kClientType);
 }
 
 TcpChannel::TcpChannel(int socket_fd,
@@ -55,84 +44,89 @@ TcpChannel::TcpChannel(int socket_fd,
   : work_loop_(loop),
     owner_loop_(NULL),
     channel_status_(CONNECTING),
-    socket_fd_(socket_fd),
     local_addr_(loc),
     peer_addr_(peer),
     serve_type_(type) {
 
   CHECK(work_loop_);
-}
 
-void TcpChannel::Initialize() {
-
-  fd_event_ = base::FdEvent::Create(socket_fd_, 0);
+  fd_event_ = base::FdEvent::Create(socket_fd, 0);
   fd_event_->SetReadCallback(std::bind(&TcpChannel::HandleRead, this));
   fd_event_->SetWriteCallback(std::bind(&TcpChannel::HandleWrite, this));
   fd_event_->SetCloseCallback(std::bind(&TcpChannel::HandleClose, this));
   fd_event_->SetErrorCallback(std::bind(&TcpChannel::HandleError, this));
-  socketutils::KeepAlive(socket_fd_, true);
+  socketutils::KeepAlive(fd_event_->fd(), true);
 }
 
 void TcpChannel::Start() {
   CHECK(fd_event_);
+
+  if (work_loop_->IsInLoopThread()) {
+    return OnConnectionReady();
+  }
 
   auto task = std::bind(&TcpChannel::OnConnectionReady, shared_from_this());
   work_loop_->PostTask(base::NewClosure(std::move(task)));
 }
 
 TcpChannel::~TcpChannel() {
-  VLOG(GLOG_VTRACE) << channal_name_ << " Gone, Fd:" << socket_fd_;
-  LOG(INFO) << channal_name_ << " Gone, Fd:" << socket_fd_;
-
+  VLOG(GLOG_VTRACE) << channal_name_ << " Gone, Fd:" << fd_event_->fd();
+  LOG(INFO) << channal_name_ << " Gone, Fd:" << fd_event_->fd();
+  fd_event_.reset();
   CHECK(channel_status_ == DISCONNECTED);
-  if (socket_fd_ != -1) {
-    socketutils::CloseSocket(socket_fd_);
-  }
 }
 
 void TcpChannel::OnConnectionReady() {
   CHECK(InIOLoop());
-  if (channel_status_ == CONNECTING) {
 
-    base::EventPump* event_pump = work_loop_->Pump();
-    event_pump->InstallFdEvent(fd_event_.get());
-    fd_event_->EnableReading();
-
-    SetChannelStatus(CONNECTED);
-  } else {
-
-    fd_event_.reset();
-    if (socket_fd_ != -1) {
-      socketutils::CloseSocket(socket_fd_);
-      socket_fd_ = -1;
-    }
+  if (channel_status_ != CONNECTING) {
     LOG(ERROR) << " Channel Status Changed After Enable this Channel";
+    if (closed_callback_) {
+      RefTcpChannel guard(shared_from_this());
+      closed_callback_(guard);
+    }
+    fd_event_->ResetCallback();
+    return;
   }
+
+  base::EventPump* event_pump = work_loop_->Pump();
+  event_pump->InstallFdEvent(fd_event_.get());
+  fd_event_->EnableReading();
+  SetChannelStatus(CONNECTED);
 }
 
 void TcpChannel::HandleRead() {
   int error = 0;
 
-  int32_t bytes_read = in_buffer_.ReadFromSocketFd(socket_fd_, &error);
+  int32_t bytes_read = in_buffer_.ReadFromSocketFd(fd_event_->fd(), &error);
   VLOG(GLOG_VTRACE) << " Read " << bytes_read << " bytes from:" << channal_name_;
 
   if (bytes_read > 0) {
+
     proto_service_->OnDataRecieved(shared_from_this(), &in_buffer_);
     if ( recv_data_callback_ ) {
       recv_data_callback_(shared_from_this(), &in_buffer_);
     }
-  } else if (0 == bytes_read) { //read eof
+
+  } else if (0 == bytes_read) { //read eof, remote close
+
     HandleClose();
+
   } else {
+
     errno = error;
     HandleError();
+
+    HandleClose();
   }
 }
 
 void TcpChannel::HandleWrite() {
 
+  int socket_fd = fd_event_->fd();
+
   if (!fd_event_->IsWriteEnable()) {
-    VLOG(GLOG_VTRACE) << "Connection Writen is disabled, fd:" << socket_fd_;
+    VLOG(GLOG_VTRACE) << "Connection Writen is disabled, fd:" << socket_fd;
     return;
   }
 
@@ -141,13 +135,11 @@ void TcpChannel::HandleWrite() {
     fd_event_->DisableWriting();
 
     if (schedule_shutdown_) {
-      socketutils::ShutdownWrite(socket_fd_);
+      socketutils::ShutdownWrite(socket_fd);
     }
     return;
   }
-  int writen_bytes = socketutils::Write(socket_fd_,
-                                        out_buffer_.GetRead(),
-                                        data_size);
+  int writen_bytes = socketutils::Write(socket_fd, out_buffer_.GetRead(), data_size);
 
   if (writen_bytes > 0) {
     out_buffer_.Consume(writen_bytes);
@@ -168,7 +160,7 @@ void TcpChannel::HandleWrite() {
     fd_event_->DisableWriting();
 
     if (schedule_shutdown_) {
-      socketutils::ShutdownWrite(socket_fd_);
+      socketutils::ShutdownWrite(fd_event_->fd());
     }
   }
 }
@@ -208,20 +200,19 @@ bool TcpChannel::SendProtoMessage(RefProtocolMessage message) {
 }
 
 void TcpChannel::HandleError() {
-  int err = socketutils::GetSocketError(socket_fd_);
+  int socket_fd = fd_event_->fd();
+  int err = socketutils::GetSocketError(socket_fd);
   thread_local static char t_err_buff[128];
-  LOG(ERROR) << " Socket Error, fd:[" << socket_fd_
-             << "], error info: [" << strerror_r(err, t_err_buff, sizeof t_err_buff)
-             << "]";
+  LOG(ERROR) << " Socket Error, fd:[" << socket_fd << "], error info: [" << strerror_r(err, t_err_buff, sizeof t_err_buff) << "]";
 }
 
 void TcpChannel::HandleClose() {
   CHECK(work_loop_->IsInLoopThread());
 
   RefTcpChannel guard(shared_from_this());
-  if (channel_status_ == DISCONNECTED) {
-    return;
-  }
+  //if (channel_status_ == DISCONNECTED) {
+    //return;
+  //}
 
   fd_event_->DisableAll();
   fd_event_->ResetCallback();
@@ -258,7 +249,7 @@ void TcpChannel::ShutdownChannel() {
 
   if (!fd_event_->IsWriteEnable()) {
     SetChannelStatus(DISCONNECTING);
-    socketutils::ShutdownWrite(socket_fd_);
+    socketutils::ShutdownWrite(fd_event_->fd());
   } else {
     schedule_shutdown_ = true;
   }
@@ -283,7 +274,7 @@ int32_t TcpChannel::Send(const uint8_t* data, const int32_t len) {
 
   //nothing write in out buffer
   if (0 == out_buffer_.CanReadSize()) {
-    n_write = socketutils::Write(socket_fd_, data, len);
+    n_write = socketutils::Write(fd_event_->fd(), data, len);
 
     if (n_write >= 0) {
 
@@ -302,7 +293,7 @@ int32_t TcpChannel::Send(const uint8_t* data, const int32_t len) {
       int32_t err = errno;
 
       if (EAGAIN != err) {
-        LOG(ERROR) << "Send Data Fail, fd:[" << socket_fd_ << "] errno: [" << err << "]";
+        LOG(ERROR) << "Send Data Fail, fd:[" << fd_event_->fd() << "] errno: [" << err << "]";
       }
     }
   }

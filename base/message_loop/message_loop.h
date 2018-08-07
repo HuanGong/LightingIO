@@ -52,7 +52,8 @@ class MessageLoop : public PumpDelegate {
 
     typedef enum {
       TaskTypeDefault = 0,
-      TaskTypeReply   = 1
+      TaskTypeReply   = 1,
+      TaskTypeCommand = 2
     } ScheduledTaskType;
 
 
@@ -76,8 +77,10 @@ class MessageLoop : public PumpDelegate {
     bool InstallSigHandler(int, const SigHandler);
 
     void Start();
-    void WaitLoopEnd();
     bool IsInLoopThread() const;
+
+    //t: millsecond for giveup cpu for waiting
+    void WaitLoopEnd(int32_t t = 1);
     void SetLoopName(std::string name);
     std::string LoopName() {return loop_name_;}
 
@@ -92,7 +95,7 @@ class MessageLoop : public PumpDelegate {
 
     void ThreadMain();
 
-    void OnWakeup();  // NOLINT
+    void OnHandleCommand();  // NOLINT
     void RunScheduledTask(ScheduledTaskType t);
 
     // nested task: in a inloop task , post another task in current loop

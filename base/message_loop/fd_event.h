@@ -10,7 +10,8 @@
 #include "base/queue/double_linked_list.h"
 
 namespace base {
-
+/* A Event Holder and Owner represend a filedescriptor, 
+ * Create With a fd and take it owner  close it when it's gone*/
 class FdEvent : public EnableDoubleLinked<FdEvent> {
 public:
   /* interface notify poller update polling events*/
@@ -29,7 +30,7 @@ public:
 
   FdEvent(int fd, uint32_t events);
   ~FdEvent();
-
+  
   void SetDelegate(FdEventWatcher* d);
   FdEventWatcher* EventDelegate() {return delegate_;}
 
@@ -40,8 +41,7 @@ public:
   void SetErrorCallback(const EventCallback &cb);
   void SetCloseCallback(const EventCallback &cb);
 
-  int fd() const;
-  //the things we take care about
+  //the event we take care about
   uint32_t MonitorEvents() const;
   void SetRcvEvents(uint32_t ev);
 
@@ -60,8 +60,10 @@ public:
   void DisableReading() { events_ &=  ~(EPOLLIN | EPOLLPRI); Update();  }
   void DisableWriting() { events_ &=   ~EPOLLOUT; Update(); }
 
+  inline int fd() const {return fd_;};
   inline bool IsReadEnable() {return events_ & EPOLLIN; }
   inline bool IsWriteEnable() {return events_ & EPOLLOUT; }
+  inline void GiveupOwnerFd() {owner_fd_life_ = false;}
 
   // for debug
   std::string RcvEventAsString();
@@ -78,12 +80,12 @@ private:
   int fd_;
   uint32_t events_;
   uint32_t revents_;
+  bool owner_fd_life_;
 
   EventCallback read_callback_;
   EventCallback write_callback_;
   EventCallback error_callback_;
   EventCallback close_callback_;
-
   DISALLOW_COPY_AND_ASSIGN(FdEvent);
 };
 typedef std::shared_ptr<FdEvent> RefFdEvent;

@@ -19,10 +19,14 @@ base::MessageLoop* App::MainLoop() {
 }
 
 void App::RunApplication() {
-  auto functor = std::bind(&App::ContentMain, this);
-  content_loop_.PostTask(base::NewClosure(functor));
+  LOG(INFO) << " Application Start";
+
+  //auto functor = std::bind(&App::ContentMain, this);
+  //content_loop_.PostTask(base::NewClosure(functor));
+  this->ContentMain();
 
   content_loop_.WaitLoopEnd();
+  LOG(INFO) << " Application End";
 }
 
 void App::ContentMain() {

@@ -63,7 +63,7 @@ bool CoroWlDispatcher::SetWorkContext(ProtocolMessage* message) {
 bool CoroWlDispatcher::TransmitToWorker(base::StlClourse& closure) {
 
   if (HandleWorkInIOLoop()) {
-    base::CoroScheduler::CreateAndSchedule(closure);
+    base::CoroScheduler::CreateAndTransfer(closure);
     return true;
   }
 
@@ -71,7 +71,7 @@ bool CoroWlDispatcher::TransmitToWorker(base::StlClourse& closure) {
   if (NULL == loop) {
     return false;
   }
-  base::CoroScheduler::RunAsCoroInLoop(loop, closure);
+  base::CoroScheduler::ScheduleCoroutineInLoop(loop, closure);
   return true;
 }
 

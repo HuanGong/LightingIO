@@ -22,8 +22,8 @@ public:
 
   static CoroScheduler* TlsCurrent();
 
-  static void RunAsCoroInLoop(base::MessageLoop* target_loop, StlClosure& t);
-  static void CreateAndSchedule(CoroClosure& task);
+  static void ScheduleCoroutineInLoop(base::MessageLoop* target_loop, StlClosure& t);
+  static void CreateAndTransfer(CoroClosure& task);
 
   intptr_t CurrentCoroId();
   RefCoroutine CurrentCoro();
@@ -49,6 +49,10 @@ private:
   CoroSet coroutines_;
 
   std::vector<RefCoroutine> expired_coros_;
+
+  /* 根据系统实际负载分配的每个线程最大的可复用coroutine数量*/
+  size_t max_reuse_coroutines_;
+  std::list<RefCoroutine> free_list_;
   DISALLOW_COPY_AND_ASSIGN(CoroScheduler);
 };
 

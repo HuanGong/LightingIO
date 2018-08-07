@@ -99,7 +99,7 @@ int main(int argc, char* argv[]) {
 
   for (int i = 0; i < 10; i++) {
     base::StlClosure send_raw_request = std::bind(SendRawRequest, i);
-    base::CoroScheduler::RunAsCoroInLoop(&wloop, send_raw_request);
+    base::CoroScheduler::ScheduleCoroutineInLoop(&wloop, send_raw_request);
   }
 
   loop.WaitLoopEnd();

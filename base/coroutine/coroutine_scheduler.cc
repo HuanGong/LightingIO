@@ -5,6 +5,7 @@
 #include "memory/lazy_instance.h"
 
 namespace base {
+static const int kDefaultMaxReuseCoroutineNumbersPerThread = 10000;
 
 //static thread safe
 CoroScheduler* CoroScheduler::TlsCurrent() {
@@ -14,24 +15,44 @@ CoroScheduler* CoroScheduler::TlsCurrent() {
 }
 
 //static
-void CoroScheduler::RunAsCoroInLoop(base::MessageLoop* target_loop, StlClosure& t) {
+void CoroScheduler::ScheduleCoroutineInLoop(base::MessageLoop* target_loop, StlClosure& t) {
   CHECK(target_loop && t);
 
-  StlClosure coro_functor = std::bind(&CoroScheduler::CreateAndSchedule, t);
-
+  StlClosure coro_functor = std::bind(&CoroScheduler::CreateAndTransfer, t);
   target_loop->PostTask(base::NewClosure(coro_functor));
 }
 
 //static
-void CoroScheduler::CreateAndSchedule(CoroClosure& task) {
-
+void CoroScheduler::CreateAndTransfer(CoroClosure& task) {
   CHECK(TlsCurrent()->InRootCoroutine());
 
-  RefCoroutine coro = std::make_shared<Coroutine>(0, false);
+  base::MessageLoop* loop =  base::MessageLoop::Current();
+  CoroScheduler* scheduler = TlsCurrent();
+  CHECK(loop);
+
+  RefCoroutine coro;
+  while(!coro && scheduler->free_list_.size() > 0) {
+    coro = scheduler->free_list_.front();
+    scheduler->free_list_.pop_front();
+  }
+
+  if (!coro) { //really create new coroutine
+    coro = std::make_shared<Coroutine>(0, false);
+    scheduler->OnNewCoroBorn(coro);
+    coro->resume_func_ = std::bind([=](std::weak_ptr<Coroutine> weak_coro) {
+      RefCoroutine to = weak_coro.lock();
+      LOG_IF(ERROR, !to) << "Can't Resume a Coroutine Has Gone";
+      if (!to) return;
+
+      if (!loop->IsInLoopThread()) {
+        loop->PostTask(base::NewClosure(to->resume_func_));
+        return;
+      }
+      TlsCurrent()->Transfer(to);
+    }, coro);
+  }
 
   coro->SetCoroTask(std::move(task));
-
-  TlsCurrent()->OnNewCoroBorn(coro);
 
   TlsCurrent()->Transfer(coro);
 }
@@ -41,18 +62,26 @@ void CoroScheduler::OnNewCoroBorn(RefCoroutine& coro) {
 }
 
 void CoroScheduler::GcCoroutine(Coroutine* die) {
-  coroutines_.erase(current_);
+  CHECK(die == current_.get());
 
-  expired_coros_.push_back(current_);
+  if (free_list_.size() >= max_reuse_coroutines_) {
+    coroutines_.erase(current_);
+    expired_coros_.push_back(current_);
+    expired_coros_.size() > 100 ? Transfer(gc_coro_) : Transfer(main_coro_);
+    return;
+  }
 
-  expired_coros_.size() > 100 ? Transfer(gc_coro_) : Transfer(main_coro_);
+  free_list_.push_back(current_);
+  Transfer(main_coro_);
 }
 
-CoroScheduler::CoroScheduler() {
+CoroScheduler::CoroScheduler()
+  : max_reuse_coroutines_(kDefaultMaxReuseCoroutineNumbersPerThread) {
+
   main_coro_.reset(new Coroutine(0, true));
   current_ = main_coro_;
 
-  gc_coro_.reset(new Coroutine(0, false));//std::make_shared<Coroutine>(true);
+  gc_coro_.reset(new Coroutine(0, false));
   gc_coro_->SetCoroTask(std::bind(&CoroScheduler::gc_loop, this));
 }
 
@@ -79,12 +108,14 @@ intptr_t CoroScheduler::CurrentCoroId() {
 }
 
 bool CoroScheduler::ResumeCoroutine(RefCoroutine& coro) {
-  CHECK(InRootCoroutine());
-
-  if (!InRootCoroutine()) {
-    return false;
+  if (coro->resume_func_) {
+    coro->resume_func_();
+    return true;
   }
-  return Transfer(coro);
+  if (InRootCoroutine()) {
+    return Transfer(coro);
+  }
+  return false;
 }
 
 bool CoroScheduler::Transfer(RefCoroutine& next) {

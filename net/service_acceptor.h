@@ -25,6 +25,7 @@ public:
   const InetAddress& ListenLocal() const { return address_; };
 private:
   void InitListener();
+  void OnAccepterError();
   void HandleCommingConnection();
 
   bool listenning_;

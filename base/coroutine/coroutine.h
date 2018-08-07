@@ -4,6 +4,7 @@
 #include <cinttypes>
 #include "libcoro/coro.h"
 #include "coroutine_task.h"
+#include "closure/closure_task.h"
 
 namespace base {
 
@@ -18,25 +19,23 @@ enum CoroState {
 // only can allocate in stack
 class Coroutine : public coro_context {
 public:
-  Coroutine(int stack_size, bool main);
-  ~Coroutine();
-
   intptr_t Identifier() const;
   const CoroState Status() const {return current_state_;}
+
+  Coroutine(int stack_size, bool main);
+  ~Coroutine();
 private:
   friend class CoroScheduler;
   static void run_coroutine(void* arg);
 
-  void RunCoroTask();
-
+  void Reset();
   void SetIdentifier(uint64_t id);
   void SetCoroTask(CoroClosure task);
-
   inline void SetCoroState(CoroState st) {current_state_ = st;}
-private:
-  int stack_size_;
+
   const bool meta_coro_;
 
+  int stack_size_;
   coro_stack stack_;
   coro_context coro_ctx_;
 
@@ -44,6 +43,7 @@ private:
 
   CoroClosure coro_task_;
 
+  StlClourse resume_func_;
   DISALLOW_COPY_AND_ASSIGN(Coroutine);
 };
 

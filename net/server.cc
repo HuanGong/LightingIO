@@ -21,6 +21,7 @@ Server::Server(SrvDelegate* delegate)
 }
 
 Server::~Server() {
+  LOG(INFO) << " Server Gone";
 }
 
 void Server::Initialize() {

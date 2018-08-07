@@ -107,7 +107,7 @@ bool FdEventTest() {
     thread.join();
   }
   close(write_fd);
-  close(read_fd);
+  //close(read_fd); owner by FdEvent
   return 0;
 }
 
