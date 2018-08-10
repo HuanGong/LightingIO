@@ -5,21 +5,20 @@
 namespace base {
 
 FdEvent::FdEvent(int fd, uint32_t event):
-  delegate_(NULL),
+  watcher_(NULL),
   fd_(fd),
   events_(event),
   owner_fd_life_(true) {
 }
 
 FdEvent::~FdEvent() {
-  LOG(INFO) << "Fd Event Gone" << fd_;
   if (owner_fd_life_) {
     ::close(fd_);
   }
 }
 
 void FdEvent::SetDelegate(FdEventWatcher* d) {
-  delegate_ = d;
+  watcher_ = d;
 }
 
 uint32_t FdEvent::MonitorEvents() const {
@@ -51,11 +50,11 @@ void FdEvent::ResetCallback() {
 }
 
 void FdEvent::Update() {
-  if (delegate_) {
+  if (watcher_) {
     VLOG(GLOG_VTRACE) << "update fdevent to poll, events:" << events_;
-    delegate_->UpdateFdEvent(this);
+    watcher_->OnEventChanged(this);
   } else {
-    LOG(INFO) << "No FdEvent::Delegate Can update this FdEvent, fd:" << fd();
+    LOG(INFO) << "This fdevent not attach to any event dump yet, fd:" << fd();
   }
 }
 
@@ -65,8 +64,6 @@ void FdEvent::SetCloseCallback(const EventCallback &cb) {
 
 void FdEvent::HandleEvent() {
   VLOG(GLOG_VTRACE) << "FdEvent::handle_event: " << RcvEventAsString();
-  LOG(INFO) << "FdEvent::handle_event: " << RcvEventAsString();
-  /* in normal case, this caused by peer close fd */
   do {
     if ((revents_ & EPOLLHUP) && !(revents_ & EPOLLIN)) {
       if (close_callback_) {

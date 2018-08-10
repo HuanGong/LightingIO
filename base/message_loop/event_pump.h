@@ -36,7 +36,8 @@ public:
   bool InstallFdEvent(FdEvent *fd_event);
   bool RemoveFdEvent(FdEvent* fd_event);
 
-  void UpdateFdEvent(FdEvent* fd_event) override;
+  // override from FdEventWatcher
+  void OnEventChanged(FdEvent* fd_event) override;
 
   bool CancelTimer(uint32_t timer_id);
   int32_t ScheduleTimer(RefTimerEvent& timerevent);
@@ -48,7 +49,7 @@ public:
   void SetLoopThreadId(std::thread::id id) {tid_ = id;}
 protected:
   int64_t HandleTimerTask();
-  inline FdEvent::FdEventWatcher* AsFdEventDelegate() {return this;}
+  inline FdEvent::FdEventWatcher* AsFdWatcher() {return this;}
 
 private:
   PumpDelegate* delegate_;

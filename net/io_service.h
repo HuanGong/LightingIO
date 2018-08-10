@@ -25,7 +25,8 @@ public:
   virtual void DecreaseChannelCount() = 0;
 
   virtual bool CanCreateNewChannel() { return true;}
-
+  /* do other config things for this ioservice; return false will kill this service*/
+  virtual bool BeforeIOServiceStart(IOService* ioservice) {return true;};
   virtual void IOServiceStarted(const IOService* ioservice) {};
   virtual void IOServiceStoped(const IOService* ioservice) {};
 };

@@ -4,7 +4,6 @@
 namespace base {
 
 IoMultiplexer::IoMultiplexer() {
-
 }
 IoMultiplexer::~IoMultiplexer() {
 }

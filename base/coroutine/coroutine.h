@@ -2,6 +2,7 @@
 #define COROUTINE_H_H_
 
 #include <cinttypes>
+#include "config.h"
 #include "libcoro/coro.h"
 #include "coroutine_task.h"
 #include "closure/closure_task.h"
@@ -16,34 +17,35 @@ enum CoroState {
   kDone = 4
 };
 
-// only can allocate in stack
 class Coroutine : public coro_context {
 public:
-  intptr_t Identifier() const;
-  const CoroState Status() const {return current_state_;}
+  typedef std::shared_ptr<Coroutine> RefCoroutine;
+  typedef std::function<void(Coroutine*)> CoroCallback;
 
-  Coroutine(int stack_size, bool main);
+  static std::shared_ptr<Coroutine> Create(bool main = false);
+  static int64_t SystemCoroutineCount();
   ~Coroutine();
-private:
+
+  void SetCoroTask(CoroClosure task);
+  const CoroState Status() const {return current_state_;}
+protected:
   friend class CoroScheduler;
+  Coroutine(bool main);
   static void run_coroutine(void* arg);
 
   void Reset();
-  void SetIdentifier(uint64_t id);
-  void SetCoroTask(CoroClosure task);
-  inline void SetCoroState(CoroState st) {current_state_ = st;}
+  void RunCoroutineTask();
+  void SetCoroState(CoroState st) {current_state_ = st;}
 
-  const bool meta_coro_;
-
-  int stack_size_;
   coro_stack stack_;
-  coro_context coro_ctx_;
 
   CoroState current_state_;
-
   CoroClosure coro_task_;
 
-  StlClourse resume_func_;
+  StlClosure resume_func_;
+
+  CoroCallback start_callback_;
+  CoroCallback recall_callback_;
   DISALLOW_COPY_AND_ASSIGN(Coroutine);
 };
 

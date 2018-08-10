@@ -71,7 +71,6 @@ void TcpChannel::Start() {
 
 TcpChannel::~TcpChannel() {
   VLOG(GLOG_VTRACE) << channal_name_ << " Gone, Fd:" << fd_event_->fd();
-  LOG(INFO) << channal_name_ << " Gone, Fd:" << fd_event_->fd();
   fd_event_.reset();
   CHECK(channel_status_ == DISCONNECTED);
 }

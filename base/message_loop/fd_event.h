@@ -18,7 +18,7 @@ public:
   class FdEventWatcher {
     public:
       virtual ~FdEventWatcher() {}
-      virtual void UpdateFdEvent(FdEvent* fd_event) = 0;
+      virtual void OnEventChanged(FdEvent* fd_event) = 0;
   };
 
   typedef std::function<void()> EventCallback;
@@ -32,7 +32,7 @@ public:
   ~FdEvent();
   
   void SetDelegate(FdEventWatcher* d);
-  FdEventWatcher* EventDelegate() {return delegate_;}
+  FdEventWatcher* EventDelegate() {return watcher_;}
 
   void HandleEvent();
   void ResetCallback();
@@ -48,12 +48,14 @@ public:
   void Update();
 
   void EnableReading() {
-    if (!IsReadEnable())
+    if (!IsReadEnable()) {
       update_event(EPOLLIN | EPOLLPRI);
+    }
   }
   void EnableWriting() {
-    if (!IsWriteEnable())
+    if (!IsWriteEnable()) {
       update_event(EPOLLOUT);
+    }
   }
 
   void DisableAll() { events_ = 0; Update();}
@@ -75,7 +77,7 @@ private:
   }
   std::string events2string(uint32_t event);
 
-  FdEventWatcher* delegate_;
+  FdEventWatcher* watcher_;
 
   int fd_;
   uint32_t events_;

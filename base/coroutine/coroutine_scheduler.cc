@@ -30,6 +30,9 @@ void CoroScheduler::CreateAndTransfer(CoroClosure& task) {
   CoroScheduler* scheduler = TlsCurrent();
   CHECK(loop);
 
+  // 判断是塞入task 还是创建新的coroutine运行
+  //scheduled_coro_tasks_.push_back(std::move(task));
+
   RefCoroutine coro;
   while(!coro && scheduler->free_list_.size() > 0) {
     coro = scheduler->free_list_.front();
@@ -37,9 +40,14 @@ void CoroScheduler::CreateAndTransfer(CoroClosure& task) {
   }
 
   if (!coro) { //really create new coroutine
-    coro = std::make_shared<Coroutine>(0, false);
+    coro = Coroutine::Create();
+
     scheduler->OnNewCoroBorn(coro);
-    coro->resume_func_ = std::bind([=](std::weak_ptr<Coroutine> weak_coro) {
+
+    std::weak_ptr<Coroutine> weak(coro);
+    coro->resume_func_ = std::bind(&CoroScheduler::ResumeWeakCoroutine, scheduler, weak);
+    /*
+      std::bind([=](std::weak_ptr<Coroutine> weak_coro) {
       RefCoroutine to = weak_coro.lock();
       LOG_IF(ERROR, !to) << "Can't Resume a Coroutine Has Gone";
       if (!to) return;
@@ -50,17 +58,28 @@ void CoroScheduler::CreateAndTransfer(CoroClosure& task) {
       }
       TlsCurrent()->Transfer(to);
     }, coro);
+    */
+
   }
 
   coro->SetCoroTask(std::move(task));
 
+  LOG(INFO) << "Coroutine ref count:" << coro.use_count();
   TlsCurrent()->Transfer(coro);
 }
 
 void CoroScheduler::OnNewCoroBorn(RefCoroutine& coro) {
+  coro->recall_callback_ = coro_recall_func_;
+
+  //TODO: use self hold isnteal of unordered set holder it
   coroutines_.insert(coro);
 }
 
+/*
+ * 如果有task，可以继续settask 让task继续在这个coroutine运行
+ * 如果没有task，并更具情况gc掉当前coroutine或者回收到freelist等待下个需要创建coroutine的情况,
+ * 最后切换到miancoroutine
+ * */
 void CoroScheduler::GcCoroutine(Coroutine* die) {
   CHECK(die == current_.get());
 
@@ -78,11 +97,13 @@ void CoroScheduler::GcCoroutine(Coroutine* die) {
 CoroScheduler::CoroScheduler()
   : max_reuse_coroutines_(kDefaultMaxReuseCoroutineNumbersPerThread) {
 
-  main_coro_.reset(new Coroutine(0, true));
+  main_coro_ = Coroutine::Create(true);
   current_ = main_coro_;
 
-  gc_coro_.reset(new Coroutine(0, false));
+  gc_coro_ = Coroutine::Create();
   gc_coro_->SetCoroTask(std::bind(&CoroScheduler::gc_loop, this));
+
+  coro_recall_func_ = std::bind(&CoroScheduler::GcCoroutine, this, std::placeholders::_1);
 }
 
 CoroScheduler::~CoroScheduler() {
@@ -102,9 +123,18 @@ void CoroScheduler::YieldCurrent() {
   Transfer(main_coro_);
 }
 
-intptr_t CoroScheduler::CurrentCoroId() {
-  CHECK(current_);
-  return current_->Identifier();
+bool CoroScheduler::ResumeWeakCoroutine(std::weak_ptr<Coroutine> weak_coro) {
+  RefCoroutine to = weak_coro.lock();
+  LOG_IF(ERROR, !to) << "Can't Resume a Coroutine Has Gone";
+  if (!to) return false;
+
+  base::MessageLoop* loop = base::MessageLoop::Current();
+  if (!loop->IsInLoopThread()) {
+    StlClosure func = std::bind(&CoroScheduler::ResumeWeakCoroutine, this, weak_coro);
+    loop->PostTask(base::NewClosure(func));
+    return true;
+  }
+  TlsCurrent()->Transfer(to);
 }
 
 bool CoroScheduler::ResumeCoroutine(RefCoroutine& coro) {
@@ -127,8 +157,8 @@ bool CoroScheduler::Transfer(RefCoroutine& next) {
     current_->SetCoroState(CoroState::kPaused);
   }
 
-  coro_context* to = &next->coro_ctx_;
-  coro_context* from = &current_->coro_ctx_;
+  coro_context* to = next.get();//&next->coro_ctx_;
+  coro_context* from = current_.get();//&current_->coro_ctx_;
 
   current_ = next;
 

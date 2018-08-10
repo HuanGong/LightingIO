@@ -41,7 +41,7 @@ void EventPump::Run() {
     for (auto& fd_event : active_events_) {
       fd_event->HandleEvent();
     }
-   
+
     if (delegate_) {
       delegate_->RunNestedTask();
     }
@@ -73,7 +73,7 @@ bool EventPump::InstallFdEvent(FdEvent *fd_event) {
     return false;
   }
 
-  fd_event->SetDelegate(AsFdEventDelegate());
+  fd_event->SetDelegate(AsFdWatcher());
 
   multiplexer_->AddFdEvent(fd_event);
   return true;
@@ -91,7 +91,7 @@ bool EventPump::RemoveFdEvent(FdEvent* fd_event) {
   return true;
 }
 
-void EventPump::UpdateFdEvent(FdEvent* fd_event) {
+void EventPump::OnEventChanged(FdEvent* fd_event) {
   CHECK(IsInLoopThread() && fd_event->EventDelegate());
   multiplexer_->UpdateFdEvent(fd_event);
 }
