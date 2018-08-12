@@ -16,7 +16,6 @@ class QueuedTask {
 public:
   QueuedTask() {}
   virtual ~QueuedTask() {}
-
   virtual bool Run() = 0;
 private:
   DISALLOW_COPY_AND_ASSIGN(QueuedTask);
@@ -45,7 +44,6 @@ private:
   Cleanup cleanup_;
 };
 
-
 template <class Closure>
 static std::unique_ptr<QueuedTask> NewClosure(const Closure& closure) {
   return std::unique_ptr<QueuedTask>(new ClosureTask<Closure>(closure));
@@ -57,12 +55,6 @@ static std::unique_ptr<QueuedTask> NewClosure(const Closure& closure,
   return std::unique_ptr<QueuedTask>(
       new ClosureTaskWithCleanup<Closure, Cleanup>(closure, cleanup));
 }
-/*
-template<typename _Func, typename... _BoundArgs>
-static std::unique_ptr<QueuedTask> NewClosure(_Func&& __f, _BoundArgs&&... __args) {
-  auto f = std::bind(std::forward<_Func>(__f), std::forward<_BoundArgs>(__args)...);
-  return std::unique_ptr<QueuedTask>(new ClosureTask(std::move(f)));
-}*/
 
 typedef std::function<void()> SigHandler;
 typedef std::function<void()> StlClosure;

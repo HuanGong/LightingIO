@@ -20,7 +20,7 @@ public:
 
   /* use for couting connection numbers and limit
    * max connections; return false when reach limits,
-   * otherwise return true*/
+   * otherwise return true */
   virtual bool IncreaseChannelCount() = 0;
   virtual void DecreaseChannelCount() = 0;
 

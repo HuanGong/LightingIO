@@ -1,5 +1,3 @@
-
-
 #include "glog/logging.h"
 
 #include "tcp_channel.h"
