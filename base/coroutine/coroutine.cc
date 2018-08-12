@@ -16,32 +16,35 @@ static base::SpinLock g_coro_lock;
 static std::atomic_int64_t coroutine_counter;
 const static std::function<void()> null_func;
 
+//IMPORTANT: NO HEAP MEMORY HERE!!!
+void coro_main(void* arg) {
+  Coroutine* coroutine = static_cast<Coroutine*>(arg);
+  CHECK(coroutine);
+  do {
+    if (coroutine->start_callback_) {
+      coroutine->start_callback_(coroutine);
+    }
+    coroutine->SetCoroState(CoroState::kRunning);
+    CHECK(coroutine->coro_task_);
+    coroutine->coro_task_();
+    coroutine->coro_task_ = null_func;
+    coroutine->SetCoroState(CoroState::kDone);
+
+    CHECK(coroutine->recall_callback_);
+    coroutine->recall_callback_(coroutine);
+  } while(true);
+}
+
 //static
-int64_t Coroutine::SystemCoroutineCount() {
+int64_t SystemCoroutineCount() {
   return coroutine_counter.load();
 }
 //static
 std::shared_ptr<Coroutine> Coroutine::Create(bool main) {
   return std::shared_ptr<Coroutine>(new Coroutine(main));
 }
-//static Do Not Create Heap Memory Here
-void Coroutine::run_coroutine(void* arg) {
-  Coroutine* coroutine = static_cast<Coroutine*>(arg);
-  do {
-    if (coroutine->start_callback_) {
-      coroutine->start_callback_(coroutine);
-    }
-    coroutine->SetCoroState(CoroState::kRunning);
-    coroutine->RunCoroutineTask();
-    coroutine->SetCoroState(CoroState::kDone);
-
-    CHECK(coroutine->recall_callback_);
-    coroutine->recall_callback_(coroutine);
-  } while(1);
-}
 
 Coroutine::Coroutine(bool main) {
-
   stack_.ssze = 0;
   stack_.sptr = nullptr;
 
@@ -62,18 +65,21 @@ Coroutine::Coroutine(bool main) {
   memset(this, 0, sizeof(coro_context));
   {
     base::SpinLockGuard guard(g_coro_lock);
-    coro_create(this, &Coroutine::run_coroutine, this, stack_.sptr, stack_.ssze);
+    coro_create(this, coro_main, this, stack_.sptr, stack_.ssze);
   }
+  LOG(INFO) << "Coroutine Gone +1";
   coroutine_counter.fetch_add(1);
 }
+
 Coroutine::~Coroutine() {
   coroutine_counter.fetch_sub(1);
-  DCHECK(current_state_ == kDone);
+  DCHECK(current_state_ != kPaused);
+  LOG(INFO) << "Coroutine Gone -1";
+  VLOG(GLOG_VTRACE) << "coroutine gone! count:" << coroutine_counter.load() << "st:" << StateToString();
 
   if (stack_.ssze != 0) {
     coro_stack_free(&stack_);
   }
-  VLOG(GLOG_VTRACE) << "coroutine gone! count:" << coroutine_counter.load() << "st:" << current_state_;
 }
 
 void Coroutine::Reset() {
@@ -81,17 +87,30 @@ void Coroutine::Reset() {
   current_state_ = CoroState::kInitialized;
 }
 
-void Coroutine::SetCoroTask(CoroClosure task) {
-  coro_task_ = task;
+bool Coroutine::Resume() {
+  if (resume_func_ && current_state_ == CoroState::kPaused) {
+    resume_func_();
+    return true;
+  }
+  LOG_IF(ERROR, !resume_func_) << "resume-function is empty, can't resume this coro";
+  LOG_IF(ERROR, (current_state_ != CoroState::kPaused)) << "Can't resume a coroutine its paused, state:" << StateToString();
+  return false;
 }
 
-void Coroutine::RunCoroutineTask() {
-  if (coro_task_) {
-    coro_task_();
-    coro_task_ = null_func;
-  } else {
-    LOG(ERROR) << " Empty Coroutine Run!";
+std::string Coroutine::StateToString() const {
+  switch(current_state_) {
+    case CoroState::kInitialized:
+      return "Initialized";
+    case CoroState::kRunning:
+      return "Running";
+    case CoroState::kPaused:
+      return "Paused";
+    case CoroState::kDone:
+      return "Done";
+    default:
+      return "Unknown";
   }
+  return "Unknown";
 }
 
 }//end base

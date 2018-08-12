@@ -150,7 +150,7 @@ bool ClientRouter::SendClientRequest(RefProtocolMessage& message) {
 
   router_counter_++;
 
-  base::StlClourse func = std::bind(&ClientChannel::ScheduleARequest, client, message);
+  base::StlClosure func = std::bind(&ClientChannel::ScheduleARequest, client, message);
 
   dispatcher_->TransferAndYield(io_loop, func);
   return true;

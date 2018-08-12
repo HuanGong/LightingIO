@@ -47,6 +47,7 @@ public:
 
   bool Running() { return running_; }
   void SetLoopThreadId(std::thread::id id) {tid_ = id;}
+  uint64_t NonePreciseMillsecond() {return timer_queue_.InexacTimeMillsecond();}
 protected:
   int64_t HandleTimerTask();
   inline FdEvent::FdEventWatcher* AsFdWatcher() {return this;}

@@ -11,39 +11,39 @@ namespace base {
 
 enum CoroState {
   kInitialized = 0,
-  kScheduled = 1,
-  kRunning = 2,
-  kPaused = 3,
-  kDone = 4
+  kRunning = 1,
+  kPaused = 2,
+  kDone = 3
 };
+class Coroutine;
+typedef std::shared_ptr<Coroutine> RefCoroutine;
+typedef std::function<void(Coroutine*)> CoroCallback;
+
+int64_t SystemCoroutineCount();
 
 class Coroutine : public coro_context {
 public:
-  typedef std::shared_ptr<Coroutine> RefCoroutine;
-  typedef std::function<void(Coroutine*)> CoroCallback;
+  friend class CoroScheduler;
+  friend void coro_main(void* coro);
 
   static std::shared_ptr<Coroutine> Create(bool main = false);
-  static int64_t SystemCoroutineCount();
   ~Coroutine();
 
-  void SetCoroTask(CoroClosure task);
+  bool Resume();
+  std::string StateToString() const;
   const CoroState Status() const {return current_state_;}
-protected:
-  friend class CoroScheduler;
-  Coroutine(bool main);
-  static void run_coroutine(void* arg);
 
+private:
+  Coroutine(bool main);
   void Reset();
-  void RunCoroutineTask();
+  void SetTask(CoroClosure task) {coro_task_ = task;};
   void SetCoroState(CoroState st) {current_state_ = st;}
+  void SetRecallCallback(CoroCallback cb) {recall_callback_ = cb;}
 
   coro_stack stack_;
-
   CoroState current_state_;
   CoroClosure coro_task_;
-
   StlClosure resume_func_;
-
   CoroCallback start_callback_;
   CoroCallback recall_callback_;
   DISALLOW_COPY_AND_ASSIGN(Coroutine);

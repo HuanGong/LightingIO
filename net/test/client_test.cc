@@ -30,7 +30,7 @@ net::ClientRouter* raw_router;
 net::RefHttpRequest g_request;
 net::RefTcpChannel g_channel;
 
-void SendRequest() {
+void SendRequest(int sequence_id) {
   net::RefHttpRequest request = std::make_shared<net::HttpRequest>(net::IODirectionType::kOutRequest);
   request->SetKeepAlive(true);
   request->MutableBody() = "Nice to meet your,I'm LightingIO\n";
@@ -38,7 +38,7 @@ void SendRequest() {
   net::RefProtocolMessage req = std::static_pointer_cast<net::ProtocolMessage>(request);
 
   if (router->SendClientRequest(req)) {
-    LOG(ERROR) << "Haha, My HttpRequest Back ................. Wow!!!!";
+    LOG(ERROR) << "Haha, My HttpRequest Back .......... Wow!!!!" << " sequence id:" << sequence_id;
   }
 }
 
@@ -75,31 +75,21 @@ int main(int argc, char* argv[]) {
   loop.Start();
   wloop.Start();
 
-  raw_router = new net::ClientRouter(&loop, raw_server_address);
-  net::RouterConf raw_router_config;
-  raw_router_config.protocol = "raw";
-  raw_router_config.connections = 1;
-  raw_router_config.recon_interal = 5000;
-  raw_router_config.message_timeout = 1000;
-  raw_router->SetupRouter(raw_router_config);
-  raw_router->SetWorkLoadTransfer(dispatcher_);
-  loop.PostTask(base::NewClosure(std::bind(&net::ClientRouter::StartRouter, raw_router)));
-
-#if 0
   router = new net::ClientRouter(&loop, server_address);
+  net::RouterConf router_config;
+  router_config.protocol = "http";
+  router_config.connections = 1;
+  router_config.recon_interal = 5000;
+  router_config.message_timeout = 1000;
+  router->SetupRouter(router_config);
   router->SetWorkLoadTransfer(dispatcher_);
   loop.PostTask(base::NewClosure(std::bind(&net::ClientRouter::StartRouter, router)));
-#endif
 
   sleep(5);
-#if 0
-  base::StlClosure closure = std::bind(SendRequest);
-  base::CoroScheduler::RunAsCoroInLoop(&wloop, closure);
-#endif
 
   for (int i = 0; i < 10; i++) {
-    base::StlClosure send_raw_request = std::bind(SendRawRequest, i);
-    base::CoroScheduler::ScheduleCoroutineInLoop(&wloop, send_raw_request);
+    base::StlClosure send_request = std::bind(SendRequest, i);
+    loop.PostCoroTask(send_request);
   }
 
   loop.WaitLoopEnd();

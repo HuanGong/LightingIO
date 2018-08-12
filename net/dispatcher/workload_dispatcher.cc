@@ -48,7 +48,7 @@ bool WorkLoadDispatcher::SetWorkContext(ProtocolMessage* message) {
   return work_context.coro_loop != NULL;
 }
 
-bool WorkLoadDispatcher::TransmitToWorker(base::StlClourse& clourse) {
+bool WorkLoadDispatcher::TransmitToWorker(base::StlClosure& clourse) {
   if (HandleWorkInIOLoop()) {
     clourse();
     return true;

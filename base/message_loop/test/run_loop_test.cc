@@ -5,17 +5,71 @@
 #include <sys/epoll.h>
 #include <atomic>
 #include <memory>
-
 #include "../fd_event.h"
 #include "../event_pump.h"
 #include "../timer_event.h"
 #include "../message_loop.h"
 #include "../linux_signal.h"
+#include "base/coroutine/coroutine.h"
+#include "base/coroutine/coroutine_scheduler.h"
+
 
 
 bool MessageLoopTest();
 bool FdEventTest();
 bool TimerEventTest();
+bool CoroutineTaskTest() {
+  base::MessageLoop loop;
+
+  std::weak_ptr<base::Coroutine> weak1;
+  std::weak_ptr<base::Coroutine> weak2;
+
+  loop.PostCoroTask([](){
+    LOG(INFO) << "Task Run At Coroutine, task 1";
+  });
+  loop.PostCoroTask([&](){
+    LOG(INFO) << "Task Run At Coroutine, task 2 start";
+    base::RefCoroutine coro = base::CoroScheduler::TlsCurrent()->CurrentCoro();
+    weak1 = coro;
+    base::CoroScheduler::TlsCurrent()->YieldCurrent();
+    LOG(INFO) << "Task Run At Coroutine, task 2 resume";
+  });
+  loop.PostCoroTask([](){
+    LOG(INFO) << "Task Run At Coroutine, task 3";
+  });
+  loop.PostCoroTask([&](){
+    LOG(INFO) << "Task Run At Coroutine, task 4";
+    base::RefCoroutine coro = base::CoroScheduler::TlsCurrent()->CurrentCoro();
+    weak2 = coro;
+    base::CoroScheduler::TlsCurrent()->YieldCurrent();
+    LOG(INFO) << "Task Run At Coroutine, task 4 resume";
+  });
+
+  loop.Start();
+  loop.PostTask(base::NewClosure([](){
+    LOG(INFO) << "Normal Task Run, task";
+  }));
+
+  loop.PostDelayTask(base::NewClosure([&](){
+    LOG(INFO) << "resume coroutine 2 start";
+    base::RefCoroutine coro = weak1.lock();
+    coro->Resume();
+    LOG(INFO) << "resume coroutine 2 finished";
+
+    LOG(INFO) << "resume coroutine 4 start";
+    base::RefCoroutine coro2 = weak2.lock();
+    coro2->Resume();
+    LOG(INFO) << "resume coroutine 4 finished";
+  }), 1000);
+
+  loop.PostDelayTask(base::NewClosure([&](){
+    LOG(INFO) << "Quit Loop";
+    loop.QuitLoop();
+  }), 10*1000);
+
+  loop.WaitLoopEnd();
+  return  true;
+}
 
 int main(int argc, char** argv) {
   //google::InitGoogleLogging(argv[0]);  // 初始化 glog
@@ -24,8 +78,10 @@ int main(int argc, char** argv) {
   //FdEventTest();
   //TimerEventTest();
   //static void signal(int sig, const std::function<void()>& handler);
+  
 
-  MessageLoopTest();
+  //MessageLoopTest();
+  CoroutineTaskTest();
   return 0;
 }
 

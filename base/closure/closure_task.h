@@ -65,7 +65,6 @@ static std::unique_ptr<QueuedTask> NewClosure(_Func&& __f, _BoundArgs&&... __arg
 }*/
 
 typedef std::function<void()> SigHandler;
-typedef std::function<void()> StlClourse;
 typedef std::function<void()> StlClosure;
 
 }// end namespace

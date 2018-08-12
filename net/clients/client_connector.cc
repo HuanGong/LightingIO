@@ -98,8 +98,6 @@ void Connector::InitEvent(base::RefFdEvent& fd_event) {
 
 void Connector::CleanUpBadChannel(base::RefFdEvent& event) {
 
-  int socket_fd = event->fd();
-
   event->ResetCallback();
   loop_->Pump()->RemoveFdEvent(event.get());
 

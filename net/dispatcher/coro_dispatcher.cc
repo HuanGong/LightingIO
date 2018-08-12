@@ -20,7 +20,7 @@ CoroWlDispatcher::CoroWlDispatcher(bool handle_in_io)
 CoroWlDispatcher::~CoroWlDispatcher() {
 }
 
-void CoroWlDispatcher::TransferAndYield(base::MessageLoop* ioloop, base::StlClourse clourse) {
+void CoroWlDispatcher::TransferAndYield(base::MessageLoop* ioloop, base::StlClosure clourse) {
   CHECK(ioloop);
   CHECK(base::CoroScheduler::TlsCurrent()->CurrentCoro());
   ioloop->PostTask(base::NewClosure(std::move(clourse)));
@@ -31,20 +31,12 @@ void CoroWlDispatcher::TransferAndYield(base::MessageLoop* ioloop, base::StlClou
 bool CoroWlDispatcher::ResumeWorkCtxForRequest(RefProtocolMessage& request) {
 
   auto& work_context = request->GetWorkCtx();
-  if (!work_context.coro_loop || !work_context.weak_coro.lock()) {
-    LOG(FATAL) << " This Request WorkContext Is Not Init";
+  base::RefCoroutine coro = work_context.weak_coro.lock();
+  if (!work_context.coro_loop || !coro) {
+    LOG(FATAL) << "No corotine context or coroutine has gone.";
     return false;
   }
-
-  base::StlClourse functor = [=]() {
-    auto& work_context = request->GetWorkCtx();
-    base::RefCoroutine coro = work_context.weak_coro.lock();
-    if (coro && coro->Status() == base::CoroState::kPaused) {
-      base::CoroScheduler::TlsCurrent()->ResumeCoroutine(coro);
-    }
-  };
-  work_context.coro_loop->PostTask(base::NewClosure(std::move(functor)));
-  return true;
+  return coro->Resume();
 }
 
 bool CoroWlDispatcher::SetWorkContext(ProtocolMessage* message) {
@@ -60,18 +52,19 @@ bool CoroWlDispatcher::SetWorkContext(ProtocolMessage* message) {
   return false;
 }
 
-bool CoroWlDispatcher::TransmitToWorker(base::StlClourse& closure) {
+bool CoroWlDispatcher::TransmitToWorker(base::StlClosure& closure) {
 
   if (HandleWorkInIOLoop()) {
-    base::CoroScheduler::CreateAndTransfer(closure);
+    base::MessageLoop::Current()->PostCoroTask(closure);
     return true;
   }
 
   base::MessageLoop* loop = GetNextWorkLoop();
   if (NULL == loop) {
+    LOG(ERROR) << "no message loop handler this task";
     return false;
   }
-  base::CoroScheduler::ScheduleCoroutineInLoop(loop, closure);
+  loop->PostCoroTask(closure);
   return true;
 }
 

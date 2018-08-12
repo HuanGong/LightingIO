@@ -34,6 +34,7 @@ public:
   /* return the duration(millsecond) for next timerevent triggle*/
   uint64_t HandleExpiredTimer();
   void TestingPriorityQueue();
+  uint64_t InexacTimeMillsecond() {return inexact_time_us_;}
 private:
 
   void InvokeAndReScheduleIfNeed(uint32_t timerid);
@@ -46,6 +47,7 @@ private:
   TimerIndexHeap timer_heap_;
   std::vector<RefTimerEvent> timer_events_;
   std::stack<uint32_t> reusable_timerid_;
+  uint64_t inexact_time_us_ = 0;
 };
 
 }

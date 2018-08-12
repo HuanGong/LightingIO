@@ -24,7 +24,7 @@ public:
   // must call at Worker Loop, may ioworker or woker according to HandleWorkInIOLoop
   virtual bool SetWorkContext(ProtocolMessage* message);
   // transmit task from IO TO worker loop
-  virtual bool TransmitToWorker(base::StlClourse& clourse);
+  virtual bool TransmitToWorker(base::StlClosure& closuse);
 
 private:
   bool work_in_io_;

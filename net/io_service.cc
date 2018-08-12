@@ -171,7 +171,7 @@ void IOService::HandleRequest(const RefProtocolMessage& request) {
   //VLOG(GLOG_VTRACE) << "Transmit a request to Worker, request from:" << channel->ChannelName();
   LOG(INFO) << "Transmit a request to Worker, request from:" << channel->ChannelName();
 
-  base::StlClourse functor = std::bind(&IOService::HandleRequestOnWorker, this, request);
+  base::StlClosure functor = std::bind(&IOService::HandleRequestOnWorker, this, request);
   bool ok = dispatcher_->TransmitToWorker(functor);
   if (false == ok) {
     LOG(FATAL) << "Failed Transmit Request To Worker Handler";

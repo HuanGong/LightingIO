@@ -14,7 +14,6 @@ uint32_t TimerTaskQueue::AddTimerEvent(RefTimerEvent& timer_event) {
   const Timestamp& timestamp_ = timer_event->Time();
 
   if (reusable_timerid_.empty()) {
-    //timer_events_.push_back(std::move(timer_event));
     timer_events_.push_back(timer_event);
     timer_id = (timer_events_.size() - 1);
   } else {
@@ -46,6 +45,7 @@ bool TimerTaskQueue::CancelTimerEvent(uint32_t timer_index) {
 uint64_t TimerTaskQueue::HandleExpiredTimer() {
 
   Timestamp now = Timestamp::Now();
+  inexact_time_us_ = now.AsMillsecond();
 
   while(!timer_heap_.empty() &&
         timer_heap_.top().time_.AsMillsecond() <= now.AsMillsecond()) {
@@ -73,7 +73,9 @@ int64_t TimerTaskQueue::CalculateNextTimerDuration() {
   }
   const auto& next_enter = timer_heap_.top();
 
-  int64_t now_ms = Timestamp::Now().AsMillsecond();
+  Timestamp now = Timestamp::Now();
+  int64_t now_ms = now.AsMillsecond();
+  inexact_time_us_ = now.AsMillsecond();
 
   int64_t ms_for_next_timer_task = next_enter.time_.AsMillsecond() - now_ms;
 
@@ -84,6 +86,7 @@ int64_t TimerTaskQueue::CalculateNextTimerDuration() {
 void TimerTaskQueue::InvokeAndReScheduleIfNeed(uint32_t timer_id) {
   //copy it, must do it, inboke should at the last to avoid be cancel or delete
   RefTimerEvent timerevent = timer_events_[timer_id];
+  //TODO: fix it, if add a timer and reove it, here will crash
   assert(timerevent);
 
   if (timerevent->IsOneShotTimer()) {
