@@ -39,11 +39,14 @@ private:
   void SetTask(CoroClosure task) {coro_task_ = task;};
   void SetCoroState(CoroState st) {current_state_ = st;}
   void SetRecallCallback(CoroCallback cb) {recall_callback_ = cb;}
+  void SelfHolder(RefCoroutine& self);
+  void ReleaseSelfHolder(){self_holder_.reset();};
 
   coro_stack stack_;
   CoroState current_state_;
   CoroClosure coro_task_;
   StlClosure resume_func_;
+  RefCoroutine self_holder_;
   CoroCallback start_callback_;
   CoroCallback recall_callback_;
   DISALLOW_COPY_AND_ASSIGN(Coroutine);

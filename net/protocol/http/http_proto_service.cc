@@ -137,6 +137,7 @@ bool HttpProtoService::ParseHttpRequest(const RefTcpChannel& channel, IOBuffer* 
     if (message_handler_) {
       message_handler_(std::static_pointer_cast<ProtocolMessage>(message));
     } else {
+      LOG(ERROR) << "No message handler for this channel, shutdown this channel";
       channel->ShutdownChannel();
     }
   }
@@ -277,11 +278,8 @@ bool HttpProtoService::ResponseToBuffer(const HttpResponse* response, IOBuffer* 
 const RefProtocolMessage HttpProtoService::DefaultResponse(const RefProtocolMessage& request)  {
   CHECK(request);
   HttpRequest* http_request = static_cast<HttpRequest*>(request.get());
-
-  const RefHttpResponse http_res =
-    std::make_shared<HttpResponse>(IODirectionType::kOutResponse);
-
-  http_res->SetResponseCode(500);
+  
+  const RefHttpResponse http_res = HttpResponse::NewOutResponseWithCode(500);
   http_res->SetKeepAlive(http_request->IsKeepAlive());
 
   return std::move(http_res);

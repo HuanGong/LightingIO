@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include "net_callback.h"
 #include "service_acceptor.h"
+#include "protocol/proto_message.h"
 #include "dispatcher/workload_dispatcher.h"
 #include "base/message_loop/message_loop.h"
 
@@ -48,6 +49,7 @@ public:
 
   base::MessageLoop* AcceptorLoop() { return acceptor_loop_; }
   const std::string& IOServiceName() const {return service_name_;}
+  bool IsServing() {return acceptor_ && acceptor_->IsListenning();}
 
   void SetWorkLoadDispatcher(WorkLoadDispatcher* d);
   void SetProtoMessageHandler(ProtoMessageHandler handler);

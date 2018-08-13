@@ -5,7 +5,7 @@
 #include "memory/lazy_instance.h"
 
 namespace base {
-static const int kDefaultMaxReuseCoroutineNumbersPerThread = 0;//10000;
+static const int kMaxReuseCoroutineNumbersPerThread = 5000;
 
 //static thread safe
 CoroScheduler* CoroScheduler::TlsCurrent() {
@@ -14,16 +14,26 @@ CoroScheduler* CoroScheduler::TlsCurrent() {
   static thread_local base::LazyInstance<_T> scheduler = LAZY_INSTANCE_INIT;
   return scheduler.ptr();
 }
+//static
+RefCoroutine CoroScheduler::CurrentCoro() {
+  return TlsCurrent()->current_;
+}
+
+bool CoroScheduler::CanYield() const {
+  return current_ && main_coro_ != current_;
+}
 
 void CoroScheduler::GcCoroutine(Coroutine* die) {
   CHECK(die == current_.get());
 
   if (free_list_.size() >= max_reuse_coroutines_) {
-    coroutines_.erase(current_);
+
+    current_->ReleaseSelfHolder();
     expired_coros_.push_back(current_);
-    if (false == gc_task_scheduled_ || expired_coros_.size() > 100) {
+
+    if (!gc_task_scheduled_) {
       LOG(INFO) << " schedule a gc task to free coroutine:";
-      MessageLoop::Current()->PostDelayTask(NewClosure(gc_task_), 2000);
+      MessageLoop::Current()->PostDelayTask(NewClosure(gc_task_), 1);
       gc_task_scheduled_ = true;
     }
   } else {
@@ -34,7 +44,7 @@ void CoroScheduler::GcCoroutine(Coroutine* die) {
 
 CoroScheduler::CoroScheduler()
   : gc_task_scheduled_(false),
-    max_reuse_coroutines_(kDefaultMaxReuseCoroutineNumbersPerThread) {
+    max_reuse_coroutines_(kMaxReuseCoroutineNumbersPerThread) {
 
   main_coro_ = Coroutine::Create(true);
   current_ = main_coro_;
@@ -50,15 +60,10 @@ CoroScheduler::~CoroScheduler() {
   main_coro_.reset();
 }
 
-RefCoroutine CoroScheduler::CurrentCoro() {
-  return current_;
-}
-
 void CoroScheduler::YieldCurrent() {
   CHECK(main_coro_ != current_);
   Transfer(main_coro_);
 }
-
 /* 如果本身是在一个子coro里面, 调用了to->Resume()， 则需要posttask去Resume, 否则再也回不来了
  * 如果本身是主coro， 则直接tranfer去执行.
  * 如果不是在调度的线程里， 则posttask去Resume*/
@@ -66,7 +71,7 @@ bool CoroScheduler::ResumeWeakCoroutine(MessageLoop* loop, std::weak_ptr<Corouti
   RefCoroutine coro = weak.lock();
   CHECK(coro);
 
-  if (!InRootCoroutine() || !loop->IsInLoopThread()) {
+  if (CanYield() || !loop->IsInLoopThread()) {
     loop->PostTask(base::NewClosure(coro->resume_func_));
     return true;
   }
@@ -89,10 +94,6 @@ bool CoroScheduler::Transfer(RefCoroutine& next) {
   current_ = next;
   coro_transfer(from, to);
   return true;
-}
-
-bool CoroScheduler::InRootCoroutine() {
-  return (main_coro_.get() && main_coro_ == current_);
 }
 
 void CoroScheduler::ReleaseExpiredCoroutine() {
@@ -118,6 +119,7 @@ void CoroScheduler::RunScheduledTasks(std::list<StlClosure>&& tasks) {
 
   coro_tasks_.splice(coro_tasks_.end(), tasks);
   while (coro_tasks_.size() > 0) {
+
     RefCoroutine coro;
     while(!coro && free_list_.size()) {
       coro = free_list_.front();
@@ -125,11 +127,15 @@ void CoroScheduler::RunScheduledTasks(std::list<StlClosure>&& tasks) {
     }
 
     if (!coro) { //create new coroutine
+
       coro = Coroutine::Create();
-      coroutines_.insert(coro);
+      coro->SelfHolder(coro);
       coro->recall_callback_ = coro_recall_func_;
       std::weak_ptr<Coroutine> weak_ptr(coro);
       coro->resume_func_ = std::bind(&CoroScheduler::ResumeWeakCoroutine, this, MessageLoop::Current(), weak_ptr);
+      // 说明不够用了, 增加复用coro的数量
+      uint32_t new_size = max_reuse_coroutines_ + 200;
+      max_reuse_coroutines_ = new_size > kMaxReuseCoroutineNumbersPerThread ? kMaxReuseCoroutineNumbersPerThread : new_size;
     }
 
     coro->SetTask(std::move(coro_tasks_.front()));

@@ -2,6 +2,7 @@
 #define _NET_PROTOCOL_SERVICE_H_H
 
 #include "../net_callback.h"
+#include "proto_message.h"
 #include "dispatcher/workload_dispatcher.h"
 
 namespace net {

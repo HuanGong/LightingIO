@@ -29,7 +29,7 @@ bool CoroutineTaskTest() {
   });
   loop.PostCoroTask([&](){
     LOG(INFO) << "Task Run At Coroutine, task 2 start";
-    base::RefCoroutine coro = base::CoroScheduler::TlsCurrent()->CurrentCoro();
+    base::RefCoroutine coro = base::CoroScheduler::CurrentCoro();
     weak1 = coro;
     base::CoroScheduler::TlsCurrent()->YieldCurrent();
     LOG(INFO) << "Task Run At Coroutine, task 2 resume";
@@ -39,7 +39,7 @@ bool CoroutineTaskTest() {
   });
   loop.PostCoroTask([&](){
     LOG(INFO) << "Task Run At Coroutine, task 4";
-    base::RefCoroutine coro = base::CoroScheduler::TlsCurrent()->CurrentCoro();
+    base::RefCoroutine coro = base::CoroScheduler::CurrentCoro();
     weak2 = coro;
     base::CoroScheduler::TlsCurrent()->YieldCurrent();
     LOG(INFO) << "Task Run At Coroutine, task 4 resume";

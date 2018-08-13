@@ -25,7 +25,6 @@ public:
   virtual bool SetWorkContext(ProtocolMessage* message);
   // transmit task from IO TO worker loop
   virtual bool TransmitToWorker(base::StlClosure& closuse);
-
 private:
   bool work_in_io_;
   bool started_;

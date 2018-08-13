@@ -41,10 +41,9 @@ public:
 
   void SetCode(uint8_t code);
   void SetMethod(uint8_t method);
-  void SetFrameSize(uint32_t frame_size);
   void SetSequenceId(uint32_t sequence_id);
 
-  const RawHeader& Header() {return header_;}
+  const RawHeader& Header() const {return header_;}
 
   const std::string MessageDebug() const override;
 private:

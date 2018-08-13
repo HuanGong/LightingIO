@@ -18,11 +18,10 @@ typedef std::set<RefCoroutine> CoroSet;
 class CoroScheduler {
 public:
   static CoroScheduler* TlsCurrent();
+  static RefCoroutine CurrentCoro();
 
-  RefCoroutine CurrentCoro();
   void YieldCurrent();
-  bool InRootCoroutine();
-
+  bool CanYield() const;
   /* New Scheduler with message loop */
   void RunScheduledTasks(std::list<StlClosure>&& tasks);
   /* ============ end ==============================*/
@@ -41,6 +40,8 @@ protected:
   void RecallCoroutineIfNeeded(Coroutine* coro);
   /* a callback function using for resume a kPaused coroutine */
   bool ResumeWeakCoroutine(MessageLoop* loop, std::weak_ptr<Coroutine> coro);
+
+  bool root_coroutine() { return (main_coro_ && main_coro_ == current_);}
 private:
   RefCoroutine current_;
   RefCoroutine main_coro_;
@@ -50,8 +51,6 @@ private:
   bool gc_task_scheduled_;
   std::vector<RefCoroutine> expired_coros_;
 
-  CoroSet coroutines_;
-  /* New Scheduler with message loop */
   std::list<StlClosure> coro_tasks_;
 
   /* 根据系统实际负载分配的每个线程最大的可复用coroutine数量*/

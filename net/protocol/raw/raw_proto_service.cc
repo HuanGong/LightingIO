@@ -1,4 +1,5 @@
 
+#include <memory>
 #include "io_buffer.h"
 #include "tcp_channel.h"
 #include "glog/logging.h"
@@ -96,6 +97,9 @@ bool RawProtoService::EncodeToBuffer(const ProtocolMessage* msg, IOBuffer* out_b
 
 bool RawProtoService::CloseAfterMessage(ProtocolMessage* request, ProtocolMessage* response) {
   return false;
+}
+const RefProtocolMessage RawProtoService::DefaultResponse(const RefProtocolMessage& req) {
+  return std::make_shared<RawMessage>(IODirectionType::kOutResponse);
 }
 
 };

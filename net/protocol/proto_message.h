@@ -33,6 +33,10 @@ typedef struct {
   std::weak_ptr<base::Coroutine> weak_coro;
 } WorkContext;
 
+class ProtocolMessage;
+typedef std::shared_ptr<ProtocolMessage> RefProtocolMessage;
+typedef std::function<void(const RefProtocolMessage&/*request*/)> ProtoMessageHandler;
+
 class ProtocolMessage {
 public:
   ProtocolMessage(IODirectionType, const std::string);

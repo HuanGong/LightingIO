@@ -37,10 +37,7 @@ typedef std::shared_ptr<ProtoService> RefProtoService;
 typedef std::shared_ptr<IOService> RefIOService;
 //typedef std::function<void
 //std::map<std::string/*protocol*/,
-typedef std::shared_ptr<ProtocolMessage> RefProtocolMessage;
 typedef std::unique_ptr<ProtocolMessage> OwnedProtocolMessage;
-
-typedef std::function<void(const RefProtocolMessage&/*request*/)> ProtoMessageHandler;
 
 }
 #endif

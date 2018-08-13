@@ -28,6 +28,10 @@ set(LTNET_SOURCE
   dispatcher/coro_dispatcher.cc
   dispatcher/workload_dispatcher.cc
 
+  #server
+  server/raw_server/raw_server.cc
+  server/http_server/http_server.cc
+
   #clients source
   clients/client_channel.cc
   clients/client_connector.cc
@@ -100,5 +104,12 @@ ADD_EXECUTABLE(client_test
   test/client_test.cc
 )
 TARGET_LINK_LIBRARIES(client_test
+  ${LTNETEXECUTE_LINKLIBS}
+)
+
+ADD_EXECUTABLE(new_http_server
+  test/new_http_server.cc
+)
+TARGET_LINK_LIBRARIES(new_http_server
   ${LTNETEXECUTE_LINKLIBS}
 )

@@ -67,19 +67,24 @@ Coroutine::Coroutine(bool main) {
     base::SpinLockGuard guard(g_coro_lock);
     coro_create(this, coro_main, this, stack_.sptr, stack_.ssze);
   }
-  LOG(INFO) << "Coroutine Gone +1";
+  LOG(INFO) << "Coroutine Born +1";
   coroutine_counter.fetch_add(1);
 }
 
 Coroutine::~Coroutine() {
   coroutine_counter.fetch_sub(1);
   DCHECK(current_state_ != kPaused);
-  LOG(INFO) << "Coroutine Gone -1";
+  LOG(INFO) << "Coroutine Gone -1, now has" << coroutine_counter.load();
   VLOG(GLOG_VTRACE) << "coroutine gone! count:" << coroutine_counter.load() << "st:" << StateToString();
 
   if (stack_.ssze != 0) {
     coro_stack_free(&stack_);
   }
+}
+
+void Coroutine::SelfHolder(RefCoroutine& self) {
+  CHECK(self.get() == this);
+  self_holder_ = self;
 }
 
 void Coroutine::Reset() {

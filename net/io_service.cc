@@ -81,6 +81,7 @@ void IOService::OnNewConnection(int local_socket, const InetAddress& peer_addr) 
     return;
   }
 
+
   base::MessageLoop* io_work_loop = delegate_->GetNextIOWorkLoop();
   if (!io_work_loop) {
     socketutils::CloseSocket(local_socket);
@@ -88,14 +89,12 @@ void IOService::OnNewConnection(int local_socket, const InetAddress& peer_addr) 
   }
 
   RefProtoService proto_service = ProtoServiceFactory::Create(protocol_);
-  if (!proto_service) {
+  if (!proto_service || !message_handler_) {
+    LOG(ERROR) << "no proto parser or no message handler, close this connection.";
     socketutils::CloseSocket(local_socket);
     return;
   }
-
-  ProtoMessageHandler h = std::bind(&IOService::HandleRequest, this, std::placeholders::_1);
-  proto_service->SetMessageHandler(h);
-
+  proto_service->SetMessageHandler(message_handler_);
   net::InetAddress local_addr(socketutils::GetLocalAddrIn(local_socket));
 
   auto new_channel = TcpChannel::CreateServerChannel(local_socket,

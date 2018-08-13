@@ -20,7 +20,7 @@ CoroWlDispatcher::~CoroWlDispatcher() {
 
 void CoroWlDispatcher::TransferAndYield(base::MessageLoop* ioloop, base::StlClosure clourse) {
   CHECK(ioloop);
-  CHECK(base::CoroScheduler::TlsCurrent()->CurrentCoro());
+  CHECK(base::CoroScheduler::CurrentCoro());
   ioloop->PostTask(base::NewClosure(std::move(clourse)));
 
   base::CoroScheduler::TlsCurrent()->YieldCurrent();
@@ -39,12 +39,11 @@ bool CoroWlDispatcher::ResumeWorkCtxForRequest(RefProtocolMessage& request) {
 
 bool CoroWlDispatcher::SetWorkContext(ProtocolMessage* message) {
   CHECK(message);
-  if ((base::MessageLoop::Current() &&
-      base::CoroScheduler::TlsCurrent()->CurrentCoro() &&
-      !base::CoroScheduler::TlsCurrent()->InRootCoroutine())) {
+  if (base::MessageLoop::Current() &&
+      base::CoroScheduler::TlsCurrent()->CanYield()) {
     auto& work_context = message->GetWorkCtx();
     work_context.coro_loop = base::MessageLoop::Current();
-    work_context.weak_coro = base::CoroScheduler::TlsCurrent()->CurrentCoro();
+    work_context.weak_coro = base::CoroScheduler::CurrentCoro();
     return true;
   }
   return false;

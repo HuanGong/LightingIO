@@ -20,6 +20,7 @@ public:
   bool DecodeToMessage(IOBuffer* buffer, ProtocolMessage* out_msg) override;
   bool EncodeToBuffer(const ProtocolMessage* msg, IOBuffer* out_buffer) override;
   bool CloseAfterMessage(ProtocolMessage* request, ProtocolMessage* response) override;
+  const RefProtocolMessage DefaultResponse(const RefProtocolMessage& req) override;
 private:
   RefRawMessage current_;
 };

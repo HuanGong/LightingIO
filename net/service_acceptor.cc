@@ -17,7 +17,6 @@ ServiceAcceptor::ServiceAcceptor(base::EventPump* pump, const InetAddress& addre
 }
 
 ServiceAcceptor::~ServiceAcceptor() {
-  //CHECK(event_pump_->IsInLoopThread());
   CHECK(listenning_ == false);
 
   socket_event_.reset();
@@ -64,6 +63,7 @@ void ServiceAcceptor::StopListen() {
 
   socket_event_->DisableAll();
   event_pump_->RemoveFdEvent(socket_event_.get());
+  listenning_ = false;
   LOG(INFO) << " Stop Listen on:" << address_.IpPortAsString();
 }
 
