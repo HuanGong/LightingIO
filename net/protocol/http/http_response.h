@@ -17,10 +17,10 @@ typedef std::shared_ptr<HttpResponse> RefHttpResponse;
 
 class HttpResponse : public ProtocolMessage {
 public:
-  HttpResponse(IODirectionType t);
+  HttpResponse();
   ~HttpResponse();
 
-  static RefHttpResponse NewOutResponseWithCode(uint16_t code);
+  static RefHttpResponse CreatWithCode(uint16_t code);
 
   std::string& MutableBody();
   const std::string& Body() const;

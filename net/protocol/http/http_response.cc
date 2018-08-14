@@ -9,17 +9,19 @@
 namespace net {
 
 //static
-RefHttpResponse HttpResponse::NewOutResponseWithCode(uint16_t code) {
-  auto r = std::make_shared<HttpResponse>(IODirectionType::kOutResponse);
+RefHttpResponse HttpResponse::CreatWithCode(uint16_t code) {
+  auto r = std::make_shared<HttpResponse>();
+  r->SetMessageType(MessageType::kResponse);
   r->SetResponseCode(code);
   return std::move(r);
 }
 
-HttpResponse::HttpResponse(IODirectionType t)
-  : ProtocolMessage(t, "http"),
+HttpResponse::HttpResponse()
+  : ProtocolMessage("http"),
   keepalive_(false),
   http_major_(1),
   http_minor_(1) {
+  SetMessageType(MessageType::kResponse);
 }
 
 HttpResponse::~HttpResponse() {
@@ -62,7 +64,7 @@ const std::string& HttpResponse::GetHeader(const std::string& field) const {
 
 const std::string HttpResponse::MessageDebug() const {
   std::ostringstream oss;
-  oss << "{\"type\": \"" << DirectionTypeStr() << "\""
+  oss << "{\"type\": \"" << MessageTypeStr() << "\""
       << ", \"http_major\": " << (int)http_major_
       << ", \"http_minor\": " << (int)http_minor_
       << ", \"status_code\": " << (int)status_code_;

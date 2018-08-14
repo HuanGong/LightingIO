@@ -15,8 +15,7 @@
 
 int main(int argc, char** argv) {
 
-  net::RefHttpRequest request =
-    std::make_shared<net::HttpRequest>(net::IODirectionType::kOutRequest);
+  net::RefHttpRequest request = std::make_shared<net::HttpRequest>();
   request->SetMethod("GET");
   request->MutableBody() = "Nice to Meet you!";
   std::string field("Name");
@@ -28,8 +27,7 @@ int main(int argc, char** argv) {
   LOG(ERROR) << "request:\n"  << req_buffer.AsString();
 
 
-  net::RefHttpResponse response =
-    std::make_shared<net::HttpResponse>(net::IODirectionType::kOutResponse);
+  net::RefHttpResponse response = std::make_shared<net::HttpResponse>();
   response->SetResponseCode(200);
   response->SetKeepAlive(true);
   response->MutableBody() = "Nice to meet your,I'm LightingIO";

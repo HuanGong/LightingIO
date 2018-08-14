@@ -30,25 +30,23 @@ typedef std::shared_ptr<RawMessage> RefRawMessage;
 class RawMessage : public ProtocolMessage {
 public:
   static const uint32_t kRawHeaderSize;
+  static RefRawMessage CreateRequest();
+  static RefRawMessage CreateResponse();
 
-  RawMessage(IODirectionType t);
+  RawMessage();
   ~RawMessage();
-
-  //std::string& MutableContent();
-  const std::string& Content() const;
-  void SetContent(const char* content);
-  void SetContent(const std::string& body);
 
   void SetCode(uint8_t code);
   void SetMethod(uint8_t method);
-  void SetSequenceId(uint32_t sequence_id);
-
+  const std::string& Content() const;
+  void SetContent(const char* content);
+  void SetContent(const std::string& body);
   const RawHeader& Header() const {return header_;}
-
   const std::string MessageDebug() const override;
 private:
-  std::string& MutableContent() {return content_;}
   friend class RawProtoService;
+  void SetSequenceId(uint32_t sequence_id);
+  std::string& MutableContent() {return content_;}
 
   RawHeader header_;
   std::string content_;

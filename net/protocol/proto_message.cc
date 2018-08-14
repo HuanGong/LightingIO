@@ -3,22 +3,14 @@
 
 namespace net {
 
-ProtocolMessage::ProtocolMessage(IODirectionType direction, const std::string protocol)
+ProtocolMessage::ProtocolMessage(const std::string protocol)
   : fail_info_(kNothing),
     proto_(protocol),
-    direction_(direction) {
+    type_(kNone) {
   work_context_.coro_loop = NULL;
 }
 
 ProtocolMessage::~ProtocolMessage() {
-}
-
-void ProtocolMessage::SetMessageDirection(IODirectionType t) {
-  direction_ = t;
-}
-
-const IODirectionType ProtocolMessage::MessageDirection() const {
-  return direction_;
 }
 
 const std::string& ProtocolMessage::Protocol() const {
@@ -40,18 +32,10 @@ void ProtocolMessage::SetIOContextWeakChannel(WeakPtrTcpChannel& channel) {
 }
 
 void ProtocolMessage::SetResponse(RefProtocolMessage&& response) {
-  if (direction_ == IODirectionType::kInReponse ||
-      direction_ == IODirectionType::kOutResponse) {
-    return;
-  }
   response_ = response;
 }
 
 void ProtocolMessage::SetResponse(RefProtocolMessage& response) {
-  if (direction_ == IODirectionType::kInReponse ||
-      direction_ == IODirectionType::kOutResponse) {
-    return;
-  }
   response_ = response;
 }
 
@@ -67,20 +51,18 @@ void ProtocolMessage::AppendFailMessage(std::string m) {
   fail_ = m;
 }
 
-const char* ProtocolMessage::DirectionTypeStr() const {
-  switch(MessageDirection()) {
-    case IODirectionType::kInRequest:
-      return "HttpRequest In";
-    case IODirectionType::kOutRequest:
-      return "HttpRequest OUT";
-    case IODirectionType::kOutResponse:
-      return "HttpResponse OUT";
-    case IODirectionType::kInReponse:
-      return "HttpResponse IN";
+const char* ProtocolMessage::MessageTypeStr() const {
+  switch(type_) {
+    case MessageType::kRequest:
+      return "Request Message";
+    case MessageType::kResponse:
+      return "Response Message";
+    case MessageType::kNone:
+      return "MessageNone";
     default:
-      return "kUnknownType";
+      return "MessageNone";
   }
-  return "kUnknownType";
+  return "MessageNone";
 }
 
 }//end namespace

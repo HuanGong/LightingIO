@@ -21,6 +21,8 @@ public:
   bool EncodeToBuffer(const ProtocolMessage* msg, IOBuffer* out_buffer) override;
   bool CloseAfterMessage(ProtocolMessage* request, ProtocolMessage* response) override;
   const RefProtocolMessage DefaultResponse(const RefProtocolMessage& req) override;
+
+  void BeforeSendMessage(ProtocolMessage* out_message) override;
 private:
   RefRawMessage current_;
 };

@@ -8,14 +8,15 @@
 
 namespace net {
 
-HttpRequest::HttpRequest(IODirectionType t)
-  : ProtocolMessage(t, "http"),
+HttpRequest::HttpRequest()
+  : ProtocolMessage("http"),
   keepalive_(false),
   method_("GET"),
   url_("/"),
   http_major_(1),
   http_minor_(1),
   url_param_parsed_(false) {
+  SetMessageType(kRequest);
 }
 
 HttpRequest::~HttpRequest() {
@@ -95,7 +96,7 @@ const std::string& HttpRequest::Method() const {
 
 const std::string HttpRequest::MessageDebug() const {
   std::ostringstream oss;
-  oss << "{\"type\": \"" << DirectionTypeStr() << "\""
+  oss << "{\"type\": \"" << MessageTypeStr() << "\""
       << ", \"http_major\": " << (int)http_major_
       << ", \"http_minor\": " << (int)http_minor_
       << ", \"method\": \"" << Method() << "\""

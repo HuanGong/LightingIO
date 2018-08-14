@@ -16,7 +16,7 @@ typedef std::shared_ptr<HttpRequest> RefHttpRequest;
 
 class HttpRequest : public ProtocolMessage {
 public:
-  HttpRequest(IODirectionType t);
+  HttpRequest();
   ~HttpRequest();
 
   std::string& MutableBody();

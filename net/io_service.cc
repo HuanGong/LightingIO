@@ -95,6 +95,8 @@ void IOService::OnNewConnection(int local_socket, const InetAddress& peer_addr) 
     return;
   }
   proto_service->SetMessageHandler(message_handler_);
+  proto_service->SetServiceType(ProtocolServiceType::kServer);
+
   net::InetAddress local_addr(socketutils::GetLocalAddrIn(local_socket));
 
   auto new_channel = TcpChannel::CreateServerChannel(local_socket,

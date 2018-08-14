@@ -79,20 +79,19 @@ bool HttpProtoService::DecodeToMessage(IOBuffer* buffer, ProtocolMessage* out_ms
 
 bool HttpProtoService::EncodeToBuffer(const ProtocolMessage* msg, IOBuffer* out_buffer) {
   CHECK(msg && out_buffer);
-  switch(msg->MessageDirection()) {
-    case IODirectionType::kInRequest:
-    case IODirectionType::kOutRequest: {
+
+  switch (msg->ProtocolMessageType()) {
+    case MessageType::kRequest: {
       const HttpRequest* request = static_cast<const HttpRequest*>(msg);
       return RequestToBuffer(request, out_buffer);
     } break;
-    case IODirectionType::kInReponse:
-    case IODirectionType::kOutResponse: {
+    case MessageType::kResponse: {
       const HttpResponse* response = static_cast<const HttpResponse*>(msg);
       return ResponseToBuffer(response, out_buffer);
     } break;
-    default: {
-      LOG(ERROR) << "Should Not Readched";
-    } break;
+    default:
+      LOG(ERROR) << __FUNCTION__ << " Should Not Readched";
+    break;
   }
   return false;
 }
@@ -132,7 +131,7 @@ bool HttpProtoService::ParseHttpRequest(const RefTcpChannel& channel, IOBuffer* 
     request_context_->messages_.pop_front();
 
     message->SetIOContextWeakChannel(channel);
-    message->SetMessageDirection(IODirectionType::kInRequest);
+    CHECK(message->ProtocolMessageType() == MessageType::kRequest);
 
     if (message_handler_) {
       message_handler_(std::static_pointer_cast<ProtocolMessage>(message));
@@ -170,7 +169,7 @@ bool HttpProtoService::ParseHttpResponse(const RefTcpChannel& channel, IOBuffer*
     response_context_->messages_.pop_front();
 
     message->SetIOContextWeakChannel(channel);
-    message->SetMessageDirection(IODirectionType::kInRequest);
+    CHECK(message->ProtocolMessageType() == MessageType::kResponse);
 
     if (message_handler_) {
       message_handler_(std::static_pointer_cast<ProtocolMessage>(message));
@@ -278,8 +277,8 @@ bool HttpProtoService::ResponseToBuffer(const HttpResponse* response, IOBuffer* 
 const RefProtocolMessage HttpProtoService::DefaultResponse(const RefProtocolMessage& request)  {
   CHECK(request);
   HttpRequest* http_request = static_cast<HttpRequest*>(request.get());
-  
-  const RefHttpResponse http_res = HttpResponse::NewOutResponseWithCode(500);
+
+  const RefHttpResponse http_res = HttpResponse::CreatWithCode(500);
   http_res->SetKeepAlive(http_request->IsKeepAlive());
 
   return std::move(http_res);
@@ -298,9 +297,6 @@ bool HttpProtoService::CloseAfterMessage(ProtocolMessage* request, ProtocolMessa
 }
 
 void HttpProtoService::BeforeSendMessage(ProtocolMessage* out_message) {
-  if (out_message->MessageDirection() != IODirectionType::kOutRequest) {
-    return;
-  }
   HttpRequest* request = static_cast<HttpRequest*>(out_message);
   if (request->Body().size() < 4096 ||
       request->HasHeaderField(HttpConstant::kContentEncoding)) {

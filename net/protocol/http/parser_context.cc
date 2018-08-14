@@ -52,7 +52,7 @@ int ReqParseContext::OnHttpRequestBegin(http_parser* parser) {
     context->reset();
     LOG(ERROR) << "Something Wrong, Current Should Be Null";
   }
-  context->current_ = (std::make_shared<HttpRequest>(IODirectionType::kInRequest));
+  context->current_ = (std::make_shared<HttpRequest>());
 
   context->current_->url_.clear();
 
@@ -133,7 +133,7 @@ int ReqParseContext::OnHttpRequestEnd(http_parser* parser) {
     return -1;
   }
 
-  context->current_->SetMessageDirection(IODirectionType::kInRequest);
+  //context->current_->SetMessageType(MessagetType::kRequest);
   context->current_->keepalive_ = http_should_keep_alive(parser);
   context->current_->http_major_ = parser->http_major;
   context->current_->http_minor_ = parser->http_minor;
@@ -187,9 +187,7 @@ int ResParseContext::OnHttpResponseBegin(http_parser* parser) {
   if (context->current_) {
     LOG(ERROR) << "Something Wrong, Current Should Be Null";
   }
-  context->current_ = (std::make_shared<HttpResponse>(IODirectionType::kInReponse));
-
-  LOG(INFO) << __FUNCTION__ << " A HttpResponse Begin";
+  context->current_ = std::make_shared<HttpResponse>();
   return 0;
 }
 int ResParseContext::OnUrlParsed(http_parser* parser, const char *url_start, size_t url_len) {
@@ -246,8 +244,6 @@ int ResParseContext::OnHeaderFinishParsed(http_parser* parser) {
   context->half_header.second.clear();
   context->last_is_header_value = false;
 
-  LOG(INFO) << __FUNCTION__ << "Finished header Parse";
-
   return 0;
 }
 
@@ -256,7 +252,6 @@ int ResParseContext::OnBodyParsed(http_parser* parser, const char *body_start, s
   CHECK(context);
 
   context->current_->body_.append(body_start, len);
-  LOG(INFO) << __FUNCTION__ << "Got A Response Body";
   return 0;
 }
 int ResParseContext::OnHttpResponseEnd(http_parser* parser) {
@@ -268,7 +263,7 @@ int ResParseContext::OnHttpResponseEnd(http_parser* parser) {
     LOG(ERROR) << __FUNCTION__ << " A HTTP_RESPONSE";
   }
 
-  context->current_->SetMessageDirection(IODirectionType::kInReponse);
+  //context->current_->SetMessageType(MessagetType::kResponse);
   context->current_->keepalive_ = http_should_keep_alive(parser);
   context->current_->http_major_ = parser->http_major;
   context->current_->http_minor_ = parser->http_minor;

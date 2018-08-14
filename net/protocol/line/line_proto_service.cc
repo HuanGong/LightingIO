@@ -27,10 +27,8 @@ void LineProtoService::OnDataRecieved(const RefTcpChannel& channel, IOBuffer* bu
   }
 
   {
-    IODirectionType type = channel->IsServerChannel() ?
-      IODirectionType::kInRequest : IODirectionType::kInReponse;
-
-    std::shared_ptr<LineMessage> msg = std::make_shared<LineMessage>(type);
+    std::shared_ptr<LineMessage> msg = std::make_shared<LineMessage>();
+    msg->SetMessageType(InMessageType());
     //IOCtx
     msg->SetIOContextWeakChannel(channel);
 

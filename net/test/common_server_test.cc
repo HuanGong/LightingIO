@@ -31,8 +31,7 @@ void handler(net::RefProtocolMessage message) {
 
   net::LineMessage* linemsg = static_cast<net::LineMessage*>(message.get());
   DLOG(INFO) << "I Got LineMessage: body:\n" << linemsg->Body();
-  std::shared_ptr<net::LineMessage> res =
-    std::make_shared<net::LineMessage>(net::IODirectionType::kOutResponse);
+  std::shared_ptr<net::LineMessage> res = std::make_shared<net::LineMessage>();
   res->MutableBody() = "Hello World\n";
   linemsg->SetResponse(std::move(res));
 }
@@ -42,7 +41,7 @@ void http_handler(net::RefProtocolMessage message) {
   net::IOBuffer buffer;
   net::HttpProtoService::RequestToBuffer(httpmsg, &buffer);
 
-  net::RefHttpResponse response = net::HttpResponse::NewOutResponseWithCode(200);
+  net::RefHttpResponse response = net::HttpResponse::CreatWithCode(200);
   response->SetKeepAlive(httpmsg->IsKeepAlive());
   response->MutableBody() = g_response;
   httpmsg->SetResponse(std::move(response));
@@ -51,7 +50,7 @@ void http_handler(net::RefProtocolMessage message) {
 void raw_handler(net::RefProtocolMessage message) {
   net::RawMessage* request = static_cast<net::RawMessage*>(message.get());
   LOG(INFO) << "I Got A RawRequest:\n" << request->MessageDebug();
-  auto response = std::make_shared<net::RawMessage>(net::IODirectionType::kOutResponse);
+  auto response = net::RawMessage::CreateResponse();//std::make_shared<net::RawMessage>(net::MessageIO::kOut);
 
   /*For test for async::coroutine_type_client*/
   std::default_random_engine e;
@@ -60,7 +59,7 @@ void raw_handler(net::RefProtocolMessage message) {
 
   response->SetCode(0);
   response->SetMethod(12);
-  response->SetSequenceId(request->Header().sequence_id);
+  //response->SetSequenceId(request->Header().sequence_id);
   response->SetContent("Raw Response for RawRequest");
   request->SetResponse(std::move(response));
 }

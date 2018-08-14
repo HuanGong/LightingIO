@@ -4,12 +4,12 @@
 #include <map>
 #include <memory>
 #include <functional>
-
+#include "proto_service.h"
 #include "../net_callback.h"
 
 namespace net {
 
-typedef std::function<RefProtoService(void)> ProtoserviceCreator;
+typedef std::function<RefProtoService()> ProtoserviceCreator;
 
 class ProtoServiceFactory {
 public:

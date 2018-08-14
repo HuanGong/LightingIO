@@ -58,9 +58,7 @@ void ClientRouter::OnClientConnectFailed() {
   if (is_stopping_ || channel_count_ <= channels_.size()) {
     return;
   }
-  LOG(ERROR) << server_addr_.IpPortAsString()
-             << " Not Established, Try Again After " << reconnect_interval_ << " ms";
-
+  LOG(INFO) << server_addr_.IpPortAsString() << "A Connection Broken,Connect After " << reconnect_interval_ << " ms";
   auto functor = std::bind(&Connector::LaunchAConnection, connector_, server_addr_);
   work_loop_->PostDelayTask(base::NewClosure(functor), reconnect_interval_);
 }
@@ -75,6 +73,8 @@ base::MessageLoop* ClientRouter::GetLoopForClient() {
 }
 
 void ClientRouter::OnNewClientConnected(int socket_fd, InetAddress& local, InetAddress& remote) {
+  CHECK(work_loop_->IsInLoopThread());
+
   base::MessageLoop* io_loop = GetLoopForClient();
 
   RefTcpChannel new_channel = TcpChannel::CreateClientChannel(socket_fd,
@@ -88,6 +88,7 @@ void ClientRouter::OnNewClientConnected(int socket_fd, InetAddress& local, InetA
   client_channel->SetRequestTimeout(message_timeout_);
 
   RefProtoService proto_service = ProtoServiceFactory::Create(protocol_);
+  proto_service->SetServiceType(ProtocolServiceType::kClient);
   proto_service->SetMessageHandler(std::bind(&ClientChannel::OnResponseMessage,
                                              client_channel.get(),
                                              std::placeholders::_1));
@@ -108,14 +109,14 @@ void ClientRouter::OnClientChannelClosed(RefClientChannel channel) {
   }
 
   auto iter = std::find(channels_.begin(), channels_.end(), channel);
-
   if (iter != channels_.end()) {
     channels_.erase(iter);
   }
 
   VLOG(GLOG_VINFO) << server_addr_.IpPortAsString() << " Has " << channels_.size() << " Channel";
+
   if (!is_stopping_ && channels_.size() < channel_count_) {
-    VLOG(GLOG_VTRACE) << "Broken, RefConnect After:" << reconnect_interval_ << " ms";
+    VLOG(GLOG_VTRACE) << "Broken, ReConnect After:" << reconnect_interval_ << " ms";
     auto functor = std::bind(&Connector::LaunchAConnection, connector_, server_addr_);
     work_loop_->PostDelayTask(base::NewClosure(functor), reconnect_interval_);
   }
@@ -132,26 +133,22 @@ void ClientRouter::OnRequestGetResponse(RefProtocolMessage request,
 bool ClientRouter::SendClientRequest(RefProtocolMessage& message) {
   if (0 == channels_.size() || dispatcher_ == NULL) { //avoid x/0 Error
     LOG_IF(ERROR, !dispatcher_) << "No Dispatcher Can't Transfer This Request";
-    LOG_IF(ERROR, 0 == channels_.size()) << " No ClientChannel Established"
-                                         << " Server:" << server_addr_.IpPortAsString();
+    LOG_IF(ERROR, 0 == channels_.size()) << " No Connection Established To Server:" << server_addr_.IpPortAsString();
     return false;
   }
 
-  uint32_t index = router_counter_ % channels_.size();
-
-  RefClientChannel& client = channels_[index];
-  base::MessageLoop* io_loop = client->IOLoop();
-  CHECK(io_loop);
 
   if (!dispatcher_->SetWorkContext(message.get())) {
     LOG(FATAL) << "Can't Transfer/Dispatch This Request From WorkLoop To IOLoop";
     return false;
   }
 
-  router_counter_++;
+  uint32_t count = router_counter_.fetch_add(1);
+  RefClientChannel& client = channels_[count % channels_.size()];
+  base::MessageLoop* io_loop = client->IOLoop();
+  CHECK(io_loop);
 
   base::StlClosure func = std::bind(&ClientChannel::ScheduleARequest, client, message);
-
   dispatcher_->TransferAndYield(io_loop, func);
   return true;
 }

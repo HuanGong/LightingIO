@@ -31,7 +31,7 @@ net::RefHttpRequest g_request;
 net::RefTcpChannel g_channel;
 
 void SendRequest(int sequence_id) {
-  net::RefHttpRequest request = std::make_shared<net::HttpRequest>(net::IODirectionType::kOutRequest);
+  net::RefHttpRequest request = std::make_shared<net::HttpRequest>();
   request->SetKeepAlive(true);
   request->MutableBody() = "Nice to meet your,I'm LightingIO\n";
 
@@ -43,13 +43,12 @@ void SendRequest(int sequence_id) {
 }
 
 void SendRawRequest(int sequence_id) {
-  net::RefRawMessage raw_request =
-    std::make_shared<net::RawMessage>(net::IODirectionType::kOutRequest);
+  net::RefRawMessage raw_request = net::RawMessage::CreateRequest();
   std::string content("this is a raw request");
   raw_request->SetContent(content);
   raw_request->SetCode(12);
   raw_request->SetMethod(12);
-  raw_request->SetSequenceId(sequence_id);
+  //raw_request->SetSequenceId(sequence_id);
 
   if (raw_router->SendRecieve<net::RefRawMessage>(raw_request)) {
     //LOG(ERROR) << "Haha, My Raw Request Back ............. Wow!!!!";

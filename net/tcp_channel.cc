@@ -60,7 +60,7 @@ TcpChannel::TcpChannel(int socket_fd,
 
 void TcpChannel::Start() {
   CHECK(fd_event_);
-
+  CHECK(proto_service_);
   if (work_loop_->IsInLoopThread()) {
     return OnConnectionReady();
   }
@@ -147,9 +147,7 @@ void TcpChannel::HandleWrite() {
       if (finish_write_callback_) {
         finish_write_callback_(shared_from_this());
       }
-      if (proto_service_) {
-        proto_service_->OnDataFinishSend(shared_from_this());
-      }
+      proto_service_->OnDataFinishSend(shared_from_this());
     }
   } else {
     LOG(ERROR) << "Call Socket Write Error";
@@ -166,20 +164,22 @@ void TcpChannel::HandleWrite() {
 
 bool TcpChannel::SendProtoMessage(RefProtocolMessage message) {
   CHECK(work_loop_->IsInLoopThread());
-  CHECK(proto_service_);
-
-  if (!message) {
-    VLOG(GLOG_VERROR) << "Bad ProtoMessage, ChannelInfo:" << ChannelName() << " Status:" << StatusAsString();
-    return false;
-  }
   if (channel_status_ != ChannelStatus::CONNECTED) {
     VLOG(GLOG_VERROR) << "Channel Is Broken, ChannelInfo:" << ChannelName() << " Status:" << StatusAsString();
     return false;
   }
 
-  if (out_buffer_.CanReadSize()) { //append to out_buffer_
+  if (!message) {
+    VLOG(GLOG_VERROR) << "Bad ProtoMessage, ChannelInfo:" << ChannelName() << " Status:" << StatusAsString();
+    return false;
+  }
 
-    bool success = proto_service_->EncodeToBuffer(message.get(), &out_buffer_);
+  proto_service_->BeforeSendMessage(message.get());
+
+  bool success = false;
+  if (out_buffer_.CanReadSize()) { 
+
+    success = proto_service_->EncodeToBuffer(message.get(), &out_buffer_);
     LOG_IF(ERROR, !success) << "Send Failed For Message Encode Failed";
 
     if (!fd_event_->IsWriteEnable()) {
@@ -189,13 +189,13 @@ bool TcpChannel::SendProtoMessage(RefProtocolMessage message) {
   } else { //out_buffer_ empty, try write directly
 
     IOBuffer buffer;
-    bool success = proto_service_->EncodeToBuffer(message.get(), &buffer);
+    success = proto_service_->EncodeToBuffer(message.get(), &buffer);
     LOG_IF(ERROR, !success) << "Send Failed For Message Encode Failed";
     if (success && buffer.CanReadSize()) {
       Send(buffer.GetRead(), buffer.CanReadSize());
     }
   }
-  return true;
+  return success;
 }
 
 void TcpChannel::HandleError() {
@@ -233,9 +233,7 @@ void TcpChannel::SetChannelStatus(ChannelStatus st) {
   if (status_change_callback_) {
     status_change_callback_(guard);
   }
-  if (proto_service_) {
-    proto_service_->OnStatusChanged(guard);
-  }
+  proto_service_->OnStatusChanged(guard);
 }
 
 void TcpChannel::ShutdownChannel() {
@@ -273,6 +271,7 @@ int32_t TcpChannel::Send(const uint8_t* data, const int32_t len) {
 
   //nothing write in out buffer
   if (0 == out_buffer_.CanReadSize()) {
+
     n_write = socketutils::Write(fd_event_->fd(), data, len);
 
     if (n_write >= 0) {
@@ -280,12 +279,13 @@ int32_t TcpChannel::Send(const uint8_t* data, const int32_t len) {
       n_remain = len - n_write;
 
       if (n_remain == 0) { //finish all
-        if (proto_service_) {
-          proto_service_->OnDataFinishSend(shared_from_this());
-        }
+
+        RefTcpChannel guard(shared_from_this()); 
+        proto_service_->OnDataFinishSend(guard);
         if (finish_write_callback_) {
-          finish_write_callback_(shared_from_this());
+          finish_write_callback_(guard);
         }
+
       }
     } else { //n_write < 0
       n_write = 0;
@@ -297,12 +297,11 @@ int32_t TcpChannel::Send(const uint8_t* data, const int32_t len) {
     }
   }
 
-  if ( n_remain > 0) {
-    out_buffer_.WriteRawData(data + n_write, n_remain);
-
+  if (n_remain > 0) {
     if (!fd_event_->IsWriteEnable()) {
       fd_event_->EnableWriting();
     }
+    out_buffer_.WriteRawData(data + n_write, n_remain);
   }
   return n_write;
 }

@@ -36,12 +36,12 @@ void RawProtoService::OnDataRecieved(const RefTcpChannel& channel, IOBuffer* buf
     if (buffer->CanReadSize() < frame_size) {
       return;
     }
+  
+    auto raw_message = std::make_shared<RawMessage>();
 
-    IODirectionType type = channel->IsServerChannel() ?
-      IODirectionType::kInRequest : IODirectionType::kInReponse;
-
-    auto raw_message = std::make_shared<RawMessage>(type);
+    raw_message->SetMessageType(InMessageType());
     raw_message->SetIOContextWeakChannel(channel);
+
     memcpy(&(raw_message->header_), buffer->GetRead(), kRawHeaderSize);
     buffer->Consume(kRawHeaderSize);
 
@@ -95,11 +95,15 @@ bool RawProtoService::EncodeToBuffer(const ProtocolMessage* msg, IOBuffer* out_b
   return true;
 }
 
+void RawProtoService::BeforeSendMessage(ProtocolMessage* message)  {
+}
+
 bool RawProtoService::CloseAfterMessage(ProtocolMessage* request, ProtocolMessage* response) {
   return false;
 }
+
 const RefProtocolMessage RawProtoService::DefaultResponse(const RefProtocolMessage& req) {
-  return std::make_shared<RawMessage>(IODirectionType::kOutResponse);
+  return std::make_shared<RawMessage>();
 }
 
 };

@@ -5,8 +5,19 @@ namespace net {
 //static
 const uint32_t RawMessage::kRawHeaderSize = sizeof(RawHeader);
 
-RawMessage::RawMessage(IODirectionType t)
-  : ProtocolMessage(t ,"raw") {
+RefRawMessage RawMessage::CreateRequest() {
+  auto m = std::make_shared<RawMessage>();
+  m->SetMessageType(MessageType::kRequest);
+  return std::move(m);
+}
+RefRawMessage RawMessage::CreateResponse() {
+  auto m = std::make_shared<RawMessage>();
+  m->SetMessageType(MessageType::kResponse);
+  return std::move(m);
+}
+
+RawMessage::RawMessage()
+  : ProtocolMessage("raw") {
 }
 RawMessage::~RawMessage() {
 }
@@ -40,7 +51,7 @@ void RawMessage::SetSequenceId(uint32_t sequence_id) {
 const std::string RawMessage::MessageDebug() const {
   std::ostringstream oss;
 
-  oss << "{\"type\": \"" << DirectionTypeStr() << "\","
+  oss << "{\"type\": \"" << MessageTypeStr() << "\","
       << "\"code\": " << (int)header_.code << ","
       << "\"method\": " << (int)header_.method << ","
       << "\"frame_size\": " << (int)header_.frame_size << ","

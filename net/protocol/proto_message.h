@@ -9,20 +9,16 @@
 namespace net {
 
 typedef enum {
-  kUndefined = 0,
-  kInRequest = 1,
-  kInReponse = 2,
-  kOutRequest = 3,
-  kOutResponse = 4,
-  kLonelyMessage = 5,
-  kUnknownType = 6
-} IODirectionType;
+  kNone      = 0x0,
+  kRequest   = 0x1,
+  kResponse  = 0x2,
+} MessageType;
 
 typedef enum {
   kNothing = 0,
   kTimeOut = 1,
   kChannelBroken = 2
-}FailInfo;
+} FailInfo;
 
 typedef struct {
   WeakPtrTcpChannel channel;
@@ -39,13 +35,13 @@ typedef std::function<void(const RefProtocolMessage&/*request*/)> ProtoMessageHa
 
 class ProtocolMessage {
 public:
-  ProtocolMessage(IODirectionType, const std::string);
+  ProtocolMessage(const std::string);
   virtual ~ProtocolMessage();
 
   const std::string& Protocol() const;
 
-  void SetMessageDirection(IODirectionType t);
-  const IODirectionType MessageDirection() const;
+  void SetMessageType(MessageType t) {type_ = t;};
+  const MessageType ProtocolMessageType() const {return type_;};
 
   IOContext& GetIOCtx() {return io_context_;}
   WorkContext& GetWorkCtx() {return work_context_;}
@@ -61,7 +57,7 @@ public:
   void SetResponse(RefProtocolMessage&& response);
   RefProtocolMessage& Response() {return response_;}
 
-  const char* DirectionTypeStr() const;
+  const char* MessageTypeStr() const;
   virtual const std::string MessageDebug() const {return "";};
 protected:
   IOContext io_context_;
@@ -71,7 +67,7 @@ private:
   FailInfo fail_info_;
   std::string fail_;
   std::string proto_;
-  IODirectionType direction_;
+  MessageType type_;
   RefProtocolMessage response_;
 };
 

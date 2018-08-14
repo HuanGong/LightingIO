@@ -6,6 +6,12 @@
 #include "dispatcher/workload_dispatcher.h"
 
 namespace net {
+
+typedef enum {
+  kServer = 0,
+  kClient = 1
+} ProtocolServiceType;
+
 /* a stateless encoder/decoder and
  * transfer the ProtoMessage to real Handler */
 class ProtoService {
@@ -27,12 +33,20 @@ public:
   //async clients request
   virtual void BeforeSendMessage(ProtocolMessage* out_message) {};
   virtual void BeforeReplyMessage(ProtocolMessage* in, ProtocolMessage* out) {};
-  const std::string& Protocol() {return protocol_;};
+
+  void SetServiceType(ProtocolServiceType t);
+  inline const std::string& Protocol() const {return protocol_;};
+  inline ProtocolServiceType ServiceType() const {return type_;}
+  inline MessageType InMessageType() const {return in_message_type_;};
+  inline MessageType OutMessageType() const {return out_message_type_;};
 
   virtual const RefProtocolMessage DefaultResponse(const RefProtocolMessage&) {return NULL;}
   virtual bool CloseAfterMessage(ProtocolMessage* request, ProtocolMessage* response);
 protected:
   std::string protocol_;
+  ProtocolServiceType type_;
+  MessageType in_message_type_;
+  MessageType out_message_type_;
   WorkLoadDispatcher* dispatcher_;
   ProtoMessageHandler message_handler_;
 };

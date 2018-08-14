@@ -461,10 +461,13 @@ void MessageLoop::RunCoroutineTask(bool with_fd) {
 }
 
 int MessageLoop::Notify(int fd, const void* data, size_t count) {
+  const static int32_t max_retry_times = 3;
   int ret = 0, retry = 0;
-  while(retry++ < 3) {
-    ret = write(fd, (char *)data, count);
-    if (ret > 0) return ret;
+
+  do {
+    ret = ::write(fd, data, count);
+    if (ret > 0) {return ret;}
+
     switch(errno) {
       case EINTR:
       case EAGAIN:
@@ -472,7 +475,8 @@ int MessageLoop::Notify(int fd, const void* data, size_t count) {
       default:
         return ret;
     }
-  }
+  } while(retry++ < max_retry_times);
+
   return ret;
 }
 
