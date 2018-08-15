@@ -411,7 +411,7 @@ bool MessageLoop::PostCoroTask(StlClosure task) {
   if (IsInLoopThread()) {
     inloop_coro_task_.push_back(std::move(task));
     LOG_IF(ERROR, Notify(coro_task_event_fd_, &count, sizeof(count)) < 0) << "InLoop Coro Notify Failed";
-    return;
+    return true;
   }
 
   {

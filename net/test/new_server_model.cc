@@ -118,7 +118,7 @@ int main(int argc, char* argv[]) {
   workers.push_back(worker);
   dispatcher_->SetWorkerLoops(workers);
 
-  for (uint32_t i = 0; i < std::thread::hardware_concurrency(); i++) {
+  for (uint32_t i = 0; i < 1/*std::thread::hardware_concurrency()*/; i++) {
     auto loop = new(base::MessageLoop);
     loop->Start();
     loops.push_back(loop);
