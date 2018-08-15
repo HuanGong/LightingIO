@@ -408,36 +408,36 @@ void MessageLoop::QuitLoop() {
 
 bool MessageLoop::PostCoroTask(StlClosure task) {
   const static uint64_t count = 1;
-  //static auto func = std::bind(&MessageLoop::RunCoroutineTask, this, false);
-
   if (IsInLoopThread()) {
     inloop_coro_task_.push_back(std::move(task));
     LOG_IF(ERROR, Notify(coro_task_event_fd_, &count, sizeof(count)) < 0) << "InLoop Coro Notify Failed";
-  } else {
-    LOG(INFO) << " Schedule Coro Task fd:" << coro_task_event_fd_;
-    {
-      base::SpinLockGuard guard(coro_task_lock_);
-      coro_task_.push_back(std::move(task));
-    }
-    int r = Notify(coro_task_event_fd_, &count, sizeof(count));
-    if (r < 0) {
-      LOG(ERROR) << "Schedule Coro Task Notify Failed";
-      /*
-         base::SpinLockGuard guard(coro_task_lock_);
-         coro_task_.remove_if([task_id](std::unique_ptr<QueuedTask>& t) {
-         return t.get() == task_id;
-         });
-      */
-      return false;
-    }
+    return;
+  }
+
+  {
+    base::SpinLockGuard guard(coro_task_lock_);
+    coro_task_.push_back(std::move(task));
+  }
+  int r = Notify(coro_task_event_fd_, &count, sizeof(count));
+  if (r < 0) {
+    LOG(ERROR) << "Schedule Coro Task Notify Failed";
+    /*
+       base::SpinLockGuard guard(coro_task_lock_);
+       coro_task_.remove_if([task_id](std::unique_ptr<QueuedTask>& t) {
+       return t.get() == task_id;
+       });
+    */
+    return false;
   }
   return true;
 }
 
 void MessageLoop::RunCoroutineTask(bool with_fd) {
   uint64_t count = 0;
-  int ret = read(coro_task_event_fd_, &count, sizeof(count));
-  LOG_IF(ERROR, ret < 0) << "read corotask fd fail:" << ret << " errno:" << errno;
+  if (with_fd) {
+    int ret = read(coro_task_event_fd_, &count, sizeof(count));
+    LOG_IF(ERROR, ret < 0) << "read corotask fd fail:" << ret << " errno:" << errno;
+  }
 
   std::list<base::StlClosure> all_coro_task_;
   {
@@ -453,11 +453,9 @@ void MessageLoop::RunCoroutineTask(bool with_fd) {
   if (count == 0) {
     return;
   }
-  //CHECK(all_coro_task_.size() < 6);
-
   CoroScheduler* coro_scheduler = CoroScheduler::TlsCurrent();
   coro_scheduler->RunScheduledTasks(std::move(all_coro_task_));
-  LOG(INFO) << __FUNCTION__ << " Leave, run task count:" << count;
+  VLOG(GLOG_VTRACE) << __FUNCTION__ << " Leave, this tick run coro task count:" << count;
 }
 
 int MessageLoop::Notify(int fd, const void* data, size_t count) {

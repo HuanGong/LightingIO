@@ -11,16 +11,13 @@ namespace net {
 
 class WorkLoadDispatcher {
 public:
-  typedef std::shared_ptr<base::MessageLoop> RefMessageLoop;
   WorkLoadDispatcher(bool work_in_io);
   virtual ~WorkLoadDispatcher() {};
 
-  void InitWorkLoop(const int32_t count);
-  void StartDispatcher();
-
-  bool HandleWorkInIOLoop() const {return work_in_io_;}
 
   base::MessageLoop* GetNextWorkLoop();
+  bool HandleWorkInIOLoop() const {return work_in_io_;}
+  void SetWorkerLoops(std::vector<base::MessageLoop*>& loops) {work_loops_ = loops;};
 
   // must call at Worker Loop, may ioworker or woker according to HandleWorkInIOLoop
   virtual bool SetWorkContext(WorkContext& ctx);
@@ -28,9 +25,8 @@ public:
   // transmit task from IO TO worker loop
   virtual bool TransmitToWorker(base::StlClosure& closuse);
 private:
-  bool work_in_io_;
-  bool started_;
-  std::vector<RefMessageLoop> work_loops_;
+  const bool work_in_io_;
+  std::vector<base::MessageLoop*> work_loops_;
   std::atomic<uint64_t> round_robin_counter_;
 };
 

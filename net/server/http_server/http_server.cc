@@ -94,13 +94,19 @@ void HttpServer::OnHttpRequest(const RefProtocolMessage& request) {
   VLOG(GLOG_VTRACE) << __FUNCTION__ << "a http request message come";
 
   if (!dispatcher_) {
-    HandleHttpRequest(request);
-  } else {
-    base::StlClosure functor = std::bind(&HttpServer::HandleHttpRequest, this, request);
-    dispatcher_->TransmitToWorker(functor);
+    return HandleHttpRequest(request);
+  }
+
+  base::StlClosure functor = std::bind(&HttpServer::HandleHttpRequest, this, request);
+  if (false == dispatcher_->TransmitToWorker(functor)) {
+    LOG(ERROR) << __FUNCTION__ << " dispatcher_->TransmitToWorker failed";
+    RefTcpChannel channel = request->GetIOCtx().channel.lock();
+    if (channel) {
+      channel->ShutdownChannel();
+    }
   }
 }
-//
+
 void HttpServer::HandleHttpRequest(const RefProtocolMessage request) {
 
   RefTcpChannel channel = request->GetIOCtx().channel.lock();

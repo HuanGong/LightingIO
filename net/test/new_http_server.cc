@@ -15,11 +15,16 @@ using namespace base;
 
 base::MessageLoop main_loop;
 std::vector<base::MessageLoop*> loops;
+std::vector<base::MessageLoop*> workers;
+
 CoroWlDispatcher* dispatcher_ = new CoroWlDispatcher(true);
 
 void HandleHttp(const HttpRequest* req, HttpResponse* res) {
   LOG(INFO) << "Got A Http Message";
   res->SetResponseCode(200);
+  if (!dispatcher_->HandleWorkInIOLoop()) {
+    CHECK(workers[0]->IsInLoopThread());
+  }
   /*
      base::MessageLoop* l = base::MessageLoop::Current();
      RefCoroutine coro = CoroScheduler::CurrentCoro();
@@ -30,12 +35,12 @@ void HandleHttp(const HttpRequest* req, HttpResponse* res) {
      CoroScheduler::TlsCurrent()->YieldCurrent();
      LOG(INFO) << "Request Handler Resumed";
      */
-  std::this_thread::sleep_for(std::chrono::seconds(2));
+  //std::this_thread::sleep_for(std::chrono::seconds(2));
   res->MutableBody() = "hello world";
 }
 
 void HandleRaw(const RawMessage* req, RawMessage* res) {
-  LOG(INFO) << "Got A Http Message";
+  LOG(INFO) << "Got A Raw Message";
   res->SetCode(0);
   res->SetMethod(2);
   res->SetContent("Raw Message");
@@ -108,7 +113,12 @@ int main(int argc, char* argv[]) {
 
   main_loop.Start();
 
-  for (int i = 0; i < 1; i++) {
+  auto worker = new(base::MessageLoop);
+  worker->Start();
+  workers.push_back(worker);
+  dispatcher_->SetWorkerLoops(workers);
+
+  for (uint32_t i = 0; i < std::thread::hardware_concurrency(); i++) {
     auto loop = new(base::MessageLoop);
     loop->Start();
     loops.push_back(loop);
@@ -122,20 +132,21 @@ int main(int argc, char* argv[]) {
 
   net::HttpServer http_server;
   http_server.SetIoLoops(loops);
+  http_server.SetWorkLoops(workers);
   http_server.SetDispatcher(dispatcher_);
   http_server.ServeAddressSync("http://127.0.0.1:5006", std::bind(HandleHttp, std::placeholders::_1, std::placeholders::_2));
 
-  StartHttpClients();
+  //StartHttpClients();
 
-  std::this_thread::sleep_for(std::chrono::seconds(5));
+  //std::this_thread::sleep_for(std::chrono::seconds(5));
   //main_loop.PostCoroTask(std::bind(SendRawRequest));
-  main_loop.PostCoroTask(std::bind(SendHttpRequest));
+  //main_loop.PostCoroTask(std::bind(SendHttpRequest));
   /*
   for (int i = 0; i < 3; i++) {
     main_loop.PostCoroTask(std::bind(SendRawRequest));
     main_loop.PostCoroTask(std::bind(SendHttpRequest));
   }*/
-  std::this_thread::sleep_for(std::chrono::seconds(5));
+  //std::this_thread::sleep_for(std::chrono::seconds(5));
 
   //http_server.StopServerSync();
   //raw_router->StopRouter();

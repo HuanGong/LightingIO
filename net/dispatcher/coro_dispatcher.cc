@@ -67,17 +67,13 @@ bool CoroWlDispatcher::SetWorkContext(ProtocolMessage* message) {
 }
 
 bool CoroWlDispatcher::TransmitToWorker(base::StlClosure& closure) {
+  base::MessageLoop* loop = HandleWorkInIOLoop() ? base::MessageLoop::Current() : GetNextWorkLoop();
 
-  if (HandleWorkInIOLoop()) {
-    base::MessageLoop::Current()->PostCoroTask(closure);
-    return true;
-  }
-
-  base::MessageLoop* loop = GetNextWorkLoop();
   if (NULL == loop) {
     LOG(ERROR) << "no message loop handler this task";
     return false;
   }
+
   loop->PostCoroTask(closure);
   return true;
 }

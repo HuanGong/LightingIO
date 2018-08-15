@@ -11,32 +11,11 @@ WorkLoadDispatcher::WorkLoadDispatcher(bool work_in_io)
   round_robin_counter_.store(0);
 }
 
-void WorkLoadDispatcher::InitWorkLoop(const int32_t count) {
-  if (work_in_io_) {
-    LOG(ERROR) << "Don't Need WorkerLoop When Handle Work in IOLoop";
-    return;
-  }
-
-  for (int32_t i = 0; i < count; i++) {
-    const static std::string name_prefix("WorkLoop:");
-    RefMessageLoop loop(new base::MessageLoop);
-    loop->SetLoopName(name_prefix + std::to_string(i));
-    work_loops_.push_back(std::move(loop));
-  }
-  LOG(INFO) << "WorkLoadDispatcher Create [" << work_loops_.size() << "] loops Handle Work";
-}
-
-void WorkLoadDispatcher::StartDispatcher() {
-  for (auto& loop : work_loops_) {
-    loop->Start();
-  }
-}
-
 base::MessageLoop* WorkLoadDispatcher::GetNextWorkLoop() {
   if (work_loops_.size() && !work_in_io_) {
-    int32_t index = round_robin_counter_ % work_loops_.size();
-    round_robin_counter_++;
-    return work_loops_[index].get();
+    uint32_t counter = round_robin_counter_.fetch_add(1);
+    int32_t index = counter % work_loops_.size();
+    return work_loops_[index];
   }
   return NULL;
 }

@@ -92,11 +92,17 @@ void RawServer::OnRawRequest(const RefProtocolMessage& request) {
   LOG(INFO) << __FUNCTION__ << " Got a Raw request message";
   VLOG(GLOG_VTRACE) << "IOService::HandleRequest handle a request";
 
-  if (dispatcher_) {
-    base::StlClosure functor = std::bind(&RawServer::HandleRawRequest, this, request);
-    dispatcher_->TransmitToWorker(functor);
-  } else {
-    HandleRawRequest(request); 
+  if (!dispatcher_) {
+    return HandleRawRequest(request);
+  }
+
+  base::StlClosure functor = std::bind(&RawServer::HandleRawRequest, this, request);
+  if (false == dispatcher_->TransmitToWorker(functor)) {
+    LOG(ERROR) << __FUNCTION__ << " dispatcher_->TransmitToWorker failed";
+    RefTcpChannel channel = request->GetIOCtx().channel.lock();
+    if (channel) {
+      channel->ShutdownChannel();
+    }
   }
 }
 //
