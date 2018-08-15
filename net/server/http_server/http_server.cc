@@ -10,9 +10,13 @@
 
 namespace net {
 
-HttpServer::HttpServer(): 
+HttpServer::HttpServer():
   dispatcher_(nullptr) {
+  serving_flag_.clear();
   connection_count_.store(0);
+}
+HttpServer::~HttpServer() {
+  serving_flag_.clear();
 }
 
 void HttpServer::SetIoLoops(std::vector<base::MessageLoop*>& loops) {
@@ -22,6 +26,7 @@ void HttpServer::SetIoLoops(std::vector<base::MessageLoop*>& loops) {
   }
   io_loops_ = loops;
 }
+
 void HttpServer::SetDispatcher(WorkLoadDispatcher* dispatcher) {
   dispatcher_ = dispatcher;
 }
@@ -29,7 +34,20 @@ void HttpServer::SetWorkLoops(std::vector<base::MessageLoop*>& loops) {
   work_loops_ = loops;
 }
 
+void HttpServer::ServeAddressSync(const std::string addr, HttpMessageHandler handler) {
+  ServeAddress(addr, handler);
+
+  std::unique_lock<std::mutex> lck(mtx_);
+  while (cv_.wait_for(lck, std::chrono::milliseconds(500)) == std::cv_status::timeout) {
+    LOG(INFO) << "starting... ... ...";
+  }
+}
+
 void HttpServer::ServeAddress(const std::string address, HttpMessageHandler handler) {
+
+  bool served = serving_flag_.test_and_set();
+  LOG_IF(ERROR, served) << " A Http Server Can't Serve Twice";
+  CHECK(!served);
 
   url::SchemeIpPort sch_ip_port;
   if (!url::ParseSchemeIpPortString(address, sch_ip_port)) {
@@ -50,50 +68,36 @@ void HttpServer::ServeAddress(const std::string address, HttpMessageHandler hand
 
   net::InetAddress addr(sch_ip_port.ip, sch_ip_port.port);
 
-
-  std::list<RefIOService> io_services;
+  {
 #if defined SO_REUSEPORT && defined NET_ENABLE_REUSER_PORT
-  for (base::MessageLoop* loop : io_loops_) {
+    for (base::MessageLoop* loop : io_loops_) {
+      RefIOService service = std::make_shared<IOService>(addr, "http", loop, this);
+      service->SetProtoMessageHandler(func);
+      ioservices_.push_back(std::move(service));
+    }
+#else
+    base::MessageLoop* loop = io_loops_[ioservices_.size() % io_loops_.size()];
     RefIOService service = std::make_shared<IOService>(addr, "http", loop, this);
     service->SetProtoMessageHandler(func);
-    io_services.push_back(std::move(service));
-  }
-#else
-  base::MessageLoop* loop = io_loops_[ioservices_.size() % io_loops_.size()];
-  RefIOService service = std::make_shared<IOService>(addr, "http", loop, this);
-  service->SetProtoMessageHandler(func);
-  io_services.push_back(std::move(service));
+    ioservices_.push_back(std::move(service));
 #endif
 
-  for (RefIOService& service : io_services) {
-    service->StartIOService();
+    for (RefIOService& service : ioservices_) {
+      service->StartIOService();
+    }
   }
 
-  bool all_started = false;
-  do {
-    all_started = true;
-    for (RefIOService& service : io_services) {
-      if (service->IsServing()) {
-        continue;
-      }
-      all_started = false;
-      std::this_thread::sleep_for(std::chrono::microseconds(1));
-      break;
-    }
-  } while(all_started == false);
-
-  ioservices_.splice(ioservices_.end(), io_services);
 }
 
 void HttpServer::OnHttpRequest(const RefProtocolMessage& request) {
-  LOG(INFO) << __FUNCTION__ << " Got a http request message";
-  VLOG(GLOG_VTRACE) << "IOService::HandleRequest handle a request";
+  LOG(INFO) << __FUNCTION__ << "a http request message come";
+  VLOG(GLOG_VTRACE) << __FUNCTION__ << "a http request message come";
 
-  if (dispatcher_) {
+  if (!dispatcher_) {
+    HandleHttpRequest(request);
+  } else {
     base::StlClosure functor = std::bind(&HttpServer::HandleHttpRequest, this, request);
     dispatcher_->TransmitToWorker(functor);
-  } else {
-    HandleHttpRequest(request); 
   }
 }
 //
@@ -108,7 +112,7 @@ void HttpServer::HandleHttpRequest(const RefProtocolMessage request) {
   RefProtocolMessage response = channel->GetProtoService()->DefaultResponse(request);
   do {
     if (dispatcher_) {
-      if (!dispatcher_->SetWorkContext(request.get())) {
+      if (!dispatcher_->SetWorkContext(request->GetWorkCtx())) {
         LOG(ERROR) << "Set WorkerContext failed";
         break;
       }
@@ -163,9 +167,49 @@ bool HttpServer::BeforeIOServiceStart(IOService* ioservice) {
 }
 void HttpServer::IOServiceStarted(const IOService* service) {
   LOG(INFO) << "Http Server IO Service " << service->IOServiceName() << " Started .......";
+
+  { //sync
+    std::unique_lock<std::mutex> lck(mtx_);
+    for (auto& service : ioservices_) {
+      if (!service->IsRunning()) return;
+    }
+    cv_.notify_all();
+  }
 }
+
 void HttpServer::IOServiceStoped(const IOService* service) {
   LOG(INFO) << "Http Server IO Service " << service->IOServiceName() << " Stoped  .......";
+
+  {
+    std::unique_lock<std::mutex> lck(mtx_);
+    ioservices_.remove_if([&](RefIOService& s) -> bool {
+      return s.get() == service;
+    });
+  }
+
+  { //sync
+    std::unique_lock<std::mutex> lck(mtx_);
+    for (auto& service : ioservices_) {
+      if (service->IsRunning()) return;
+    }
+    cv_.notify_all();
+  }
+}
+
+void HttpServer::StopServerSync() {
+
+  StopServer();
+
+  std::unique_lock<std::mutex> lck(mtx_);
+  while (cv_.wait_for(lck, std::chrono::milliseconds(500)) == std::cv_status::timeout) {
+    LOG(INFO) << "stoping... ... ...";
+  }
+}
+
+void HttpServer::StopServer() {
+  for (auto& service : ioservices_) {
+    service->StopIOService();
+  }
 }
 
 } //end net

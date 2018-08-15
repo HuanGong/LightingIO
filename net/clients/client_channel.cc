@@ -35,6 +35,7 @@ bool ClientChannel::ScheduleARequest(RefProtocolMessage request) {
   requests_keeper_->PendingRequest(request);
 
   if (requests_keeper_->InProgressRequest()) {
+    LOG(INFO) << " Keep Has inprogress request";
     return true;
   }
 
@@ -88,6 +89,8 @@ bool ClientChannel::TryFireNextRequest() {
     return false;
   }
 
+  LOG(INFO) << " TryFireNextRequest send request message";
+
   bool success = false;
   do {
     RefProtocolMessage next_request = requests_keeper_->PopNextRequest();
@@ -124,8 +127,8 @@ void ClientChannel::OnRequestTimeout(RefProtocolMessage request) {
 
   if (channel_->IsConnected()) {
     LOG(INFO) << " ShutdownChannel for Timeout";
-    channel_->ShutdownChannel();
-    //channel_->ForceShutdown();
+    //channel_->ShutdownChannel();
+    channel_->ForceShutdown();
   } else {
     OnChannelClosed(channel_);
   }
@@ -142,7 +145,6 @@ void ClientChannel::OnBackResponse(RefProtocolMessage& request, RefProtocolMessa
 
 void ClientChannel::CloseClientChannel() {
   if (channel_->InIOLoop()) {
-    //channel_->ForceShutdown();
     channel_->ShutdownChannel();
     return;
   }

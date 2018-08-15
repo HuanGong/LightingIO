@@ -69,8 +69,10 @@ void CoroScheduler::YieldCurrent() {
  * 如果不是在调度的线程里， 则posttask去Resume*/
 bool CoroScheduler::ResumeWeakCoroutine(MessageLoop* loop, std::weak_ptr<Coroutine> weak) {
   RefCoroutine coro = weak.lock();
-  CHECK(coro);
-
+  if (nullptr == coro.get()) {
+    LOG(INFO) << __FUNCTION__ << "coroutine can't resume";
+    return false;
+  }
   if (CanYield() || !loop->IsInLoopThread()) {
     loop->PostTask(base::NewClosure(coro->resume_func_));
     return true;

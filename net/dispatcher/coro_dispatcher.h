@@ -12,11 +12,12 @@ public:
   ~CoroWlDispatcher();
 
   void TransferAndYield(base::MessageLoop* ioloop, base::StlClosure);
-  bool ResumeWorkCtxForRequest(RefProtocolMessage& request);
 
   // brand new api
+  bool SetWorkContext(WorkContext& ctx) override;
   bool SetWorkContext(ProtocolMessage* message) override;
   bool TransmitToWorker(base::StlClosure& clourse) override;
+  bool ResumeWorkContext(WorkContext& ctx);
 };
 
 }

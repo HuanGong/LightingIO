@@ -12,6 +12,8 @@ namespace net {
 
 RawServer::RawServer():
   dispatcher_(nullptr) {
+
+  serving_flag_.clear();
   connection_count_.store(0);
 }
 
@@ -31,6 +33,13 @@ void RawServer::SetWorkLoops(std::vector<base::MessageLoop*>& loops) {
 }
 
 void RawServer::ServeAddress(const std::string address, RawMessageHandler handler) {
+  bool served = serving_flag_.test_and_set();
+  LOG_IF(ERROR, served) << " A Http Server Can't Serve Twice";
+  CHECK(!served);
+
+  CHECK(handler);
+  LOG_IF(ERROR, io_loops_.empty()) << "No loop handle socket io";
+  CHECK(io_loops_.size() > 0);
 
   url::SchemeIpPort sch_ip_port;
   if (!url::ParseSchemeIpPortString(address, sch_ip_port)) {
@@ -41,49 +50,42 @@ void RawServer::ServeAddress(const std::string address, RawMessageHandler handle
     LOG(ERROR) << "No ProtoServiceCreator Find for protocol scheme:" << sch_ip_port.scheme;
     CHECK(false);
   }
-  LOG_IF(ERROR, io_loops_.size() == 0) << "No loop handle socket io";
 
-  CHECK(handler);
   message_handler_ = handler;
-  CHECK(io_loops_.size() > 0);
 
   ProtoMessageHandler func = std::bind(&RawServer::OnRawRequest, this, std::placeholders::_1);
 
   net::InetAddress addr(sch_ip_port.ip, sch_ip_port.port);
 
-
-  std::list<RefIOService> io_services;
+  {
 #if defined SO_REUSEPORT && defined NET_ENABLE_REUSER_PORT
-  for (base::MessageLoop* loop : io_loops_) {
+    for (base::MessageLoop* loop : io_loops_) {
+      RefIOService service = std::make_shared<IOService>(addr, "raw", loop, this);
+      service->SetProtoMessageHandler(func);
+      ioservices_.push_back(std::move(service));
+    }
+#else
+    base::MessageLoop* loop = io_loops_[ioservices_.size() % io_loops_.size()];
     RefIOService service = std::make_shared<IOService>(addr, "raw", loop, this);
     service->SetProtoMessageHandler(func);
-    io_services.push_back(std::move(service));
-  }
-#else
-  base::MessageLoop* loop = io_loops_[ioservices_.size() % io_loops_.size()];
-  RefIOService service = std::make_shared<IOService>(addr, "raw", loop, this);
-  service->SetProtoMessageHandler(func);
-  io_services.push_back(std::move(service));
+    ioservices_.push_back(std::move(service));
 #endif
 
-  for (RefIOService& service : io_services) {
-    service->StartIOService();
+    for (RefIOService& service : ioservices_) {
+      service->StartIOService();
+    }
   }
 
-  bool all_started = false;
-  do {
-    all_started = true;
-    for (RefIOService& service : io_services) {
-      if (service->IsServing()) {
-        continue;
-      }
-      all_started = false;
-      std::this_thread::sleep_for(std::chrono::microseconds(1));
-      break;
-    }
-  } while(all_started == false);
+}
 
-  ioservices_.splice(ioservices_.end(), io_services);
+void RawServer::ServeAddressSync(const std::string addr, RawMessageHandler handler) {
+
+  ServeAddress(addr, handler);
+
+  std::unique_lock<std::mutex> lck(mtx_);
+  while (cv_.wait_for(lck, std::chrono::milliseconds(500)) == std::cv_status::timeout) {
+    LOG(INFO) << "starting... ... ...";
+  }
 }
 
 void RawServer::OnRawRequest(const RefProtocolMessage& request) {
@@ -108,7 +110,7 @@ void RawServer::HandleRawRequest(const RefProtocolMessage request) {
 
   RefProtocolMessage response = channel->GetProtoService()->DefaultResponse(request);
   do {
-    if (dispatcher_ && !dispatcher_->SetWorkContext(request.get())) {
+    if (dispatcher_ && !dispatcher_->SetWorkContext(request->GetWorkCtx())) {
       LOG(ERROR) << "Set WorkerContext failed";
       break;
     }
@@ -154,17 +156,36 @@ bool RawServer::IncreaseChannelCount() {
   connection_count_.fetch_add(1);
   return true;
 }
+
 void RawServer::DecreaseChannelCount() {
   connection_count_.fetch_sub(1);
 }
+
 bool RawServer::BeforeIOServiceStart(IOService* ioservice) {
   return true;
 }
+
 void RawServer::IOServiceStarted(const IOService* service) {
-  LOG(INFO) << "Http Server IO Service " << service->IOServiceName() << " Started .......";
+  LOG(INFO) << "Raw Server IO Service " << service->IOServiceName() << " Started .......";
+
+  { //sync
+    std::unique_lock<std::mutex> lck(mtx_);
+    for (auto& service : ioservices_) {
+      if (!service->IsRunning()) return;
+    }
+    cv_.notify_all();
+  }
 }
+
 void RawServer::IOServiceStoped(const IOService* service) {
-  LOG(INFO) << "Http Server IO Service " << service->IOServiceName() << " Stoped  .......";
+  LOG(INFO) << "Raw Server IO Service " << service->IOServiceName() << " Stoped  .......";
+
+  {
+    std::unique_lock<std::mutex> lck(mtx_);
+    ioservices_.remove_if([&](RefIOService& s) -> bool {
+      return s.get() == service;
+    });
+  }
 }
 
 } //end net

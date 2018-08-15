@@ -38,8 +38,9 @@ IOService::~IOService() {
 }
 
 void IOService::StartIOService() {
+
   if (!acceptor_loop_->IsInLoopThread()) {
-    auto functor = std::bind(&ServiceAcceptor::StartListen, acceptor_);
+    auto functor = std::bind(&IOService::StartIOService, this);
     acceptor_loop_->PostTask(base::NewClosure(std::move(functor)));
     return;
   }
@@ -51,7 +52,7 @@ void IOService::StartIOService() {
 /* step1: close the acceptor */
 void IOService::StopIOService() {
   if (!acceptor_loop_->IsInLoopThread()) {
-    auto functor = std::bind(&ServiceAcceptor::StopListen, acceptor_);
+    auto functor = std::bind(&IOService::StopIOService, this);
     acceptor_loop_->PostTask(base::NewClosure(std::move(functor)));
     return;
   }
@@ -63,7 +64,9 @@ void IOService::StopIOService() {
 
   //async
   for (auto& channel : connections_) {
-    channel->ForceShutdown();
+    base::MessageLoop* loop = channel->IOLoop();
+    //loop->PostTask(base::NewClosure(std::bind(&TcpChannel::ShutdownChannel, channel)));
+    loop->PostTask(base::NewClosure(std::bind(&TcpChannel::ForceShutdown, channel)));
   }
 
   if (connections_.size() == 0) {
@@ -148,83 +151,6 @@ void IOService::RemoveConncetion(const RefTcpChannel connection) {
 
   if (is_stopping_ && connections_.size() == 0) {
     delegate_->IOServiceStoped(this);
-  }
-}
-
-//Running On NetWorkIO Channel Thread
-void IOService::HandleRequest(const RefProtocolMessage& request) {
-
-  VLOG(GLOG_VTRACE) << "IOService::HandleRequest handle a request";
-
-  WeakPtrTcpChannel weak_channel = request->GetIOCtx().channel;
-  RefTcpChannel channel = weak_channel.lock();
-  if (!channel) {
-    LOG(INFO) << "No Handler handle this request, channel has gone";
-    return;
-  }
-
-  if (!message_handler_) {
-    LOG(ERROR) << "No Handler handle this request";
-    channel->ShutdownChannel();
-    return;
-  }
-
-  //VLOG(GLOG_VTRACE) << "Transmit a request to Worker, request from:" << channel->ChannelName();
-  LOG(INFO) << "Transmit a request to Worker, request from:" << channel->ChannelName();
-
-  base::StlClosure functor = std::bind(&IOService::HandleRequestOnWorker, this, request);
-  bool ok = dispatcher_->TransmitToWorker(functor);
-  if (false == ok) {
-    LOG(FATAL) << "Failed Transmit Request To Worker Handler";
-    channel->ShutdownChannel();
-  }
-}
-
-void IOService::HandleRequestOnWorker(const RefProtocolMessage request) {
-
-  do {
-    if (!dispatcher_->SetWorkContext(request.get())) {
-      LOG(ERROR) << "set SetWorkContext failed";
-      break;
-    }
-    if (message_handler_) {
-      LOG(ERROR) << "Service Handler Handle InComming Message";
-      message_handler_(request);
-    }
-  } while(0);
-
-  WeakPtrTcpChannel weak_channel = request->GetIOCtx().channel;
-  RefTcpChannel channel = weak_channel.lock();
-  if (NULL == channel.get() || false == channel->IsConnected()) {
-    VLOG(GLOG_VERROR) << __FUNCTION__ << " Channel Has Broken After Handle Request Message";
-    return;
-  }
-
-  RefProtocolMessage response = request->Response();
-  if (!response.get()) {
-    response = channel->GetProtoService()->DefaultResponse(request);
-  }
-  if (!response) { //This type message not need response, WorkFlow Over
-    return;
-  }
-
-  channel->GetProtoService()->BeforeReplyMessage(request.get(), response.get());
-
-  bool close = channel->GetProtoService()->CloseAfterMessage(request.get(), response.get());
-
-  if (channel->InIOLoop()) { //send reply directly
-    bool send_success = channel->SendProtoMessage(response);
-    if (close || !send_success) { //failed
-      channel->ShutdownChannel();
-    }
-  } else  { //Send Response to Channel's IO Loop
-    auto functor = [=]() {
-      bool send_success = channel->SendProtoMessage(response);
-      if (close || !send_success) { //failed
-        channel->ShutdownChannel();
-      }
-    };
-    channel->IOLoop()->PostTask(base::NewClosure(std::move(functor)));
   }
 }
 

@@ -8,8 +8,7 @@ ProtoService::ProtoService(const std::string proto) :
   protocol_(proto),
   type_(kServer),
   in_message_type_(MessageType::kNone),
-  out_message_type_(MessageType::kNone),
-  dispatcher_(NULL) {
+  out_message_type_(MessageType::kNone) {
 }
 ProtoService::~ProtoService() {};
 
@@ -26,10 +25,6 @@ void ProtoService::SetServiceType(ProtocolServiceType t) {
 
 void ProtoService::SetMessageHandler(ProtoMessageHandler handler) {
   message_handler_ = handler;
-}
-
-void ProtoService::SetMessageDispatcher(WorkLoadDispatcher* wld) {
-  dispatcher_ = wld;
 }
 
 bool ProtoService::EncodeToBuffer(const ProtocolMessage* msg, IOBuffer* out_buffer) {

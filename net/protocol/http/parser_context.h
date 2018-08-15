@@ -58,7 +58,6 @@ public:
   static int OnHttpRequestEnd(http_parser* parser);
   static int OnChunkHeader(http_parser* parser);
   static int OnChunkFinished(http_parser* parser);
-
 private:
   friend class HttpProtoService;
   http_parser parser_;

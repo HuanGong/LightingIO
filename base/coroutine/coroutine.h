@@ -32,11 +32,12 @@ public:
   bool Resume();
   std::string StateToString() const;
   const CoroState Status() const {return current_state_;}
+  uint64_t TaskIdentify() const {return task_identify_;}
 
 private:
   Coroutine(bool main);
   void Reset();
-  void SetTask(CoroClosure task) {coro_task_ = task;};
+  void SetTask(CoroClosure task);
   void SetCoroState(CoroState st) {current_state_ = st;}
   void SetRecallCallback(CoroCallback cb) {recall_callback_ = cb;}
   void SelfHolder(RefCoroutine& self);
@@ -44,7 +45,10 @@ private:
 
   coro_stack stack_;
   CoroState current_state_;
+
   CoroClosure coro_task_;
+  uint64_t task_identify_;
+
   StlClosure resume_func_;
   RefCoroutine self_holder_;
   CoroCallback start_callback_;

@@ -11,6 +11,9 @@
 #include "protocol/proto_message.h"
 #include "protocol/proto_service_factory.h"
 
+#include <chrono>             // std::chrono::seconds
+#include <mutex>              // std::mutex, std::unique_lock
+#include <condition_variable> // std::condition_variable, std::cv_status
 #include <cinttypes>
 #include "clients/client_channel.h"
 #include "clients/client_router.h"
@@ -46,6 +49,7 @@ public:
 
   void StartRouter();
   void StopRouter();
+  void StopRouterSync();
   bool SendClientRequest(RefProtocolMessage& message);
 
   template<class T>
@@ -65,6 +69,7 @@ public:
 private:
   //Get a io work loop for channel, if no loop provide, use default work_loop_;
   base::MessageLoop* GetLoopForClient();
+  void SendRequestInWorkLoop(RefProtocolMessage message);
 
   std::string protocol_;
   uint32_t channel_count_;
@@ -75,7 +80,10 @@ private:
 
   const InetAddress server_addr_;
   base::MessageLoop* work_loop_;
+
   bool is_stopping_;
+  std::mutex mtx_;
+  std::condition_variable cv_;
 
   RefConnector connector_;
   RouterDelegate* delegate_;

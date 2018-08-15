@@ -41,11 +41,16 @@ base::MessageLoop* WorkLoadDispatcher::GetNextWorkLoop() {
   return NULL;
 }
 
+bool WorkLoadDispatcher::SetWorkContext(WorkContext& ctx) {
+  ctx.loop = base::MessageLoop::Current();
+  return ctx.loop != NULL;
+}
+
 bool WorkLoadDispatcher::SetWorkContext(ProtocolMessage* message) {
   CHECK(message);
   auto& work_context = message->GetWorkCtx();
-  work_context.coro_loop = base::MessageLoop::Current();
-  return work_context.coro_loop != NULL;
+  work_context.loop = base::MessageLoop::Current();
+  return work_context.loop != NULL;
 }
 
 bool WorkLoadDispatcher::TransmitToWorker(base::StlClosure& clourse) {

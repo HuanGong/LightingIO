@@ -3,7 +3,6 @@
 
 #include "../net_callback.h"
 #include "proto_message.h"
-#include "dispatcher/workload_dispatcher.h"
 
 namespace net {
 
@@ -20,7 +19,6 @@ public:
   virtual ~ProtoService();
 
   void SetMessageHandler(ProtoMessageHandler);
-  void SetMessageDispatcher(WorkLoadDispatcher*);
 
   virtual void OnStatusChanged(const RefTcpChannel&) = 0;
   virtual void OnDataFinishSend(const RefTcpChannel&) = 0;
@@ -47,7 +45,6 @@ protected:
   ProtocolServiceType type_;
   MessageType in_message_type_;
   MessageType out_message_type_;
-  WorkLoadDispatcher* dispatcher_;
   ProtoMessageHandler message_handler_;
 };
 

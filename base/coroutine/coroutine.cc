@@ -44,7 +44,9 @@ std::shared_ptr<Coroutine> Coroutine::Create(bool main) {
   return std::shared_ptr<Coroutine>(new Coroutine(main));
 }
 
-Coroutine::Coroutine(bool main) {
+Coroutine::Coroutine(bool main) :
+  task_identify_(0) {
+
   stack_.ssze = 0;
   stack_.sptr = nullptr;
 
@@ -81,6 +83,11 @@ Coroutine::~Coroutine() {
     coro_stack_free(&stack_);
   }
 }
+
+void Coroutine::SetTask(CoroClosure task) {
+  coro_task_ = task;
+  task_identify_++;
+};
 
 void Coroutine::SelfHolder(RefCoroutine& self) {
   CHECK(self.get() == this);

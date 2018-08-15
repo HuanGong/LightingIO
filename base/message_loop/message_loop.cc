@@ -457,7 +457,7 @@ void MessageLoop::RunCoroutineTask(bool with_fd) {
 
   CoroScheduler* coro_scheduler = CoroScheduler::TlsCurrent();
   coro_scheduler->RunScheduledTasks(std::move(all_coro_task_));
-  LOG(INFO) << __FUNCTION__ << " Leave, count:" << count;
+  LOG(INFO) << __FUNCTION__ << " Leave, run task count:" << count;
 }
 
 int MessageLoop::Notify(int fd, const void* data, size_t count) {

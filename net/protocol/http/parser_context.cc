@@ -7,7 +7,6 @@
 
 namespace net {
 
-
 ResParseContext::ResParseContext()
   : last_is_header_value(false) {
 

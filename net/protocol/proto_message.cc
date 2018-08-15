@@ -7,7 +7,8 @@ ProtocolMessage::ProtocolMessage(const std::string protocol)
   : fail_info_(kNothing),
     proto_(protocol),
     type_(kNone) {
-  work_context_.coro_loop = NULL;
+  work_context_.loop = NULL;
+  work_context_.task_identify = 0;
 }
 
 ProtocolMessage::~ProtocolMessage() {

@@ -49,13 +49,10 @@ public:
 
   base::MessageLoop* AcceptorLoop() { return acceptor_loop_; }
   const std::string& IOServiceName() const {return service_name_;}
-  bool IsServing() {return acceptor_ && acceptor_->IsListenning();}
+  bool IsRunning() {return acceptor_ && acceptor_->IsListenning();}
 
   void SetWorkLoadDispatcher(WorkLoadDispatcher* d);
   void SetProtoMessageHandler(ProtoMessageHandler handler);
-protected:
-  void HandleRequest(const RefProtocolMessage& request);
-  void HandleRequestOnWorker(const RefProtocolMessage request);
 private:
   //void HandleProtoMessage(RefProtocolMessage message);
   /* create a new connection channel */

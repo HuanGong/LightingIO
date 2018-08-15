@@ -4,6 +4,7 @@
 #include <atomic>
 #include <cinttypes>
 #include "net_callback.h"
+#include "protocol/proto_message.h"
 #include "base/message_loop/message_loop.h"
 
 namespace net {
@@ -22,6 +23,7 @@ public:
   base::MessageLoop* GetNextWorkLoop();
 
   // must call at Worker Loop, may ioworker or woker according to HandleWorkInIOLoop
+  virtual bool SetWorkContext(WorkContext& ctx);
   virtual bool SetWorkContext(ProtocolMessage* message);
   // transmit task from IO TO worker loop
   virtual bool TransmitToWorker(base::StlClosure& closuse);

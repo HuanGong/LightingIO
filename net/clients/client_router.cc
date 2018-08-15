@@ -44,6 +44,7 @@ void ClientRouter::StartRouter() {
 }
 
 void ClientRouter::StopRouter() {
+
   if (is_stopping_ || 0 == channels_.size()) {
     return;
   }
@@ -51,6 +52,16 @@ void ClientRouter::StopRouter() {
 
   for (auto& client : channels_) {
     client->CloseClientChannel();
+  }
+}
+
+void ClientRouter::StopRouterSync() {
+
+  StopRouter();
+
+  std::unique_lock<std::mutex> lck(mtx_);
+  while (cv_.wait_for(lck, std::chrono::milliseconds(500)) == std::cv_status::timeout) {
+    LOG(INFO) << "stoping... ... ...";
   }
 }
 
@@ -113,6 +124,10 @@ void ClientRouter::OnClientChannelClosed(RefClientChannel channel) {
     channels_.erase(iter);
   }
 
+  if (is_stopping_ && channels_.empty()) {//for sync stoping
+    cv_.notify_all();
+  }
+
   VLOG(GLOG_VINFO) << server_addr_.IpPortAsString() << " Has " << channels_.size() << " Channel";
 
   if (!is_stopping_ && channels_.size() < channel_count_) {
@@ -127,30 +142,43 @@ void ClientRouter::OnRequestGetResponse(RefProtocolMessage request,
   CHECK(request);
 
   request->SetResponse(response);
-  dispatcher_->ResumeWorkCtxForRequest(request);
+  dispatcher_->ResumeWorkContext(request->GetWorkCtx());
 }
 
 bool ClientRouter::SendClientRequest(RefProtocolMessage& message) {
-  if (0 == channels_.size() || dispatcher_ == NULL) { //avoid x/0 Error
-    LOG_IF(ERROR, !dispatcher_) << "No Dispatcher Can't Transfer This Request";
-    LOG_IF(ERROR, 0 == channels_.size()) << " No Connection Established To Server:" << server_addr_.IpPortAsString();
+
+  CHECK(dispatcher_);
+  if (!dispatcher_->SetWorkContext(message->GetWorkCtx())) {
+    LOG(FATAL) << "this task can't by yield, send failed";
     return false;
   }
 
+  //schedule a timeout
+  //work_loop_->PostTask(base::NewClosure(std::bind(&ClientRouter::SendRequestInWorkLoop, message)));
+  base::StlClosure func = std::bind(&ClientRouter::SendRequestInWorkLoop, this, message);
+  work_loop_->PostTask(base::NewClosure([]() {
+    LOG(ERROR) << __FUNCTION__ << " client router work loop alive";
+  }));
+  dispatcher_->TransferAndYield(work_loop_, func);
+  return true;
+}
 
-  if (!dispatcher_->SetWorkContext(message.get())) {
-    LOG(FATAL) << "Can't Transfer/Dispatch This Request From WorkLoop To IOLoop";
-    return false;
+void ClientRouter::SendRequestInWorkLoop(RefProtocolMessage message) {
+  CHECK(work_loop_->IsInLoopThread());
+
+  LOG(ERROR) << __FUNCTION__ << " To Server:" << server_addr_.IpPortAsString();
+
+  if (channels_.empty()) { //avoid x/0 Error
+    LOG(ERROR) << " No Connection Established To Server:" << server_addr_.IpPortAsString();
+    return;
   }
 
   uint32_t count = router_counter_.fetch_add(1);
   RefClientChannel& client = channels_[count % channels_.size()];
   base::MessageLoop* io_loop = client->IOLoop();
   CHECK(io_loop);
-
   base::StlClosure func = std::bind(&ClientChannel::ScheduleARequest, client, message);
-  dispatcher_->TransferAndYield(io_loop, func);
-  return true;
+  io_loop->PostTask(base::NewClosure(func));
 }
 
 void ClientRouter::SetWorkLoadTransfer(CoroWlDispatcher* dispatcher) {

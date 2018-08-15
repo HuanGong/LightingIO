@@ -30,6 +30,7 @@ void HandleHttp(const HttpRequest* req, HttpResponse* res) {
      CoroScheduler::TlsCurrent()->YieldCurrent();
      LOG(INFO) << "Request Handler Resumed";
      */
+  std::this_thread::sleep_for(std::chrono::seconds(2));
   res->MutableBody() = "hello world";
 }
 
@@ -42,8 +43,8 @@ void HandleRaw(const RawMessage* req, RawMessage* res) {
 
 net::ClientRouter*  raw_router; //(base::MessageLoop*, const InetAddress&);
 net::ClientRouter*  http_router; //(base::MessageLoop*, const InetAddress&);
-void StartClients() {
-  { 
+void StartRawClient() {
+  {
     net::InetAddress server_address("0.0.0.0", 5005);
     raw_router = new net::ClientRouter(&main_loop, server_address);
     net::RouterConf router_config;
@@ -55,6 +56,8 @@ void StartClients() {
     raw_router->SetWorkLoadTransfer(dispatcher_);
     raw_router->StartRouter();
   }
+}
+void StartHttpClients() {
   {
     net::InetAddress server_address("0.0.0.0", 5006);
     http_router = new net::ClientRouter(&main_loop, server_address);
@@ -71,16 +74,16 @@ void StartClients() {
 
 void SendHttpRequest() {
   auto http_request = std::make_shared<HttpRequest>();
-  http_request->SetMethod("GET"); 
+  http_request->SetMethod("GET");
   http_request->SetRequestURL("/abc/list");
   http_request->SetKeepAlive(true);
 
   http_router->SendRecieve(http_request);
   HttpResponse* http_response  = (HttpResponse*)http_request->Response().get();
   if (http_response) {
-    LOG(INFO) << "http response:" << http_response->Body();
+    LOG(INFO) << "http client got response:" << http_response->Body();
   } else {
-    LOG(ERROR) << "http request failed:" << http_request->FailMessage();
+    LOG(ERROR) << "http client request failed:" << http_request->FailMessage();
   }
 }
 
@@ -93,41 +96,49 @@ void SendRawRequest() {
   raw_router->SendRecieve(raw_request);
   RawMessage* raw_response  = (RawMessage*)raw_request->Response().get();
   if (raw_response) {
-    LOG(INFO) << "raw response:" << raw_response->Content();
+    LOG(INFO) << "raw client got response:" << raw_response->Content();
   } else {
-    LOG(ERROR) << "raw request failed:" << raw_request->FailMessage();
+    LOG(ERROR) << "raw client request failed:" << raw_request->FailMessage();
   }
 }
 
 int main(int argc, char* argv[]) {
-  
+
   google::ParseCommandLineFlags(&argc, &argv, true);  // 初始化 gflags
 
   main_loop.Start();
 
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < 1; i++) {
     auto loop = new(base::MessageLoop);
     loop->Start();
     loops.push_back(loop);
   }
-  
-  net::RawServer raw_server;
-  raw_server.SetIoLoops(loops);
-  raw_server.SetDispatcher(dispatcher_);
-  raw_server.ServeAddress("raw://127.0.0.1:5005", std::bind(HandleRaw, std::placeholders::_1, std::placeholders::_2));
+
+  //net::RawServer raw_server;
+  //raw_server.SetIoLoops(loops);
+  //raw_server.SetDispatcher(dispatcher_);
+  //raw_server.ServeAddressSync("raw://127.0.0.1:5005", std::bind(HandleRaw, std::placeholders::_1, std::placeholders::_2));
+  //StartRawClients();
 
   net::HttpServer http_server;
   http_server.SetIoLoops(loops);
   http_server.SetDispatcher(dispatcher_);
-  http_server.ServeAddress("http://127.0.0.1:5006", std::bind(HandleHttp, std::placeholders::_1, std::placeholders::_2));
+  http_server.ServeAddressSync("http://127.0.0.1:5006", std::bind(HandleHttp, std::placeholders::_1, std::placeholders::_2));
 
-  StartClients();
-  
-  for (;;) {
-    std::this_thread::sleep_for(std::chrono::seconds(5));
+  StartHttpClients();
+
+  std::this_thread::sleep_for(std::chrono::seconds(5));
+  //main_loop.PostCoroTask(std::bind(SendRawRequest));
+  main_loop.PostCoroTask(std::bind(SendHttpRequest));
+  /*
+  for (int i = 0; i < 3; i++) {
     main_loop.PostCoroTask(std::bind(SendRawRequest));
-    //main_loop.PostCoroTask(std::bind(SendHttpRequest));
-  }
+    main_loop.PostCoroTask(std::bind(SendHttpRequest));
+  }*/
+  std::this_thread::sleep_for(std::chrono::seconds(5));
+
+  //http_server.StopServerSync();
+  //raw_router->StopRouter();
 
   main_loop.WaitLoopEnd();
 }

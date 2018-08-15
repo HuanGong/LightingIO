@@ -3,7 +3,7 @@ ADD_DEFINITIONS(-std=c++11)
 ADD_DEFINITIONS(-fPIC)
 
 set(LTNET_SOURCE
-  server.cc
+  #server.cc
   io_buffer.cc
   io_service.cc
   tcp_channel.cc
@@ -84,7 +84,6 @@ TARGET_LINK_LIBRARIES(acceptor_test
   ${LTNETEXECUTE_LINKLIBS}
 )
 
-
 ADD_EXECUTABLE(ioservice_test
   test/io_service_test.cc
 )
@@ -93,12 +92,12 @@ TARGET_LINK_LIBRARIES(ioservice_test
 )
 
 
-ADD_EXECUTABLE(common_server
-  test/common_server_test.cc
-)
-TARGET_LINK_LIBRARIES(common_server
-  ${LTNETEXECUTE_LINKLIBS}
-)
+#ADD_EXECUTABLE(common_server
+#  test/common_server_test.cc
+#)
+#TARGET_LINK_LIBRARIES(common_server
+#  ${LTNETEXECUTE_LINKLIBS}
+#)
 
 ADD_EXECUTABLE(client_test
   test/client_test.cc

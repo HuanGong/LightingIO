@@ -41,7 +41,6 @@ private:
 private:
   ReqParseContext* request_context_;
   ResParseContext* response_context_;
-  bool close_after_finish_send_;
   static http_parser_settings req_parser_settings_;
   static http_parser_settings res_parser_settings_;
 };

@@ -25,7 +25,8 @@ typedef struct {
 } IOContext;
 
 typedef struct {
-  base::MessageLoop* coro_loop;
+  uint64_t task_identify;
+  base::MessageLoop* loop;
   std::weak_ptr<base::Coroutine> weak_coro;
 } WorkContext;
 

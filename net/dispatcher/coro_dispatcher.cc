@@ -7,6 +7,7 @@
 
 #include "base/base_constants.h"
 #include "base/coroutine/coroutine_task.h"
+#include "base/coroutine/coroutine.h"
 #include "base/coroutine/coroutine_scheduler.h"
 
 namespace net {
@@ -26,24 +27,40 @@ void CoroWlDispatcher::TransferAndYield(base::MessageLoop* ioloop, base::StlClos
   base::CoroScheduler::TlsCurrent()->YieldCurrent();
 }
 
-bool CoroWlDispatcher::ResumeWorkCtxForRequest(RefProtocolMessage& request) {
-
-  auto& work_context = request->GetWorkCtx();
-  base::RefCoroutine coro = work_context.weak_coro.lock();
-  if (!work_context.coro_loop || !coro) {
-    LOG(FATAL) << "No corotine context or coroutine has gone.";
+bool CoroWlDispatcher::ResumeWorkContext(WorkContext& ctx) {
+  base::RefCoroutine coro = ctx.weak_coro.lock();
+  if (!coro || coro->TaskIdentify() != ctx.task_identify) {
+    VLOG(GLOG_VINFO) << "Resume Croutine from workcontext failed";
     return false;
   }
   return coro->Resume();
+}
+
+bool CoroWlDispatcher::SetWorkContext(WorkContext& ctx) {
+  if (base::MessageLoop::Current() &&
+      base::CoroScheduler::TlsCurrent()->CanYield()) {
+    base::RefCoroutine coro = base::CoroScheduler::CurrentCoro();
+
+    ctx.weak_coro = coro;
+    ctx.loop = base::MessageLoop::Current();
+    ctx.task_identify = coro->TaskIdentify();
+    return true;
+  }
+  return false;
+
 }
 
 bool CoroWlDispatcher::SetWorkContext(ProtocolMessage* message) {
   CHECK(message);
   if (base::MessageLoop::Current() &&
       base::CoroScheduler::TlsCurrent()->CanYield()) {
+
     auto& work_context = message->GetWorkCtx();
-    work_context.coro_loop = base::MessageLoop::Current();
-    work_context.weak_coro = base::CoroScheduler::CurrentCoro();
+
+    work_context.loop = base::MessageLoop::Current();
+    base::RefCoroutine coro = base::CoroScheduler::CurrentCoro();
+    work_context.weak_coro = coro;
+    work_context.task_identify = coro->TaskIdentify();
     return true;
   }
   return false;
