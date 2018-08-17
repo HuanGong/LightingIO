@@ -26,7 +26,8 @@ public:
 
   void ServeAddress(const std::string, RawMessageHandler);
   void ServeAddressSync(const std::string, RawMessageHandler);
-
+  void StopServer();
+  void StopServerSync();
 protected:
   //override from ioservice delegate
   bool CanCreateNewChannel() override;
@@ -37,9 +38,9 @@ protected:
   void IOServiceStarted(const IOService* ioservice) override;
   void IOServiceStoped(const IOService* ioservice) override;
 
-  // handle http io loop
+  // handle raw io loop
   void OnRawRequest(const RefProtocolMessage&);
-  // handle http request in target loop
+  // handle raw request in target loop
   void HandleRawRequest(const RefProtocolMessage message);
 private:
   WorkLoadDispatcher* dispatcher_;
@@ -52,7 +53,7 @@ private:
   std::vector<base::MessageLoop*> work_loops_;
   std::list<RefIOService> ioservices_;
 
-  std::atomic_flag serving_flag_;
+  std::atomic<bool> serving_flag_;
   std::atomic_uint32_t connection_count_;
   DISALLOW_COPY_AND_ASSIGN(RawServer);
 };

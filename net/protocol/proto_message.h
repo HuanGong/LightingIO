@@ -56,7 +56,8 @@ public:
 
   void SetResponse(RefProtocolMessage& response);
   void SetResponse(RefProtocolMessage&& response);
-  RefProtocolMessage& Response() {return response_;}
+  ProtocolMessage* RawResponse() {return response_.get();}
+  const RefProtocolMessage& Response() const {return response_;}
 
   const char* MessageTypeStr() const;
   virtual const std::string MessageDebug() const {return "";};

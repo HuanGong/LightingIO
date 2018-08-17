@@ -50,13 +50,13 @@ public:
   void StartRouter();
   void StopRouter();
   void StopRouterSync();
-  bool SendClientRequest(RefProtocolMessage& message);
 
   template<class T>
-  bool SendRecieve(T& message) {
-    RefProtocolMessage m = std::static_pointer_cast<ProtocolMessage>(message);
-    return SendClientRequest(m);
+  ProtocolMessage* SendRecieve(T& m) {
+    RefProtocolMessage message = std::static_pointer_cast<ProtocolMessage>(m);
+    return SendClientRequest(message);
   }
+  ProtocolMessage* SendClientRequest(RefProtocolMessage& message);
 
   //override from ConnectorDelegate
   void OnClientConnectFailed() override;

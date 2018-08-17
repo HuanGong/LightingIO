@@ -9,14 +9,16 @@ namespace url {
 
 typedef struct {
   uint16_t port;
-  std::string ip;
-  std::string scheme;
+  std::string host;
+  std::string host_ip;
+  std::string protocol;
 } SchemeIpPort;
 
 /* only for scheme://xx.xx.xx.xx:port format */
-uint16_t GetPort(const std::string scheme_ip_port);
-std::string GetIP(const std::string scheme_ip_port);
-std::string GetScheme(const std::string scheme_ip_port);
+uint16_t GetPort(const std::string uri);
+std::string GetIP(const std::string uri);
+std::string GetScheme(const std::string uri);
+bool HostResolve(const std::string host, std::string& host_ip);
 bool ParseSchemeIpPortString(const std::string, SchemeIpPort& out);
 
 

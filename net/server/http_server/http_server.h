@@ -23,7 +23,6 @@ public:
   HttpServer();
   ~HttpServer();
   void SetIoLoops(std::vector<base::MessageLoop*>& loops);
-  void SetWorkLoops(std::vector<base::MessageLoop*>& loops);
   void SetDispatcher(WorkLoadDispatcher* dispatcher);
 
   void ServeAddress(const std::string, HttpMessageHandler);
@@ -54,7 +53,7 @@ private:
   std::vector<base::MessageLoop*> io_loops_;
   std::vector<base::MessageLoop*> work_loops_;
   std::list<RefIOService> ioservices_;
-  std::atomic_flag serving_flag_;
+  std::atomic_bool serving_flag_;
   std::atomic_uint32_t connection_count_;
   DISALLOW_COPY_AND_ASSIGN(HttpServer);
 };

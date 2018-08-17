@@ -12,14 +12,13 @@ namespace net {
 
 RawServer::RawServer():
   dispatcher_(nullptr) {
-
-  serving_flag_.clear();
+  serving_flag_.store(false);
   connection_count_.store(0);
 }
 
 void RawServer::SetIoLoops(std::vector<base::MessageLoop*>& loops) {
-  if (io_loops_.size()) {
-    LOG(ERROR) << "io loops can only set before http server start";
+  if (serving_flag_.load()) {
+    LOG(ERROR) << "io loops can only set before server start";
     return;
   }
   io_loops_ = loops;
@@ -28,13 +27,21 @@ void RawServer::SetIoLoops(std::vector<base::MessageLoop*>& loops) {
 void RawServer::SetDispatcher(WorkLoadDispatcher* dispatcher) {
   dispatcher_ = dispatcher;
 }
-void RawServer::SetWorkLoops(std::vector<base::MessageLoop*>& loops) {
-  work_loops_ = loops;
+
+void RawServer::ServeAddressSync(const std::string addr, RawMessageHandler handler) {
+
+  ServeAddress(addr, handler);
+
+  std::unique_lock<std::mutex> lck(mtx_);
+  while (cv_.wait_for(lck, std::chrono::milliseconds(500)) == std::cv_status::timeout) {
+    LOG(INFO) << "starting... ... ...";
+  }
 }
 
 void RawServer::ServeAddress(const std::string address, RawMessageHandler handler) {
-  bool served = serving_flag_.test_and_set();
-  LOG_IF(ERROR, served) << " A Http Server Can't Serve Twice";
+
+  bool served = serving_flag_.exchange(true);
+  LOG_IF(ERROR, served) << " Server Can't Serve Twice";
   CHECK(!served);
 
   CHECK(handler);
@@ -46,8 +53,8 @@ void RawServer::ServeAddress(const std::string address, RawMessageHandler handle
     LOG(ERROR) << "address format error,eg [raw://xx.xx.xx.xx:port]";
     CHECK(false);
   }
-  if (!ProtoServiceFactory::Instance().HasProtoServiceCreator(sch_ip_port.scheme)) {
-    LOG(ERROR) << "No ProtoServiceCreator Find for protocol scheme:" << sch_ip_port.scheme;
+  if (!ProtoServiceFactory::Instance().HasProtoServiceCreator(sch_ip_port.protocol)) {
+    LOG(ERROR) << "No ProtoServiceCreator Find for protocol scheme:" << sch_ip_port.protocol;
     CHECK(false);
   }
 
@@ -55,7 +62,7 @@ void RawServer::ServeAddress(const std::string address, RawMessageHandler handle
 
   ProtoMessageHandler func = std::bind(&RawServer::OnRawRequest, this, std::placeholders::_1);
 
-  net::InetAddress addr(sch_ip_port.ip, sch_ip_port.port);
+  net::InetAddress addr(sch_ip_port.host_ip, sch_ip_port.port);
 
   {
 #if defined SO_REUSEPORT && defined NET_ENABLE_REUSER_PORT
@@ -76,16 +83,6 @@ void RawServer::ServeAddress(const std::string address, RawMessageHandler handle
     }
   }
 
-}
-
-void RawServer::ServeAddressSync(const std::string addr, RawMessageHandler handler) {
-
-  ServeAddress(addr, handler);
-
-  std::unique_lock<std::mutex> lck(mtx_);
-  while (cv_.wait_for(lck, std::chrono::milliseconds(500)) == std::cv_status::timeout) {
-    LOG(INFO) << "starting... ... ...";
-  }
 }
 
 void RawServer::OnRawRequest(const RefProtocolMessage& request) {
@@ -191,6 +188,30 @@ void RawServer::IOServiceStoped(const IOService* service) {
     ioservices_.remove_if([&](RefIOService& s) -> bool {
       return s.get() == service;
     });
+  }
+
+  { //sync
+    std::unique_lock<std::mutex> lck(mtx_);
+    for (auto& service : ioservices_) {
+      if (service->IsRunning()) return;
+    }
+    cv_.notify_all();
+  }
+}
+
+void RawServer::StopServerSync() {
+
+  StopServer();
+
+  std::unique_lock<std::mutex> lck(mtx_);
+  while (cv_.wait_for(lck, std::chrono::milliseconds(500)) == std::cv_status::timeout) {
+    LOG(INFO) << "stoping... ... ...";
+  }
+}
+
+void RawServer::StopServer() {
+  for (auto& service : ioservices_) {
+    service->StopIOService();
   }
 }
 

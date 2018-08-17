@@ -145,28 +145,24 @@ void ClientRouter::OnRequestGetResponse(RefProtocolMessage request,
   dispatcher_->ResumeWorkContext(request->GetWorkCtx());
 }
 
-bool ClientRouter::SendClientRequest(RefProtocolMessage& message) {
-
+ProtocolMessage* ClientRouter::SendClientRequest(RefProtocolMessage& message) {
   CHECK(dispatcher_);
   if (!dispatcher_->SetWorkContext(message->GetWorkCtx())) {
     LOG(FATAL) << "this task can't by yield, send failed";
-    return false;
+    return NULL;
   }
-
   //schedule a timeout
   //work_loop_->PostTask(base::NewClosure(std::bind(&ClientRouter::SendRequestInWorkLoop, message)));
   base::StlClosure func = std::bind(&ClientRouter::SendRequestInWorkLoop, this, message);
-  work_loop_->PostTask(base::NewClosure([]() {
-    LOG(ERROR) << __FUNCTION__ << " client router work loop alive";
-  }));
   dispatcher_->TransferAndYield(work_loop_, func);
-  return true;
+
+  return message->RawResponse();
 }
 
 void ClientRouter::SendRequestInWorkLoop(RefProtocolMessage message) {
   CHECK(work_loop_->IsInLoopThread());
 
-  LOG(ERROR) << __FUNCTION__ << " To Server:" << server_addr_.IpPortAsString();
+  VLOG(GLOG_VINFO) << __FUNCTION__ << " To Server:" << server_addr_.IpPortAsString();
 
   if (channels_.empty()) { //avoid x/0 Error
     LOG(ERROR) << " No Connection Established To Server:" << server_addr_.IpPortAsString();

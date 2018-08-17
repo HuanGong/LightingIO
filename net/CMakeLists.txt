@@ -91,14 +91,6 @@ TARGET_LINK_LIBRARIES(ioservice_test
   ${LTNETEXECUTE_LINKLIBS}
 )
 
-
-#ADD_EXECUTABLE(common_server
-#  test/common_server_test.cc
-#)
-#TARGET_LINK_LIBRARIES(common_server
-#  ${LTNETEXECUTE_LINKLIBS}
-#)
-
 ADD_EXECUTABLE(client_test
   test/client_test.cc
 )
@@ -106,9 +98,9 @@ TARGET_LINK_LIBRARIES(client_test
   ${LTNETEXECUTE_LINKLIBS}
 )
 
-ADD_EXECUTABLE(new_http_server
-  test/new_http_server.cc
+ADD_EXECUTABLE(new_server_model
+  test/new_server_model.cc
 )
-TARGET_LINK_LIBRARIES(new_http_server
+TARGET_LINK_LIBRARIES(new_server_model
   ${LTNETEXECUTE_LINKLIBS}
 )

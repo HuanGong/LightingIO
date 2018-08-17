@@ -12,11 +12,11 @@ namespace net {
 
 HttpServer::HttpServer():
   dispatcher_(nullptr) {
-  serving_flag_.clear();
+  serving_flag_.store(false);
   connection_count_.store(0);
 }
 HttpServer::~HttpServer() {
-  serving_flag_.clear();
+  serving_flag_.store(false);
 }
 
 void HttpServer::SetIoLoops(std::vector<base::MessageLoop*>& loops) {
@@ -30,9 +30,6 @@ void HttpServer::SetIoLoops(std::vector<base::MessageLoop*>& loops) {
 void HttpServer::SetDispatcher(WorkLoadDispatcher* dispatcher) {
   dispatcher_ = dispatcher;
 }
-void HttpServer::SetWorkLoops(std::vector<base::MessageLoop*>& loops) {
-  work_loops_ = loops;
-}
 
 void HttpServer::ServeAddressSync(const std::string addr, HttpMessageHandler handler) {
   ServeAddress(addr, handler);
@@ -45,8 +42,8 @@ void HttpServer::ServeAddressSync(const std::string addr, HttpMessageHandler han
 
 void HttpServer::ServeAddress(const std::string address, HttpMessageHandler handler) {
 
-  bool served = serving_flag_.test_and_set();
-  LOG_IF(ERROR, served) << " A Http Server Can't Serve Twice";
+  bool served = serving_flag_.exchange(true);
+  LOG_IF(ERROR, served) << " Server Can't Serve Twice";
   CHECK(!served);
 
   url::SchemeIpPort sch_ip_port;
@@ -54,8 +51,8 @@ void HttpServer::ServeAddress(const std::string address, HttpMessageHandler hand
     LOG(ERROR) << "address format error,eg [http://xx.xx.xx.xx:port]";
     CHECK(false);
   }
-  if (!ProtoServiceFactory::Instance().HasProtoServiceCreator(sch_ip_port.scheme)) {
-    LOG(ERROR) << "No ProtoServiceCreator Find for protocol scheme:" << sch_ip_port.scheme;
+  if (!ProtoServiceFactory::Instance().HasProtoServiceCreator(sch_ip_port.protocol)) {
+    LOG(ERROR) << "No ProtoServiceCreator Find for protocol scheme:" << sch_ip_port.protocol;
     CHECK(false);
   }
   LOG_IF(ERROR, io_loops_.size() == 0) << "No loop handle socket io";
@@ -66,7 +63,7 @@ void HttpServer::ServeAddress(const std::string address, HttpMessageHandler hand
 
   ProtoMessageHandler func = std::bind(&HttpServer::OnHttpRequest, this, std::placeholders::_1);
 
-  net::InetAddress addr(sch_ip_port.ip, sch_ip_port.port);
+  net::InetAddress addr(sch_ip_port.host_ip, sch_ip_port.port);
 
   {
 #if defined SO_REUSEPORT && defined NET_ENABLE_REUSER_PORT

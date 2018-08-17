@@ -26,7 +26,6 @@ int main(int argc, char** argv) {
   net::HttpProtoService::RequestToBuffer(request.get(), &req_buffer);
   LOG(ERROR) << "request:\n"  << req_buffer.AsString();
 
-
   net::RefHttpResponse response = std::make_shared<net::HttpResponse>();
   response->SetResponseCode(200);
   response->SetKeepAlive(true);
@@ -36,66 +35,5 @@ int main(int argc, char** argv) {
   net::HttpProtoService::ResponseToBuffer(response.get(), &buffer);
   LOG(ERROR) << "response:\n"  << buffer.AsString();
 
-
-  return 0;
-#if 0
-  int count = 0;
-
-  base::MessageLoop loop;
-  loop.SetLoopName("loop1");
-  loop.Start();
-
-  base::MessageLoop l2;
-  l2.SetLoopName("loop2");
-  l2.Start();
-
-  base::MessageLoop l3;
-  l3.SetLoopName("loop3");
-  l3.Start();
-  sleep(2);
-
-  std::vector<base::MessageLoop*> loops = {&loop, &l2, &l3};
-
-  auto new_connection = [&](int fd, const net::InetAddress& peer) {
-
-    base::MessageLoop* loop = base::MessageLoop::Current();
-    LOG(INFO) << " New Connection from:" << peer.IpPortAsString() << " on loop:" << loop->LoopName();
-
-    net::InetAddress local(net::socketutils::GetLocalAddrIn(fd));
-    auto f = net::TcpChannel::Create(fd,
-                                     local,
-                                     peer,
-                                     loop,
-                                     net::ChannelServeType::kServerType);
-    int32_t size = f->Send((const uint8_t*)"hello world", sizeof "hello world");
-    LOG(INFO) << "N ByteWrite:" << size;
-    f->Start();
-    f->ShutdownChannel();
-  };
-
-  // same address can bind multi listener socket_fd
-
-  net::InetAddress addr(5005);
-
-  std::vector<net::RefServiceAcceptor> acceptors;
-
-  for (base::MessageLoop* l : loops) {
-
-    l->PostTask(base::NewClosure([=, &acceptors]() {
-
-      net::RefServiceAcceptor acceptor(new net::ServiceAcceptor(l->Pump(), addr));
-      acceptor->SetNewConnectionCallback(std::bind(new_connection,
-                                                   std::placeholders::_1,
-                                                   std::placeholders::_2));
-      acceptor->StartListen();
-      acceptors.push_back(std::move(acceptor));
-
-    }));
-  }
-
-  for (base::MessageLoop* l : loops) {
-    l->WaitLoopEnd();
-  }
-#endif
   return 0;
 }

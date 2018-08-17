@@ -13,6 +13,8 @@
 using namespace net;
 using namespace base;
 
+void SendRawRequest();
+
 base::MessageLoop main_loop;
 std::vector<base::MessageLoop*> loops;
 std::vector<base::MessageLoop*> workers;
@@ -21,21 +23,26 @@ CoroWlDispatcher* dispatcher_ = new CoroWlDispatcher(true);
 
 void HandleHttp(const HttpRequest* req, HttpResponse* res) {
   LOG(INFO) << "Got A Http Message";
-  res->SetResponseCode(200);
-  if (!dispatcher_->HandleWorkInIOLoop()) {
-    CHECK(workers[0]->IsInLoopThread());
+
+
+  auto loop = base::MessageLoop::Current();
+  auto coro = base::CoroScheduler::CurrentCoro();
+     
+  //broadcast
+  for (int i = 0; i < 10; i++) {
+    loop->PostCoroTask(std::bind([&]() {
+      SendRawRequest();
+      coro->Resume(); 
+    }));
   }
-  /*
-     base::MessageLoop* l = base::MessageLoop::Current();
-     RefCoroutine coro = CoroScheduler::CurrentCoro();
-     l->PostDelayTask(NewClosure([&](){
-     coro->Resume();
-     }), 1000);
-     LOG(INFO) << "Request Handler Yield";
-     CoroScheduler::TlsCurrent()->YieldCurrent();
-     LOG(INFO) << "Request Handler Resumed";
-     */
-  //std::this_thread::sleep_for(std::chrono::seconds(2));
+
+  int back = 0;
+  while(back < 10) {
+    base::CoroScheduler::TlsCurrent()->YieldCurrent(); 
+    back++;
+  }
+
+  res->SetResponseCode(200);
   res->MutableBody() = "hello world";
 }
 
@@ -62,6 +69,7 @@ void StartRawClient() {
     raw_router->StartRouter();
   }
 }
+
 void StartHttpClients() {
   {
     net::InetAddress server_address("0.0.0.0", 5006);
@@ -84,7 +92,7 @@ void SendHttpRequest() {
   http_request->SetKeepAlive(true);
 
   http_router->SendRecieve(http_request);
-  HttpResponse* http_response  = (HttpResponse*)http_request->Response().get();
+  auto http_response  = (HttpResponse*)http_request->Response().get();
   if (http_response) {
     LOG(INFO) << "http client got response:" << http_response->Body();
   } else {
@@ -95,11 +103,10 @@ void SendHttpRequest() {
 void SendRawRequest() {
   auto raw_request = std::make_shared<RawMessage>();
   raw_request->SetMethod(1);
-  //raw_request->SetSequenceId(1);
   raw_request->SetContent("ABC");
 
   raw_router->SendRecieve(raw_request);
-  RawMessage* raw_response  = (RawMessage*)raw_request->Response().get();
+  auto raw_response  = (RawMessage*)raw_router->SendRecieve(raw_request);
   if (raw_response) {
     LOG(INFO) << "raw client got response:" << raw_response->Content();
   } else {
@@ -107,49 +114,63 @@ void SendRawRequest() {
   }
 }
 
-int main(int argc, char* argv[]) {
-
-  google::ParseCommandLineFlags(&argc, &argv, true);  // 初始化 gflags
-
-  main_loop.Start();
-
-  auto worker = new(base::MessageLoop);
-  worker->Start();
-  workers.push_back(worker);
-  dispatcher_->SetWorkerLoops(workers);
-
-  for (uint32_t i = 0; i < 1/*std::thread::hardware_concurrency()*/; i++) {
+void PrepareLoops(uint32_t io_count, uint32_t worker_count) {
+  for (uint32_t i = 0; i < io_count; i++) {
     auto loop = new(base::MessageLoop);
     loop->Start();
     loops.push_back(loop);
   }
 
-  //net::RawServer raw_server;
-  //raw_server.SetIoLoops(loops);
-  //raw_server.SetDispatcher(dispatcher_);
-  //raw_server.ServeAddressSync("raw://127.0.0.1:5005", std::bind(HandleRaw, std::placeholders::_1, std::placeholders::_2));
-  //StartRawClients();
+  for (uint32_t i = 0; i < worker_count; i++) {
+    auto worker = new(base::MessageLoop);
+    worker->Start();
+    workers.push_back(worker);
+  }
+}
+
+int main(int argc, char* argv[]) {
+
+  google::ParseCommandLineFlags(&argc, &argv, true);  // 初始化 gflags
+  main_loop.Start();
+
+  PrepareLoops(std::thread::hardware_concurrency(), 2);
+  dispatcher_->SetWorkerLoops(workers);
+
+  net::RawServer raw_server;
+  raw_server.SetIoLoops(loops);
+  raw_server.SetDispatcher(dispatcher_);
+  raw_server.ServeAddressSync("raw://127.0.0.1:5005", std::bind(HandleRaw, std::placeholders::_1, std::placeholders::_2));
+
 
   net::HttpServer http_server;
   http_server.SetIoLoops(loops);
-  http_server.SetWorkLoops(workers);
   http_server.SetDispatcher(dispatcher_);
   http_server.ServeAddressSync("http://127.0.0.1:5006", std::bind(HandleHttp, std::placeholders::_1, std::placeholders::_2));
 
-  //StartHttpClients();
-
-  //std::this_thread::sleep_for(std::chrono::seconds(5));
-  //main_loop.PostCoroTask(std::bind(SendRawRequest));
-  //main_loop.PostCoroTask(std::bind(SendHttpRequest));
-  /*
-  for (int i = 0; i < 3; i++) {
-    main_loop.PostCoroTask(std::bind(SendRawRequest));
+#if 1
+  StartHttpClients();
+#endif
+#if 0
+  std::this_thread::sleep_for(std::chrono::seconds(5));
+  for (int i = 0; i < 10; i++) {
     main_loop.PostCoroTask(std::bind(SendHttpRequest));
-  }*/
-  //std::this_thread::sleep_for(std::chrono::seconds(5));
+  }
+#endif
 
-  //http_server.StopServerSync();
-  //raw_router->StopRouter();
+#if 1
+  StartRawClient();
+#endif
+#if 0
+  for (int i = 0; i < 10; i++) {
+    main_loop.PostCoroTask(std::bind(SendRawRequest));
+  }
+#endif
+
+#if 0
+  std::this_thread::sleep_for(std::chrono::seconds(5));
+  http_server.StopServerSync();
+  raw_router->StopRouter();
+#endif
 
   main_loop.WaitLoopEnd();
 }
