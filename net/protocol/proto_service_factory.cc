@@ -1,9 +1,11 @@
 
-#include "memory/lazy_instance.h"
 #include "proto_service_factory.h"
+
+#include "memory/lazy_instance.h"
+#include "redis/resp_service.h"
+#include "raw/raw_proto_service.h"
 #include "line/line_proto_service.h"
 #include "http/http_proto_service.h"
-#include "raw/raw_proto_service.h"
 
 namespace net {
 
@@ -18,15 +20,15 @@ ProtoServiceFactory::ProtoServiceFactory() {
 }
 
 //Static
-RefProtoService ProtoServiceFactory::Create(const std::string& proto) {
-  static RefProtoService _null;
+ProtoServicePtr ProtoServiceFactory::Create(const std::string& proto) {
+  static ProtoServicePtr _null;
 
   auto& builder = Instance().creators_[proto];
   if (builder) {
     return builder();
   }
   LOG(ERROR) << __FUNCTION__ << " Protocol:" << proto << " Not Supported";
-  return _null;
+  return NULL;
 }
 
 // not thread safe,
@@ -40,14 +42,17 @@ bool ProtoServiceFactory::HasProtoServiceCreator(const std::string& proto) {
 }
 
 void ProtoServiceFactory::InitInnerDefault() {
-  creators_.insert(std::make_pair("line", []()->RefProtoService {
-    return RefProtoService(new LineProtoService);
+  creators_.insert(std::make_pair("line", []()->ProtoServicePtr {
+    return ProtoServicePtr(new LineProtoService);
   }));
-  creators_.insert(std::make_pair("http", []()->RefProtoService {
-    return RefProtoService(new HttpProtoService);
+  creators_.insert(std::make_pair("http", []()->ProtoServicePtr {
+    return ProtoServicePtr(new HttpProtoService);
   }));
-  creators_.insert(std::make_pair("raw", []()->RefProtoService {
-    return RefProtoService(new RawProtoService);
+  creators_.insert(std::make_pair("raw", []()->ProtoServicePtr {
+    return ProtoServicePtr(new RawProtoService);
+  }));
+  creators_.insert(std::make_pair("redis", []()->ProtoServicePtr {
+    return ProtoServicePtr(new RespService);
   }));
 }
 

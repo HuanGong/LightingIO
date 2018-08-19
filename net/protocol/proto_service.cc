@@ -27,15 +27,4 @@ void ProtoService::SetMessageHandler(ProtoMessageHandler handler) {
   message_handler_ = handler;
 }
 
-bool ProtoService::EncodeToBuffer(const ProtocolMessage* msg, IOBuffer* out_buffer) {
-  return false;
-}
-bool ProtoService::DecodeToMessage(IOBuffer* buffer, ProtocolMessage* out_msg) {
-  return false;
-}
-
-bool ProtoService::CloseAfterMessage(ProtocolMessage* request, ProtocolMessage* response) {
-  return true;
-}
-
 }// end namespace

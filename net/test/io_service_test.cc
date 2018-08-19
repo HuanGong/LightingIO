@@ -37,6 +37,9 @@ public:
     }
     //channel->ShutdownChannel();
   }
+  bool EncodeToBuffer(const ProtocolMessage* msg, IOBuffer* out_buffer) {
+    return false;
+  }
 };
 
 class Srv : public IOServiceDelegate {
@@ -65,8 +68,8 @@ public:
   void Start() {
     RegisterExitSignal();
 
-    ProtoServiceFactory::Instance().RegisterCreator("tcp", []()->RefProtoService {
-      return RefProtoService(new TcpProtoService);
+    ProtoServiceFactory::Instance().RegisterCreator("tcp", []()->ProtoServicePtr {
+      return ProtoServicePtr(new TcpProtoService);
     });
 
     ioservice_->StartIOService();
@@ -94,8 +97,8 @@ public:
   bool CanCreateNewChannel() {
     return true;
   }
-  RefProtoService GetProtocolService(const std::string protocol) {
-    return tcp_protoservice_;
+  ProtoService* GetProtocolService(const std::string protocol) {
+    return tcp_protoservice_.get();
   }
 private:
   void RegisterExitSignal() {
@@ -111,7 +114,7 @@ private:
   base::MessageLoop acceptor_loop_;
 
   RefIOService ioservice_;
-  RefProtoService tcp_protoservice_;
+  ProtoServicePtr tcp_protoservice_;
 };
 
 }

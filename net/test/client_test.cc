@@ -50,13 +50,9 @@ void SendRawRequest(int sequence_id) {
   raw_request->SetMethod(12);
   //raw_request->SetSequenceId(sequence_id);
 
-  if (raw_router->SendRecieve<net::RefRawMessage>(raw_request)) {
-    //LOG(ERROR) << "Haha, My Raw Request Back ............. Wow!!!!";
-    auto& response = raw_request->Response();
-    if (response) {
-      net::RawMessage* raw_response = static_cast<net::RawMessage*>(response.get());
-      LOG(ERROR) << "Get RawResponse:\n" << raw_response->MessageDebug();
-    }
+  auto response = raw_router->SendRecieve(raw_request);
+  if (response) {
+    LOG(ERROR) << "Get RawResponse:\n" << response->MessageDebug();
   }
 }
 

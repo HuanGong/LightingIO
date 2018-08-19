@@ -9,12 +9,12 @@
 
 namespace net {
 
-typedef std::function<RefProtoService()> ProtoserviceCreator;
+typedef std::function<ProtoServicePtr()> ProtoserviceCreator;
 
 class ProtoServiceFactory {
 public:
   static ProtoServiceFactory& Instance();
-  static RefProtoService Create(const std::string& proto);
+  static ProtoServicePtr Create(const std::string& proto);
 
   ProtoServiceFactory();
   // not thread safe,

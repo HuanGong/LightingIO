@@ -45,7 +45,7 @@ void LineProtoService::OnDataRecieved(const RefTcpChannel& channel, IOBuffer* bu
     }
   }
 }
-
+/*
 bool LineProtoService::DecodeToMessage(IOBuffer* buf, ProtocolMessage* out_msg) {
 
   LineMessage* line_msg = static_cast<LineMessage*>(out_msg);
@@ -60,9 +60,10 @@ bool LineProtoService::DecodeToMessage(IOBuffer* buf, ProtocolMessage* out_msg) 
   std::string& body = line_msg->MutableBody();
   body.assign((const char*)start, len);
 
-  buf->Consume(len + 2/*lenth of /r/n*/);
+  buf->Consume(len + 2);
   return true;
 }
+*/
 
 bool LineProtoService::EncodeToBuffer(const ProtocolMessage* msg, IOBuffer* out_buffer) {
   if (msg->Protocol() != "line") {

@@ -91,7 +91,7 @@ void IOService::OnNewConnection(int local_socket, const InetAddress& peer_addr) 
     return;
   }
 
-  RefProtoService proto_service = ProtoServiceFactory::Create(protocol_);
+  ProtoServicePtr proto_service = ProtoServiceFactory::Create(protocol_);
   if (!proto_service || !message_handler_) {
     LOG(ERROR) << "no proto parser or no message handler, close this connection.";
     socketutils::CloseSocket(local_socket);
@@ -111,7 +111,7 @@ void IOService::OnNewConnection(int local_socket, const InetAddress& peer_addr) 
   const std::string channel_name = peer_addr.IpPortAsString();
   new_channel->SetChannelName(channel_name);
   new_channel->SetOwnerLoop(acceptor_loop_);
-  new_channel->SetProtoService(proto_service);
+  new_channel->SetProtoService(std::move(proto_service));
   new_channel->SetCloseCallback(std::bind(&IOService::OnChannelClosed, this, std::placeholders::_1));
 
   new_channel->Start();

@@ -177,7 +177,7 @@ bool TcpChannel::SendProtoMessage(RefProtocolMessage message) {
   proto_service_->BeforeSendMessage(message.get());
 
   bool success = false;
-  if (out_buffer_.CanReadSize()) { 
+  if (out_buffer_.CanReadSize()) {
 
     success = proto_service_->EncodeToBuffer(message.get(), &out_buffer_);
     LOG_IF(ERROR, !success) << "Send Failed For Message Encode Failed";
@@ -327,12 +327,12 @@ void TcpChannel::SetStatusChangedCallback(const ChannelStatusCallback& callback)
   status_change_callback_ = callback;
 }
 
-RefProtoService TcpChannel::GetProtoService() const {
-  return proto_service_;
+ProtoService* TcpChannel::GetProtoService() const {
+  return proto_service_.get();
 }
 
-void TcpChannel::SetProtoService(RefProtoService proto_service) {
-  proto_service_ = proto_service;
+void TcpChannel::SetProtoService(ProtoServicePtr&& proto_service) {
+  proto_service_ = std::move(proto_service);
 }
 
 const std::string TcpChannel::StatusAsString() {

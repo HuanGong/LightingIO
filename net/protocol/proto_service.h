@@ -22,24 +22,21 @@ public:
 
   virtual void OnStatusChanged(const RefTcpChannel&) = 0;
   virtual void OnDataFinishSend(const RefTcpChannel&) = 0;
+
   virtual void OnDataRecieved(const RefTcpChannel&, IOBuffer*) = 0;
-
-  virtual bool EncodeToBuffer(const ProtocolMessage* msg, IOBuffer* out_buffer);
-  virtual bool DecodeToMessage(IOBuffer* buffer, ProtocolMessage* out_msg);
-
+  virtual bool EncodeToBuffer(const ProtocolMessage* msg, IOBuffer* out_buffer) = 0;
   //Before send [request type] message, in normal case, this was used for
   //async clients request
   virtual void BeforeSendMessage(ProtocolMessage* out_message) {};
   virtual void BeforeReplyMessage(ProtocolMessage* in, ProtocolMessage* out) {};
+  virtual bool CloseAfterMessage(ProtocolMessage*, ProtocolMessage*) { return true;};
+  virtual const RefProtocolMessage DefaultResponse(const RefProtocolMessage&) {return NULL;}
 
   void SetServiceType(ProtocolServiceType t);
   inline const std::string& Protocol() const {return protocol_;};
   inline ProtocolServiceType ServiceType() const {return type_;}
   inline MessageType InMessageType() const {return in_message_type_;};
   inline MessageType OutMessageType() const {return out_message_type_;};
-
-  virtual const RefProtocolMessage DefaultResponse(const RefProtocolMessage&) {return NULL;}
-  virtual bool CloseAfterMessage(ProtocolMessage* request, ProtocolMessage* response);
 protected:
   std::string protocol_;
   ProtocolServiceType type_;

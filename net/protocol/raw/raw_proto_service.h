@@ -17,7 +17,7 @@ public:
   void OnDataRecieved(const RefTcpChannel&, IOBuffer*) override;
 
   //no SharedPtr here, bz of type_cast and don't need guarantee
-  bool DecodeToMessage(IOBuffer* buffer, ProtocolMessage* out_msg) override;
+  //bool DecodeToMessage(IOBuffer* buffer, ProtocolMessage* out_msg) override;
   bool EncodeToBuffer(const ProtocolMessage* msg, IOBuffer* out_buffer) override;
   bool CloseAfterMessage(ProtocolMessage* request, ProtocolMessage* response) override;
   const RefProtocolMessage DefaultResponse(const RefProtocolMessage& req) override;

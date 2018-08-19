@@ -98,12 +98,12 @@ void ClientRouter::OnNewClientConnected(int socket_fd, InetAddress& local, InetA
   RefClientChannel client_channel = ClientChannel::Create(this, new_channel);
   client_channel->SetRequestTimeout(message_timeout_);
 
-  RefProtoService proto_service = ProtoServiceFactory::Create(protocol_);
+  ProtoServicePtr proto_service = ProtoServiceFactory::Create(protocol_);
   proto_service->SetServiceType(ProtocolServiceType::kClient);
   proto_service->SetMessageHandler(std::bind(&ClientChannel::OnResponseMessage,
                                              client_channel.get(),
                                              std::placeholders::_1));
-  new_channel->SetProtoService(proto_service);
+  new_channel->SetProtoService(std::move(proto_service));
 
   new_channel->Start();
 

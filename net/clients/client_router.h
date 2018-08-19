@@ -52,9 +52,9 @@ public:
   void StopRouterSync();
 
   template<class T>
-  ProtocolMessage* SendRecieve(T& m) {
+  typename T::element_type::ResponseType* SendRecieve(T& m) {
     RefProtocolMessage message = std::static_pointer_cast<ProtocolMessage>(m);
-    return SendClientRequest(message);
+    return (typename T::element_type::ResponseType*)(SendClientRequest(message));
   }
   ProtocolMessage* SendClientRequest(RefProtocolMessage& message);
 

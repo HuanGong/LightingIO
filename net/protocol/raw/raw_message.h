@@ -29,6 +29,8 @@ typedef std::shared_ptr<RawMessage> RefRawMessage;
 
 class RawMessage : public ProtocolMessage {
 public:
+  typedef RawMessage ResponseType;
+
   static const uint32_t kRawHeaderSize;
   static RefRawMessage CreateRequest();
   static RefRawMessage CreateResponse();

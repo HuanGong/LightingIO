@@ -62,7 +62,7 @@ public:
   void SetFinishSendCallback(const FinishSendCallback& callback);
   void SetCloseCallback(const ChannelClosedCallback& callback);
   void SetStatusChangedCallback(const ChannelStatusCallback& callback);
-  void SetProtoService(RefProtoService proto_service);
+  void SetProtoService(ProtoServicePtr&& proto_service);
 
   /* send a protocol message*/
   bool SendProtoMessage(RefProtocolMessage message);
@@ -77,7 +77,7 @@ public:
   base::MessageLoop* IOLoop() const;
   bool IsServerChannel() const;
   bool IsClientChannel() const;
-  RefProtoService GetProtoService() const;
+  ProtoService* GetProtoService() const;
 protected:
   void HandleRead();
   void HandleWrite();
@@ -109,7 +109,7 @@ private:
   IOBuffer in_buffer_;
   IOBuffer out_buffer_;
 
-  RefProtoService proto_service_;
+  ProtoServicePtr proto_service_;
 
   RcvDataCallback recv_data_callback_;
   ChannelClosedCallback closed_callback_;

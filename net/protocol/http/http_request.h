@@ -4,6 +4,7 @@
 
 #include <map>
 #include <sstream>
+#include "http_response.h"
 #include "protocol/proto_message.h"
 #include "http_parser/http_parser.h"
 
@@ -16,6 +17,7 @@ typedef std::shared_ptr<HttpRequest> RefHttpRequest;
 
 class HttpRequest : public ProtocolMessage {
 public:
+  typedef HttpResponse ResponseType;
   HttpRequest();
   ~HttpRequest();
 

@@ -7,6 +7,7 @@
 namespace net {
 class LineMessage : public ProtocolMessage {
 public:
+  typedef LineMessage ResponseType;
   LineMessage();
   ~LineMessage();
   std::string& MutableBody();

@@ -31,7 +31,7 @@ typedef std::shared_ptr<ServiceAcceptor> RefServiceAcceptor;
 typedef std::function<void(int/*socket_fd*/, const InetAddress&)> NewConnectionCallback;
 
 /* protoservice handle tcpmessage to different type protocol request and message */
-typedef std::shared_ptr<ProtoService> RefProtoService;
+typedef std::unique_ptr<ProtoService> ProtoServicePtr;
 
 /* ============== io service ====== */
 typedef std::shared_ptr<IOService> RefIOService;

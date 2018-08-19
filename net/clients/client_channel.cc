@@ -101,7 +101,7 @@ bool ClientChannel::TryFireNextRequest() {
     if (success) {
       requests_keeper_->SetCurrent(next_request);
       if (message_timeout_) {
-        LOG(INFO) << " Schedule A Timeout For Outing Request";
+        LOG(INFO) << " Schedule A Timeout For Outing Request" << message_timeout_;
         auto functor = std::bind(&ClientChannel::OnRequestTimeout,
                                  shared_from_this(),
                                  next_request);

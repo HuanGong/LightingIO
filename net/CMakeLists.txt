@@ -24,6 +24,9 @@ set(LTNET_SOURCE
   protocol/http/http_proto_service.cc
   protocol/raw/raw_message.cc
   protocol/raw/raw_proto_service.cc
+  protocol/redis/redis_request.cc
+  protocol/redis/redis_response.cc
+  protocol/redis/resp_service.cc
   #dispatcher
   dispatcher/coro_dispatcher.cc
   dispatcher/workload_dispatcher.cc

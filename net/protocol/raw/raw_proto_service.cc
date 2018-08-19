@@ -55,6 +55,7 @@ void RawProtoService::OnDataRecieved(const RefTcpChannel& channel, IOBuffer* buf
   } while(1);
 }
 
+/*
 //no SharedPtr here, bz of type_cast and don't need guarantee
 bool RawProtoService::DecodeToMessage(IOBuffer* buffer, ProtocolMessage* out_msg) {
   CHECK(buffer && out_msg);
@@ -76,6 +77,7 @@ bool RawProtoService::DecodeToMessage(IOBuffer* buffer, ProtocolMessage* out_msg
 
   return true;
 }
+*/
 
 bool RawProtoService::EncodeToBuffer(const ProtocolMessage* msg, IOBuffer* out_buffer) {
   CHECK(msg && out_buffer);
