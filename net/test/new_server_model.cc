@@ -25,22 +25,22 @@ CoroWlDispatcher* dispatcher_ = new CoroWlDispatcher(true);
 void HandleHttp(const HttpRequest* req, HttpResponse* res) {
   LOG(INFO) << "Got A Http Message";
 
-
   auto loop = base::MessageLoop::Current();
   auto coro = base::CoroScheduler::CurrentCoro();
 
   //broadcast
-  for (int i = 0; i < 10; i++) {
-    loop->PostCoroTask(std::bind([&]() {
-      SendRawRequest();
-      coro->Resume(); 
-    }));
-  }
-
-  int back = 0;
-  while(back < 10) {
-    base::CoroScheduler::TlsCurrent()->YieldCurrent(); 
-    back++;
+  if (req->RequestUrl() == "/br") {
+    for (int i = 0; i < 10; i++) {
+      loop->PostCoroTask(std::bind([&]() {
+        SendRawRequest();
+        coro->Resume();
+      }));
+    }
+    int back = 0;
+    while(back < 10) {
+      base::CoroScheduler::TlsCurrent()->YieldCurrent();
+      back++;
+    }
   }
 
   res->SetResponseCode(200);
@@ -107,8 +107,7 @@ void SendHttpRequest() {
   http_request->SetRequestURL("/abc/list");
   http_request->SetKeepAlive(true);
 
-  http_router->SendRecieve(http_request);
-  auto http_response  = (HttpResponse*)http_request->Response().get();
+  HttpResponse* http_response = http_router->SendRecieve(http_request);
   if (http_response) {
     LOG(INFO) << "http client got response:" << http_response->Body();
   } else {
@@ -121,8 +120,7 @@ void SendRawRequest() {
   raw_request->SetMethod(1);
   raw_request->SetContent("ABC");
 
-  raw_router->SendRecieve(raw_request);
-  auto raw_response  = (RawMessage*)raw_router->SendRecieve(raw_request);
+  RawMessage* raw_response = raw_router->SendRecieve(raw_request);
   if (raw_response) {
     LOG(INFO) << "raw client got response:" << raw_response->Content();
   } else {
@@ -178,12 +176,11 @@ void SendRedisMessage() {
   redis_request->SetWithExpire("name", "huan.gong", 2000);
   redis_request->Exists("name");
   redis_request->Delete("name");
-  /*
+
   redis_request->Incr("counter");
   redis_request->IncrBy("counter", 10);
   redis_request->Decr("counter");
   redis_request->DecrBy("counter", 10);
-  */
 
   redis_request->Select("1");
   redis_request->Auth("");
@@ -229,7 +226,6 @@ int main(int argc, char* argv[]) {
   raw_server.SetDispatcher(dispatcher_);
   raw_server.ServeAddressSync("raw://127.0.0.1:5005", std::bind(HandleRaw, std::placeholders::_1, std::placeholders::_2));
 
-
   net::HttpServer http_server;
   http_server.SetIoLoops(loops);
   http_server.SetDispatcher(dispatcher_);
@@ -245,7 +241,7 @@ int main(int argc, char* argv[]) {
   }
 #endif
 
-#if 0
+#if 1
   StartRawClient();
 #endif
 #if 0

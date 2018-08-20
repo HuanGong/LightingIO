@@ -23,7 +23,7 @@ public:
 
   uint32_t WatchingFdCounts() const;
 protected:
-  DLinkedList<FdEvent> listen_events_;
+  DoubleLinkedList<FdEvent> listen_events_;
 
 private:
   DISALLOW_COPY_AND_ASSIGN(IoMultiplexer);

@@ -9,7 +9,7 @@ IoMultiplexer::~IoMultiplexer() {
 }
 
 uint32_t IoMultiplexer::WatchingFdCounts() const {
-  return listen_events_.size();
+  return listen_events_.Size();
 }
 
 }

@@ -1,14 +1,21 @@
-#ifndef _COMPONENT_DOUBLELINKEDLIST_H_
-#define _COMPONENT_DOUBLELINKEDLIST_H_
+#ifndef _BASE_DOUBLELINKED_LIST_H_
+#define _BASE_DOUBLELINKED_LIST_H_
 
 #include <cstdio>
+#include <memory>
 #include <inttypes.h>
+#include <functional>
+#include <base/base_micro.h>
 
 namespace base {
 
-struct DoubleLinkedItemHolder {
+namespace __detail {
+
+struct Holder {
 };
 
+}
+/*
 template<typename T>
 struct DoubleLinkedTraits {
   inline static T* pre(T* t) {return t->pre_;}
@@ -18,144 +25,106 @@ struct DoubleLinkedTraits {
   inline static DoubleLinkedItemHolder* holder(T* t) {return t->holder_;}
   inline static void set_holder(T* t, DoubleLinkedItemHolder* h) {t->holder_ = h;};
 };
+*/
 
 template<class T>
 struct EnableDoubleLinked {
-  T* pre_ = NULL;
-  T* next_ = NULL;
-  DoubleLinkedItemHolder* holder_ = NULL;
+  EnableDoubleLinked<T>* pre_ = NULL;
+  EnableDoubleLinked<T>* next_ = NULL;
+  __detail::Holder* holder_ = NULL;
 };
 
 template<class T>
-class DLinkedList : public DoubleLinkedItemHolder {
+class DoubleLinkedList : public __detail::Holder {
 public:
-  typedef DoubleLinkedTraits<T> Traits;
-  DLinkedList() :
-    head_(NULL),
-    tail_(NULL),
-    size_(0) {
+  DoubleLinkedList() : size_(0) {
+    tail_ = new EnableDoubleLinked<T>();
+    head_ = new EnableDoubleLinked<T>();
+
+    tail_->pre_ = head_;
+    head_->next_ = tail_;
+    head_->pre_ = nullptr;
+    tail_->next_ = nullptr;
   }
 
-  T* front() {
-    return head_;
+  ~DoubleLinkedList() {
+
+    EnableDoubleLinked<T>* node = head_->next_;
+    for (; node != tail_; node = node->next_) {
+      Remove((T*)node);
+    }
+    size_ = 0;
+    delete tail_;
+    delete head_;
   }
 
-  void pop_front() {
-    if (!head_) {return;}
+  inline uint64_t Size() const {return size_;}
 
-    T* removed = head_;
-    head_ = Traits::next(head_);
-
-    Traits::set_pre(removed, NULL);
-    Traits::set_next(removed, NULL);
-    if (head_) {
-      Traits::set_pre(head_, NULL);
-    } else {
-      tail_ = NULL;
-    }
-    Traits::set_holder(removed, NULL);
-    --size_;
-  }
-
-  bool push_front(T* node) {
-    if (!node || Attatched(node)) {
-      return false;
-    }
-
-    Traits::set_pre(node, NULL);
-    if (head_ == NULL) {
-      head_ = tail_ = node;
-      Traits::set_next(node, NULL);
-    } else {
-      T* second = head_;
-      Traits::set_pre(second, node);
-      Traits::set_next(node, second);
-      head_ = node;
-    }
-    Traits::set_holder(this);
-    ++size_;
-    return true;
-  }
-
-  T* back() {
-    return tail_;
-  }
-
-  void pop_back() {
-    if (!tail_) {return;}
-
-    T* removed = tail_;
-    tail_ = Traits::pre(removed);
-
-    Traits::set_pre(removed, NULL);
-    Traits::set_next(removed, NULL);
-
-    if (tail_) {
-      Traits::set_next(tail_, NULL);
-    } else {
-      head_ = NULL;
-    }
-    Traits::set_holder(removed, NULL);
-    --size_;
-  }
-
-  bool push_back(T* node) {
-    if (!node || Attatched(node)) {
-      return false;
-    }
-
-    Traits::set_next(node, NULL);
-    if (tail_ == NULL) {
-      head_ = tail_ = node;
-      Traits::set_pre(node, NULL);
-    } else {
-      Traits::set_next(tail_, node);
-      Traits::set_pre(node, tail_);
-      tail_ = node;
-    }
-    Traits::set_holder(node, this);
-    ++size_;
-    return true;
-  }
-
-  bool remove(T* node) {
-    if (!node || !Attatched(node)) {
-      return false;
-    }
-
-    T* pre = Traits::pre(node);
-    T* next = Traits::next(node);
-    if (next) {
-      Traits::set_pre(next, pre);
-    } else {
-      tail_ = pre;
-    }
-    if (pre) {
-      Traits::set_next(pre, next);
-    } else {
-      head_ = next;
-    }
-
-    Traits::set_pre(node, NULL);
-    Traits::set_next(node, NULL);
-    Traits::set_holder(node, NULL);
-    --size_;
-    return true;
-  }
-
-  inline uint64_t size() const {return size_;}
   inline bool Attatched(T* node) {
-    return Traits::holder(node) == (DoubleLinkedItemHolder*)this;
+    return node->holder_ == (__detail::Holder*)this;
+  }
+
+  bool PushBack(T* node) {
+    if (!node || Attatched(node)) {
+      return false;
+    }
+    tail_->pre_->next_ = node;
+    node->pre_ = tail_->pre_;
+    tail_->pre_ = node;
+    node->next_ = tail_;
+    node->holder_ = this;
+    size_++;
+    return true;
+  }
+
+  T* Back() {
+    return size_ > 0 ? (T*)tail_->pre_ : nullptr;
+  }
+
+  T* Front() {
+    return size_ > 0 ? (T*)head_->next_ : nullptr;
+  }
+
+  bool Remove(T* node) {
+    if (size_ <= 0 || !Attatched(node)) {
+      return false;
+    }
+    node->pre_->next_ = node->next_;
+    node->next_->pre_ = node->pre_;
+    node->pre_ = nullptr;
+    node->next_ = nullptr;
+    node->holder_ = nullptr;
+    size_--;
+    return true;
+  }
+
+  bool PushFront(T* node) {
+    if (!node || Attatched(node)) {
+      return false;
+    }
+    head_->next_->pre_ = node;
+    node->next_ = head_->next_;
+    head_->next_ = node;
+    node->pre_ = head_;
+    node->holder_ = this;
+    size_++;
+    return true;
+  }
+
+  void Foreach(std::function<void(const T*)> func) {
+    const DoubleLinkedList<T>* node = head_->next_;
+    for (; node != tail_; node = node->next_) {
+      func((T*)node);
+    }
   }
 
 private:
-  T* head_;
-  T* tail_;
+  EnableDoubleLinked<T>* head_;
+  EnableDoubleLinked<T>* tail_;
   uint64_t size_;
+  DISALLOW_COPY_AND_ASSIGN(DoubleLinkedList);
 };
 
 
-
-}//endif
-
-#endif //_COMPONENT_DOUBLELINKEDLIST_H_
+} // namesapce base end
+#endif
