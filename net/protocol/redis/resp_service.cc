@@ -20,7 +20,7 @@ void RespService::OnDataFinishSend(const RefTcpChannel&) {
 }
 
 void RespService::OnDataRecieved(const RefTcpChannel& channel, IOBuffer* buffer) {
-  LOG(INFO) << " RespService Got raw data:\n" << buffer->AsString() << " next coming count:" << next_incoming_count_;
+  //LOG(INFO) << " RespService Got raw data:\n" << buffer->AsString() << " next coming count:" << next_incoming_count_;
   CHECK(ProtoService::ServiceType() == kClient);
 
   if (!current_response) {
@@ -57,7 +57,7 @@ bool RespService::EncodeToBuffer(const ProtocolMessage* msg, IOBuffer* out_buffe
   out_buffer->EnsureWritableSize(request->body_.size());
   out_buffer->WriteRawData(request->body_.data(), request->body_.size());
 
-  LOG(INFO) << " Encode redis request to out_buffer:" << request->body_;
+  //LOG(INFO) << " Encode redis request to out_buffer:" << request->body_;
   return true;
 }
 

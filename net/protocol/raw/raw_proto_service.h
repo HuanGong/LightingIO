@@ -22,9 +22,13 @@ public:
   bool CloseAfterMessage(ProtocolMessage* request, ProtocolMessage* response) override;
   const RefProtocolMessage DefaultResponse(const RefProtocolMessage& req) override;
 
+  bool KeepSequence() override {return false;};
+  bool EnsureProtocol(ProtocolMessage* message) override;
   void BeforeSendMessage(ProtocolMessage* out_message) override;
+  void BeforeReplyMessage(ProtocolMessage* in, ProtocolMessage* out) override;
 private:
   RefRawMessage current_;
+  uint64_t sequence_id_ = 1;
 };
 
 }

@@ -33,12 +33,13 @@ bool CoroWlDispatcher::ResumeWorkContext(WorkContext& ctx) {
     VLOG(GLOG_VINFO) << "Resume Croutine from workcontext failed";
     return false;
   }
-  return coro->Resume();
+  return coro->Resume(ctx.task_identify);
 }
 
 bool CoroWlDispatcher::SetWorkContext(WorkContext& ctx) {
   if (base::MessageLoop::Current() &&
       base::CoroScheduler::TlsCurrent()->CanYield()) {
+
     base::RefCoroutine coro = base::CoroScheduler::CurrentCoro();
 
     ctx.weak_coro = coro;
@@ -47,7 +48,6 @@ bool CoroWlDispatcher::SetWorkContext(WorkContext& ctx) {
     return true;
   }
   return false;
-
 }
 
 bool CoroWlDispatcher::SetWorkContext(ProtocolMessage* message) {

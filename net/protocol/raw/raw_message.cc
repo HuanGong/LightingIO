@@ -44,10 +44,6 @@ void RawMessage::SetContent(const char* content) {
   header_.frame_size = kRawHeaderSize + content_.size();
 }
 
-void RawMessage::SetSequenceId(uint32_t sequence_id) {
-  header_.sequence_id = sequence_id;
-}
-
 const std::string RawMessage::MessageDebug() const {
   std::ostringstream oss;
 

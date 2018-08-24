@@ -21,7 +21,9 @@ bool TimerEventTest();
 bool CoroutineTaskTest() {
   base::MessageLoop loop;
 
+  uint64_t coro1_id = 0;
   std::weak_ptr<base::Coroutine> weak1;
+  uint64_t coro2_id = 0;
   std::weak_ptr<base::Coroutine> weak2;
 
   loop.PostCoroTask([](){
@@ -31,6 +33,7 @@ bool CoroutineTaskTest() {
     LOG(INFO) << "Task Run At Coroutine, task 2 start";
     base::RefCoroutine coro = base::CoroScheduler::CurrentCoro();
     weak1 = coro;
+    coro1_id = coro->TaskIdentify();
     base::CoroScheduler::TlsCurrent()->YieldCurrent();
     LOG(INFO) << "Task Run At Coroutine, task 2 resume";
   });
@@ -41,6 +44,7 @@ bool CoroutineTaskTest() {
     LOG(INFO) << "Task Run At Coroutine, task 4";
     base::RefCoroutine coro = base::CoroScheduler::CurrentCoro();
     weak2 = coro;
+    coro2_id = coro->TaskIdentify();
     base::CoroScheduler::TlsCurrent()->YieldCurrent();
     LOG(INFO) << "Task Run At Coroutine, task 4 resume";
   });
@@ -53,12 +57,12 @@ bool CoroutineTaskTest() {
   loop.PostDelayTask(base::NewClosure([&](){
     LOG(INFO) << "resume coroutine 2 start";
     base::RefCoroutine coro = weak1.lock();
-    coro->Resume();
+    coro->Resume(coro1_id);
     LOG(INFO) << "resume coroutine 2 finished";
 
     LOG(INFO) << "resume coroutine 4 start";
     base::RefCoroutine coro2 = weak2.lock();
-    coro2->Resume();
+    coro->Resume(coro2_id);
     LOG(INFO) << "resume coroutine 4 finished";
   }), 1000);
 

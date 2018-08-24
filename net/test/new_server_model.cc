@@ -9,7 +9,6 @@
 
 #include "clients/client_connector.h"
 #include "clients/client_router.h"
-#include "clients/client_channel.h"
 
 using namespace net;
 using namespace base;
@@ -23,24 +22,20 @@ std::vector<base::MessageLoop*> workers;
 CoroWlDispatcher* dispatcher_ = new CoroWlDispatcher(true);
 
 void HandleHttp(const HttpRequest* req, HttpResponse* res) {
-  LOG(INFO) << "Got A Http Message";
+  LOG(INFO) << "Got A Http Message path:" << req->RequestUrl();
 
   auto loop = base::MessageLoop::Current();
   auto coro = base::CoroScheduler::CurrentCoro();
-
+  int64_t id = coro->TaskIdentify();
   //broadcast
   if (req->RequestUrl() == "/br") {
-    for (int i = 0; i < 10; i++) {
-      loop->PostCoroTask(std::bind([&]() {
+    for (int i = 0; i < 5; i++) {
+      loop->PostCoroTask(std::bind([=]() {
         SendRawRequest();
-        coro->Resume();
+        coro->Resume(id);
       }));
     }
-    int back = 0;
-    while(back < 10) {
-      base::CoroScheduler::TlsCurrent()->YieldCurrent();
-      back++;
-    }
+    base::CoroScheduler::TlsCurrent()->YieldCurrent(5);
   }
 
   res->SetResponseCode(200);
@@ -77,7 +72,7 @@ void StartRawClient() {
     raw_router = new net::ClientRouter(&main_loop, server_address);
     net::RouterConf router_config;
     router_config.protocol = "raw";
-    router_config.connections = 2;
+    router_config.connections = 1;
     router_config.recon_interal = 5000;
     router_config.message_timeout = 1000;
     raw_router->SetupRouter(router_config);
@@ -116,6 +111,8 @@ void SendHttpRequest() {
 }
 
 void SendRawRequest() {
+  LOG(INFO) << __FUNCTION__ << " enter ";
+
   auto raw_request = std::make_shared<RawMessage>();
   raw_request->SetMethod(1);
   raw_request->SetContent("ABC");
@@ -192,7 +189,7 @@ void SendRedisMessage() {
 
   auto redis_response  = redis_router->SendRecieve(redis_request);
   if (redis_response) {
-    LOG(INFO) << "redis client got response:" << redis_response->Count();
+    //LOG(INFO) << "redis client got response:" << redis_response->Count();
     DumpRedisResponse(redis_response);
   } else {
     LOG(ERROR) << "redis client request failed:" << redis_request->FailMessage();
@@ -218,7 +215,7 @@ int main(int argc, char* argv[]) {
   google::ParseCommandLineFlags(&argc, &argv, true);  // 初始化 gflags
   main_loop.Start();
 
-  PrepareLoops(std::thread::hardware_concurrency(), 2);
+  PrepareLoops(std::thread::hardware_concurrency(), 1);
   dispatcher_->SetWorkerLoops(workers);
 
   net::RawServer raw_server;
@@ -256,9 +253,11 @@ int main(int argc, char* argv[]) {
   raw_router->StopRouter();
 #endif
 
+#if 0
   StartRedisClient();
   std::this_thread::sleep_for(std::chrono::seconds(5));
   main_loop.PostCoroTask(std::bind(SendRedisMessage));
+#endif
 
   main_loop.WaitLoopEnd();
 }

@@ -15,12 +15,15 @@
 namespace base {
 typedef std::set<RefCoroutine> CoroSet;
 
-class CoroScheduler {
+
+class CoroScheduler : public CoroDelegate {
 public:
   static CoroScheduler* TlsCurrent();
   static RefCoroutine CurrentCoro();
+  /*a snapshot for current*/
+  //static SnapShot();
 
-  void YieldCurrent();
+  void YieldCurrent(int32_t wc = 1);
   bool CanYield() const;
   /* New Scheduler with message loop */
   void RunScheduledTasks(std::list<StlClosure>&& tasks);
@@ -32,14 +35,14 @@ protected:
   /* swich call stack from different coroutine*/
   bool Transfer(RefCoroutine& next);
   /* reuse: insert to freelist or gc: delete for free memory; then switch to thread coroutine*/
-  void GcCoroutine(Coroutine* finished);
+  void GcCoroutine();
   /* release the coroutine memory */
   void ReleaseExpiredCoroutine();
   /* case 1: scheduled_task exsist, set task and run again
    * case 2: scheduled_task empty, recall to freelist or gc it */
-  void RecallCoroutineIfNeeded(Coroutine* coro);
+  void RecallCoroutineIfNeeded() override;
   /* a callback function using for resume a kPaused coroutine */
-  bool ResumeWeakCoroutine(MessageLoop* loop, std::weak_ptr<Coroutine> coro);
+  bool ResumeCoroutine(MessageLoop* loop, std::weak_ptr<Coroutine> coro);
 
   bool root_coroutine() { return (main_coro_ && main_coro_ == current_);}
 private:

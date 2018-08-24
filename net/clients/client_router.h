@@ -10,12 +10,12 @@
 #include "protocol/proto_service.h"
 #include "protocol/proto_message.h"
 #include "protocol/proto_service_factory.h"
-
+#include <memory>
 #include <chrono>             // std::chrono::seconds
 #include <mutex>              // std::mutex, std::unique_lock
 #include <condition_variable> // std::condition_variable, std::cv_status
 #include <cinttypes>
-#include "clients/client_channel.h"
+#include "clients/queued_channel.h"
 #include "clients/client_router.h"
 #include "clients/client_connector.h"
 #include "dispatcher/coro_dispatcher.h"
@@ -63,13 +63,12 @@ public:
   void OnNewClientConnected(int fd, InetAddress& loc, InetAddress& remote) override;
 
   //override from ClientChannel::Delegate
-  void OnClientChannelClosed(RefClientChannel channel) override;
-  void OnRequestGetResponse(RefProtocolMessage, RefProtocolMessage) override;
+  void OnClientChannelClosed(const RefClientChannel& channel) override;
+  void OnRequestGetResponse(const RefProtocolMessage&, const RefProtocolMessage&) override;
 
 private:
   //Get a io work loop for channel, if no loop provide, use default work_loop_;
   base::MessageLoop* GetLoopForClient();
-  void SendRequestInWorkLoop(RefProtocolMessage message);
 
   std::string protocol_;
   uint32_t channel_count_;
@@ -88,9 +87,11 @@ private:
   RefConnector connector_;
   RouterDelegate* delegate_;
   CoroWlDispatcher* dispatcher_;
+  typedef std::vector<RefClientChannel> ClientChannelList;
 
-  std::vector<RefClientChannel> channels_;
+  ClientChannelList channels_;
   std::atomic<uint32_t> router_counter_;
+  std::shared_ptr<ClientChannelList> roundrobin_channes_;
 };
 
 }//end namespace net

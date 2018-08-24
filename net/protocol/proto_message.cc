@@ -6,7 +6,8 @@ namespace net {
 ProtocolMessage::ProtocolMessage(const std::string protocol)
   : fail_info_(kNothing),
     proto_(protocol),
-    type_(kNone) {
+    type_(kNone),
+    responsed_(false) {
   work_context_.loop = NULL;
   work_context_.task_identify = 0;
 }
@@ -34,10 +35,12 @@ void ProtocolMessage::SetIOContextWeakChannel(WeakPtrTcpChannel& channel) {
 
 void ProtocolMessage::SetResponse(RefProtocolMessage&& response) {
   response_ = response;
+  responsed_ = true;
 }
 
-void ProtocolMessage::SetResponse(RefProtocolMessage& response) {
+void ProtocolMessage::SetResponse(const RefProtocolMessage& response) {
   response_ = response;
+  responsed_ = true;
 }
 
 const std::string& ProtocolMessage::FailMessage() const {

@@ -21,8 +21,6 @@ ClientChannel::ClientChannel(Delegate* delegate, RefTcpChannel& channel)
   CHECK(delegate_);
   requests_keeper_.reset(new RequestsKeeper());
 
-  channel_->SetCloseCallback(std::bind(&ClientChannel::OnChannelClosed,
-                                       this, std::placeholders::_1));
 }
 
 ClientChannel::~ClientChannel() {
@@ -89,8 +87,6 @@ bool ClientChannel::TryFireNextRequest() {
     return false;
   }
 
-  LOG(INFO) << " TryFireNextRequest send request message";
-
   bool success = false;
   do {
     RefProtocolMessage next_request = requests_keeper_->PopNextRequest();
@@ -102,9 +98,7 @@ bool ClientChannel::TryFireNextRequest() {
       requests_keeper_->SetCurrent(next_request);
       if (message_timeout_) {
         LOG(INFO) << " Schedule A Timeout For Outing Request" << message_timeout_;
-        auto functor = std::bind(&ClientChannel::OnRequestTimeout,
-                                 shared_from_this(),
-                                 next_request);
+        auto functor = std::bind(&ClientChannel::OnRequestTimeout, shared_from_this(), next_request);
         IOLoop()->PostDelayTask(base::NewClosure(functor), message_timeout_);
       }
     } else {

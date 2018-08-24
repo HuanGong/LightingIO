@@ -24,6 +24,10 @@ typedef struct {
   WeakPtrTcpChannel channel;
 } IOContext;
 
+typedef enum {
+  KInvalidIdentify = 0,
+} MessageIdentifyType;
+
 typedef struct {
   uint64_t task_identify;
   base::MessageLoop* loop;
@@ -32,6 +36,7 @@ typedef struct {
 
 class ProtocolMessage;
 typedef std::shared_ptr<ProtocolMessage> RefProtocolMessage;
+typedef std::weak_ptr<ProtocolMessage> WeakProtocolMessage;
 typedef std::function<void(const RefProtocolMessage&/*request*/)> ProtoMessageHandler;
 
 class ProtocolMessage {
@@ -54,12 +59,14 @@ public:
   const std::string& FailMessage() const;
   void AppendFailMessage(std::string m);
 
-  void SetResponse(RefProtocolMessage& response);
+  void SetResponse(const RefProtocolMessage& response);
   void SetResponse(RefProtocolMessage&& response);
   ProtocolMessage* RawResponse() {return response_.get();}
   const RefProtocolMessage& Response() const {return response_;}
 
   const char* MessageTypeStr() const;
+  bool IsResponsed() const {return responsed_;}
+  virtual const uint64_t MessageIdentify() const {return 0;};
   virtual const std::string MessageDebug() const {return "";};
 protected:
   IOContext io_context_;
@@ -70,6 +77,7 @@ private:
   std::string fail_;
   std::string proto_;
   MessageType type_;
+  bool responsed_;
   RefProtocolMessage response_;
 };
 

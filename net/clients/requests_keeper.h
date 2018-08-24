@@ -3,11 +3,11 @@
 
 #include <list>
 #include <memory>
+#include <unordered_map>
 #include <net/net_callback.h>
 #include <net/protocol/proto_message.h>
 
 namespace net {
-
 
 class RequestsKeeper {
 public:

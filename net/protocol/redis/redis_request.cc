@@ -50,7 +50,7 @@ void RedisRequest::SetWithExpire(const std::string& key, const std::string& valu
   for (auto& buffer : buffers) {
     body_.append(buffer.data(), buffer.size());
   }
-  LOG(INFO) << __FUNCTION__ << " body:" << body_;
+  //LOG(INFO) << __FUNCTION__ << " body:" << body_;
   cmd_counter_++;
 }
 

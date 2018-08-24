@@ -163,14 +163,11 @@ void TcpChannel::HandleWrite() {
 }
 
 bool TcpChannel::SendProtoMessage(RefProtocolMessage message) {
+  CHECK(message);
   CHECK(work_loop_->IsInLoopThread());
+
   if (channel_status_ != ChannelStatus::CONNECTED) {
     VLOG(GLOG_VERROR) << "Channel Is Broken, ChannelInfo:" << ChannelName() << " Status:" << StatusAsString();
-    return false;
-  }
-
-  if (!message) {
-    VLOG(GLOG_VERROR) << "Bad ProtoMessage, ChannelInfo:" << ChannelName() << " Status:" << StatusAsString();
     return false;
   }
 

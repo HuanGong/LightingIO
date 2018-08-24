@@ -12,7 +12,7 @@
 #include "../inet_address.h"
 #include "clients/client_connector.h"
 #include "clients/client_router.h"
-#include "clients/client_channel.h"
+//#include "clients/client_channel.h"
 #include "dispatcher/coro_dispatcher.h"
 #include "base/coroutine/coroutine_scheduler.h"
 #include "base/closure/closure_task.h"
@@ -48,7 +48,6 @@ void SendRawRequest(int sequence_id) {
   raw_request->SetContent(content);
   raw_request->SetCode(12);
   raw_request->SetMethod(12);
-  //raw_request->SetSequenceId(sequence_id);
 
   auto response = raw_router->SendRecieve(raw_request);
   if (response) {

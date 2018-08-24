@@ -21,17 +21,11 @@ void coro_main(void* arg) {
   Coroutine* coroutine = static_cast<Coroutine*>(arg);
   CHECK(coroutine);
   do {
-    if (coroutine->start_callback_) {
-      coroutine->start_callback_(coroutine);
-    }
-    coroutine->SetCoroState(CoroState::kRunning);
-    CHECK(coroutine->coro_task_);
-    coroutine->coro_task_();
-    coroutine->coro_task_ = null_func;
-    coroutine->SetCoroState(CoroState::kDone);
+    CHECK(coroutine->coro_task_ && CoroState::kRunning == coroutine->state_);
 
-    CHECK(coroutine->recall_callback_);
-    coroutine->recall_callback_(coroutine);
+    coroutine->coro_task_();
+
+    coroutine->delegate_->RecallCoroutineIfNeeded();
   } while(true);
 }
 
@@ -40,23 +34,25 @@ int64_t SystemCoroutineCount() {
   return coroutine_counter.load();
 }
 //static
-std::shared_ptr<Coroutine> Coroutine::Create(bool main) {
-  return std::shared_ptr<Coroutine>(new Coroutine(main));
+std::shared_ptr<Coroutine> Coroutine::Create(CoroDelegate* d, bool main) {
+  return std::shared_ptr<Coroutine>(new Coroutine(d, main));
 }
 
-Coroutine::Coroutine(bool main) :
+Coroutine::Coroutine(CoroDelegate* d, bool main) :
+  wc_(0),
+  delegate_(d),
   task_identify_(0) {
 
   stack_.ssze = 0;
   stack_.sptr = nullptr;
 
-  current_state_ = CoroState::kInitialized;
+  state_ = CoroState::kInitialized;
   if (main) {
     {
       base::SpinLockGuard guard(g_coro_lock);
       coro_create(this, NULL, NULL, NULL, 0);
     }
-    current_state_ = CoroState::kRunning;
+    state_ = CoroState::kRunning;
     return;
   }
 
@@ -69,13 +65,13 @@ Coroutine::Coroutine(bool main) :
     base::SpinLockGuard guard(g_coro_lock);
     coro_create(this, coro_main, this, stack_.sptr, stack_.ssze);
   }
-  LOG(INFO) << "Coroutine Born +1";
   coroutine_counter.fetch_add(1);
+  LOG(INFO) << "Coroutine Born +1";
 }
 
 Coroutine::~Coroutine() {
   coroutine_counter.fetch_sub(1);
-  DCHECK(current_state_ != kPaused);
+  CHECK(state_ != kPaused);
   LOG(INFO) << "Coroutine Gone -1, now has" << coroutine_counter.load();
   VLOG(GLOG_VTRACE) << "coroutine gone! count:" << coroutine_counter.load() << "st:" << StateToString();
 
@@ -95,22 +91,24 @@ void Coroutine::SelfHolder(RefCoroutine& self) {
 }
 
 void Coroutine::Reset() {
+  wc_ = 0;
   coro_task_ = null_func;
-  current_state_ = CoroState::kInitialized;
+  state_ = CoroState::kInitialized;
 }
 
-bool Coroutine::Resume() {
-  if (resume_func_ && current_state_ == CoroState::kPaused) {
+bool Coroutine::Resume(uint64_t id) {
+  LOG_IF(ERROR, !resume_func_) << "resume-function is empty, can't resume this coro";
+  LOG_IF(ERROR, (state_ != CoroState::kPaused)) << "Can't resume a coroutine its paused, state:" << StateToString();
+
+  if (resume_func_) {
     resume_func_();
     return true;
   }
-  LOG_IF(ERROR, !resume_func_) << "resume-function is empty, can't resume this coro";
-  LOG_IF(ERROR, (current_state_ != CoroState::kPaused)) << "Can't resume a coroutine its paused, state:" << StateToString();
   return false;
 }
 
 std::string Coroutine::StateToString() const {
-  switch(current_state_) {
+  switch(state_.load()) {
     case CoroState::kInitialized:
       return "Initialized";
     case CoroState::kRunning:

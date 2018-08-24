@@ -32,7 +32,8 @@ public:
   base::MessageLoop* IOLoop();
   void SetRequestTimeout(uint32_t ms);
   bool ScheduleARequest(RefProtocolMessage request);
-  void OnResponseMessage(RefProtocolMessage message);
+  bool ScheduleRequest(RefClientChannel request) = 0;
+  void OnResponseMessage(RefProtocolMessage message) = 0;
   void CloseClientChannel();
 private:
   bool TryFireNextRequest();

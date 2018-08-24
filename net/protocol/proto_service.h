@@ -27,6 +27,8 @@ public:
   virtual bool EncodeToBuffer(const ProtocolMessage* msg, IOBuffer* out_buffer) = 0;
   //Before send [request type] message, in normal case, this was used for
   //async clients request
+  virtual bool KeepSequence() {return true;};
+  virtual bool EnsureProtocol(ProtocolMessage* message) {return true;};
   virtual void BeforeSendMessage(ProtocolMessage* out_message) {};
   virtual void BeforeReplyMessage(ProtocolMessage* in, ProtocolMessage* out) {};
   virtual bool CloseAfterMessage(ProtocolMessage*, ProtocolMessage*) { return true;};

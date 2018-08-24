@@ -21,7 +21,7 @@ typedef struct _HT {
   /* Size of Network Frame: frame_size = sizeof(RawHeader) + Len(content_)*/
   uint32_t frame_size;
   /* raw message sequence, for better asyc request sequence */
-  uint32_t sequence_id;
+  uint64_t sequence_id;
 } RawHeader;
 
 class RawMessage;
@@ -45,10 +45,15 @@ public:
   void SetContent(const std::string& body);
   const RawHeader& Header() const {return header_;}
   const std::string MessageDebug() const override;
+  const uint64_t MessageIdentify() const {return header_.sequence_id;}
 private:
   friend class RawProtoService;
-  void SetSequenceId(uint32_t sequence_id);
   std::string& MutableContent() {return content_;}
+  void SetSequenceId(uint64_t id) {
+    LOG(INFO) << __FUNCTION__ << " call set sequence id" << id << " old:" << header_.sequence_id;
+    CHECK(header_.sequence_id == 0);
+    header_.sequence_id = id;
+  }
 
   RawHeader header_;
   std::string content_;

@@ -36,10 +36,12 @@ set(LTNET_SOURCE
   server/http_server/http_server.cc
 
   #clients source
-  clients/client_channel.cc
+  #clients/client_channel.cc
   clients/client_connector.cc
-  clients/requests_keeper.cc
+  #clients/requests_keeper.cc
   clients/client_router.cc
+  clients/queued_channel.cc
+  clients/async_channel.cc
 )
 
 SET(LTNETEXECUTE_LINKLIBS
