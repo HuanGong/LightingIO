@@ -8,22 +8,22 @@ namespace base {
 static const int kMaxReuseCoroutineNumbersPerThread = 5000;
 
 //static thread safe
-CoroScheduler* CoroScheduler::TlsCurrent() {
-  //static thread_local CoroScheduler scheduler;
-  struct _T : public CoroScheduler {};
+CoroRunner* CoroRunner::TlsCurrent() {
+  struct _T : public CoroRunner {};
   static thread_local base::LazyInstance<_T> scheduler = LAZY_INSTANCE_INIT;
   return scheduler.ptr();
 }
+
 //static
-RefCoroutine CoroScheduler::CurrentCoro() {
+RefCoroutine CoroRunner::CurrentCoro() {
   return TlsCurrent()->current_;
 }
 
-bool CoroScheduler::CanYield() const {
+bool CoroRunner::CanYield() const {
   return current_ && main_coro_ != current_;
 }
 
-void CoroScheduler::GcCoroutine() {
+void CoroRunner::GcCoroutine() {
 
   if (free_list_.size() >= max_reuse_coroutines_) {
 
@@ -31,7 +31,6 @@ void CoroScheduler::GcCoroutine() {
     expired_coros_.push_back(current_);
 
     if (!gc_task_scheduled_ || expired_coros_.size() > 100) {
-      LOG(INFO) << " schedule a gc task to free coroutine:";
       MessageLoop::Current()->PostDelayTask(NewClosure(gc_task_), 1);
       gc_task_scheduled_ = true;
     }
@@ -43,33 +42,36 @@ void CoroScheduler::GcCoroutine() {
   Transfer(main_coro_);
 }
 
-CoroScheduler::CoroScheduler()
+CoroRunner::CoroRunner()
   : gc_task_scheduled_(false),
     max_reuse_coroutines_(kMaxReuseCoroutineNumbersPerThread) {
 
   main_coro_ = Coroutine::Create(this, true);
   current_ = main_coro_;
 
-  gc_task_ = std::bind(&CoroScheduler::ReleaseExpiredCoroutine, this);
+  gc_task_ = std::bind(&CoroRunner::ReleaseExpiredCoroutine, this);
 }
 
-CoroScheduler::~CoroScheduler() {
+CoroRunner::~CoroRunner() {
   expired_coros_.clear();
 
   current_.reset();
   main_coro_.reset();
 }
 
-void CoroScheduler::YieldCurrent(int32_t wc) {
+void CoroRunner::YieldCurrent(int32_t wc) {
   CHECK(main_coro_ != current_);
   CHECK(current_->wc_ == 0);
+
   current_->wc_ = wc;
   Transfer(main_coro_);
 }
-/* 如果本身是在一个子coro里面, 调用了to->Resume()， 则需要posttask去Resume, 否则再也回不来了
+
+/* 如果本身是在一个子coro里面, 需要在重新将resumecoroutine调度到主coroutine内
+ * 不支持嵌套的coroutinetransfer........
  * 如果本身是主coro， 则直接tranfer去执行.
  * 如果不是在调度的线程里， 则posttask去Resume*/
-bool CoroScheduler::ResumeCoroutine(MessageLoop* loop, std::weak_ptr<Coroutine> weak) {
+bool CoroRunner::ResumeCoroutine(MessageLoop* loop, std::weak_ptr<Coroutine> weak) {
   RefCoroutine coro = weak.lock();
   CHECK(coro);
 
@@ -100,7 +102,7 @@ bool CoroScheduler::ResumeCoroutine(MessageLoop* loop, std::weak_ptr<Coroutine> 
   return true;
 }
 
-bool CoroScheduler::Transfer(RefCoroutine& next) {
+bool CoroRunner::Transfer(RefCoroutine& next) {
   CHECK(current_ != next);
 
   coro_context* to = next.get();//&next->coro_ctx_;
@@ -113,14 +115,14 @@ bool CoroScheduler::Transfer(RefCoroutine& next) {
   return true;
 }
 
-void CoroScheduler::ReleaseExpiredCoroutine() {
+void CoroRunner::ReleaseExpiredCoroutine() {
   LOG(INFO) << __FUNCTION__ << " release expired coroutine enter, count:" << SystemCoroutineCount();
   expired_coros_.clear();
   gc_task_scheduled_ = false;
   LOG(INFO) << __FUNCTION__ << " release expired coroutine leave, count:" << SystemCoroutineCount();
 }
 
-void CoroScheduler::RecallCoroutineIfNeeded() {
+void CoroRunner::RecallCoroutineIfNeeded() {
   CHECK(current_ != main_coro_);
 
   current_->Reset();
@@ -134,7 +136,7 @@ void CoroScheduler::RecallCoroutineIfNeeded() {
   GcCoroutine();
 }
 
-void CoroScheduler::RunScheduledTasks(std::list<StlClosure>&& tasks) {
+void CoroRunner::RunScheduledTasks(std::list<StlClosure>&& tasks) {
   MessageLoop* loop = MessageLoop::Current();
   CHECK(loop);
 
@@ -153,7 +155,7 @@ void CoroScheduler::RunScheduledTasks(std::list<StlClosure>&& tasks) {
       coro->SelfHolder(coro);
 
       std::weak_ptr<Coroutine> weak(coro);
-      coro->resume_func_ = std::bind(&CoroScheduler::ResumeCoroutine, this, loop, weak);
+      coro->resume_func_ = std::bind(&CoroRunner::ResumeCoroutine, this, loop, weak);
       uint32_t new_size = max_reuse_coroutines_ + 200;
       max_reuse_coroutines_ = new_size > kMaxReuseCoroutineNumbersPerThread ? kMaxReuseCoroutineNumbersPerThread : new_size;
     }
@@ -163,11 +165,11 @@ void CoroScheduler::RunScheduledTasks(std::list<StlClosure>&& tasks) {
 
     TlsCurrent()->Transfer(coro);
 
-    // 只有当这个corotine 在task运行的过程中yield了， 那么才会回到这里,否则是在task运行完成之后
-    // 会调用RecallCoroutineIfNeeded，在依旧有task需要运行的时候，可以设置task， 让这个coro继续
+    // 只有当这个corotine 在task运行的过程中换出(paused)，那么才会重新回到这里,否则是在task运行完成之后
+    // 会调用RecallCoroutine，在依旧有task需要运行的时候，可以设置task， 让这个coro继续
     // 执行task，而不需要切换task，如果没有task， 则将coro回收或者标记成gc状态，等待gc回收
     //
-    // 当运行的task在一半的状态被yield切换出去，回到这里， 如果仍然有task需要调度， 则找一个新的
+    // 当运行的task在一半的状态被切换出去，回到这里， 如果仍然有task需要调度， 则找一个新的
     // coro运行task，结束循环回到messageloop循环，等待后后续的Task
     //
     // 当yield的之后的task重新被标记成可运行，那么做coro的切换就无法避免了，直接使用resumecoroutine

@@ -16,21 +16,21 @@ namespace base {
 typedef std::set<RefCoroutine> CoroSet;
 
 
-class CoroScheduler : public CoroDelegate {
+class CoroRunner : public CoroDelegate {
 public:
-  static CoroScheduler* TlsCurrent();
+  static CoroRunner* TlsCurrent();
   static RefCoroutine CurrentCoro();
   /*a snapshot for current*/
   //static SnapShot();
 
-  void YieldCurrent(int32_t wc = 1);
   bool CanYield() const;
+  void YieldCurrent(int32_t wc = 1);
   /* New Scheduler with message loop */
   void RunScheduledTasks(std::list<StlClosure>&& tasks);
   /* ============ end ==============================*/
 protected:
-  CoroScheduler();
-  ~CoroScheduler();
+  CoroRunner();
+  ~CoroRunner();
 
   /* swich call stack from different coroutine*/
   bool Transfer(RefCoroutine& next);
@@ -61,7 +61,7 @@ private:
   std::list<RefCoroutine> free_list_;
 
   CoroCallback coro_recall_func_;
-  DISALLOW_COPY_AND_ASSIGN(CoroScheduler);
+  DISALLOW_COPY_AND_ASSIGN(CoroRunner);
 };
 
 
