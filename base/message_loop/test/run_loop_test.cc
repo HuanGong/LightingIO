@@ -11,7 +11,7 @@
 #include "../message_loop.h"
 #include "../linux_signal.h"
 #include "base/coroutine/coroutine.h"
-#include "base/coroutine/coroutine_scheduler.h"
+#include "base/coroutine/coroutine_runner.h"
 
 
 
@@ -31,10 +31,10 @@ bool CoroutineTaskTest() {
   });
   loop.PostCoroTask([&](){
     LOG(INFO) << "Task Run At Coroutine, task 2 start";
-    base::RefCoroutine coro = base::CoroScheduler::CurrentCoro();
+    base::RefCoroutine coro = base::CoroRunner::CurrentCoro();
     weak1 = coro;
     coro1_id = coro->TaskIdentify();
-    base::CoroScheduler::TlsCurrent()->YieldCurrent();
+    base::CoroRunner::TlsCurrent()->YieldCurrent();
     LOG(INFO) << "Task Run At Coroutine, task 2 resume";
   });
   loop.PostCoroTask([](){
@@ -42,10 +42,10 @@ bool CoroutineTaskTest() {
   });
   loop.PostCoroTask([&](){
     LOG(INFO) << "Task Run At Coroutine, task 4";
-    base::RefCoroutine coro = base::CoroScheduler::CurrentCoro();
+    base::RefCoroutine coro = base::CoroRunner::CurrentCoro();
     weak2 = coro;
     coro2_id = coro->TaskIdentify();
-    base::CoroScheduler::TlsCurrent()->YieldCurrent();
+    base::CoroRunner::TlsCurrent()->YieldCurrent();
     LOG(INFO) << "Task Run At Coroutine, task 4 resume";
   });
 

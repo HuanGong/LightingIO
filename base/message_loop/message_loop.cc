@@ -24,7 +24,7 @@
 #include "file_util_linux.h"
 #include "base/time/time_utils.h"
 
-#include "base/coroutine/coroutine_scheduler.h"
+#include "base/coroutine/coroutine_runner.h"
 
 namespace base {
 
@@ -453,7 +453,7 @@ void MessageLoop::RunCoroutineTask(bool with_fd) {
   if (count == 0) {
     return;
   }
-  CoroScheduler* coro_scheduler = CoroScheduler::TlsCurrent();
+  CoroRunner* coro_scheduler = CoroRunner::TlsCurrent();
   coro_scheduler->RunScheduledTasks(std::move(all_coro_task_));
   VLOG(GLOG_VTRACE) << __FUNCTION__ << " Leave, this tick run coro task count:" << count;
 }

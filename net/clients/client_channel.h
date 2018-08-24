@@ -8,51 +8,42 @@
 #include "protocol/proto_service.h"
 
 namespace net {
+
 class ClientChannel;
 
 typedef std::shared_ptr<ClientChannel> RefClientChannel;
-
-typedef std::unique_ptr<RequestsKeeper> OwnedRequestsKeeper;
-typedef std::function<void (RefProtocolMessage&, RefProtocolMessage&)> ResponseHandler;
-
-/* all thing doing in iocontext */
-class ClientChannel : public std::enable_shared_from_this<ClientChannel> {
+class ClientChannel {
 public:
   class Delegate {
   public:
-    virtual void OnClientChannelClosed(RefClientChannel channel) = 0;
-    virtual void OnRequestGetResponse(RefProtocolMessage, RefProtocolMessage) = 0;
+    virtual void OnClientChannelClosed(const RefClientChannel& channel) = 0;
+    virtual void OnRequestGetResponse(const RefProtocolMessage&, const RefProtocolMessage&) = 0;
   };
+  ClientChannel(Delegate* d, RefTcpChannel& ch)
+    : delegate_(d),
+      channel_(ch) {
+  }
+  virtual ~ClientChannel() {}
+  virtual void StartClient() = 0;
+  void CloseClientChannel() {
+    if (channel_->InIOLoop()) {
+      channel_->ShutdownChannel();
+      return;
+    }
+    auto functor = std::bind(&TcpChannel::ShutdownChannel, channel_);
+    IOLoop()->PostTask(base::NewClosure(functor));
+  }
+  virtual void SendRequest(RefProtocolMessage request) = 0;
 
-  static RefClientChannel Create(Delegate* delegate, RefTcpChannel& channel);
-
-  ClientChannel(Delegate*, RefTcpChannel&);
-  virtual ~ClientChannel();
-
-  base::MessageLoop* IOLoop();
-  void SetRequestTimeout(uint32_t ms);
-  bool ScheduleARequest(RefProtocolMessage request);
-  bool ScheduleRequest(RefClientChannel request) = 0;
-  void OnResponseMessage(RefProtocolMessage message) = 0;
-  void CloseClientChannel();
-private:
-  bool TryFireNextRequest();
-
-  void OnRequestFailed(RefProtocolMessage& request, FailInfo reason);
-  void OnBackResponse(RefProtocolMessage& request, RefProtocolMessage& response);
-
-  bool SendRequest(RefProtocolMessage& request);
-  void OnChannelClosed(RefTcpChannel channel);
-  void OnSendFinished(RefTcpChannel channel);
-  void OnRequestTimeout(RefProtocolMessage request);
-
-private:
+  base::MessageLoop* IOLoop() {return channel_->IOLoop();};
+  void SetRequestTimeout(uint32_t ms) {request_timeout_ = ms;};
+protected:
   Delegate* delegate_;
-  uint32_t message_timeout_; //ms
-
   RefTcpChannel channel_;
-  OwnedRequestsKeeper requests_keeper_;
+  uint32_t request_timeout_ = 1000; //1s
 };
+
+
 
 }//end namespace
 #endif

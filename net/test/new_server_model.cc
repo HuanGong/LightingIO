@@ -5,7 +5,7 @@
 #include "server/raw_server/raw_server.h"
 #include "server/http_server/http_server.h"
 #include "dispatcher/coro_dispatcher.h"
-#include "coroutine/coroutine_scheduler.h"
+#include "coroutine/coroutine_runner.h"
 
 #include "clients/client_connector.h"
 #include "clients/client_router.h"
@@ -25,7 +25,7 @@ void HandleHttp(const HttpRequest* req, HttpResponse* res) {
   LOG(INFO) << "Got A Http Message path:" << req->RequestUrl();
 
   auto loop = base::MessageLoop::Current();
-  auto coro = base::CoroScheduler::CurrentCoro();
+  auto coro = base::CoroRunner::CurrentCoro();
   int64_t id = coro->TaskIdentify();
   //broadcast
   if (req->RequestUrl() == "/br") {
@@ -35,7 +35,7 @@ void HandleHttp(const HttpRequest* req, HttpResponse* res) {
         coro->Resume(id);
       }));
     }
-    base::CoroScheduler::TlsCurrent()->YieldCurrent(5);
+    base::CoroRunner::TlsCurrent()->YieldCurrent(5);
   }
 
   res->SetResponseCode(200);

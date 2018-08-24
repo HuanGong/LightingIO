@@ -1,7 +1,7 @@
 
 #include "coroutine.h"
 #include "glog/logging.h"
-#include "coroutine_scheduler.h"
+#include "coroutine_runner.h"
 #include <message_loop/message_loop.h>
 #include <unistd.h>
 #include <time/time_utils.h>

@@ -8,7 +8,7 @@
 #include "base/base_constants.h"
 #include "base/coroutine/coroutine_task.h"
 #include "base/coroutine/coroutine.h"
-#include "base/coroutine/coroutine_scheduler.h"
+#include "base/coroutine/coroutine_runner.h"
 
 namespace net {
 
@@ -21,10 +21,10 @@ CoroWlDispatcher::~CoroWlDispatcher() {
 
 void CoroWlDispatcher::TransferAndYield(base::MessageLoop* ioloop, base::StlClosure clourse) {
   CHECK(ioloop);
-  CHECK(base::CoroScheduler::CurrentCoro());
+  CHECK(base::CoroRunner::CurrentCoro());
   ioloop->PostTask(base::NewClosure(std::move(clourse)));
 
-  base::CoroScheduler::TlsCurrent()->YieldCurrent();
+  base::CoroRunner::TlsCurrent()->YieldCurrent();
 }
 
 bool CoroWlDispatcher::ResumeWorkContext(WorkContext& ctx) {
@@ -38,9 +38,9 @@ bool CoroWlDispatcher::ResumeWorkContext(WorkContext& ctx) {
 
 bool CoroWlDispatcher::SetWorkContext(WorkContext& ctx) {
   if (base::MessageLoop::Current() &&
-      base::CoroScheduler::TlsCurrent()->CanYield()) {
+      base::CoroRunner::TlsCurrent()->CanYield()) {
 
-    base::RefCoroutine coro = base::CoroScheduler::CurrentCoro();
+    base::RefCoroutine coro = base::CoroRunner::CurrentCoro();
 
     ctx.weak_coro = coro;
     ctx.loop = base::MessageLoop::Current();
@@ -53,12 +53,12 @@ bool CoroWlDispatcher::SetWorkContext(WorkContext& ctx) {
 bool CoroWlDispatcher::SetWorkContext(ProtocolMessage* message) {
   CHECK(message);
   if (base::MessageLoop::Current() &&
-      base::CoroScheduler::TlsCurrent()->CanYield()) {
+      base::CoroRunner::TlsCurrent()->CanYield()) {
 
     auto& work_context = message->GetWorkCtx();
 
     work_context.loop = base::MessageLoop::Current();
-    base::RefCoroutine coro = base::CoroScheduler::CurrentCoro();
+    base::RefCoroutine coro = base::CoroRunner::CurrentCoro();
     work_context.weak_coro = coro;
     work_context.task_identify = coro->TaskIdentify();
     return true;

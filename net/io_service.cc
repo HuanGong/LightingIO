@@ -9,7 +9,6 @@
 
 #include <atomic>
 #include <base/base_constants.h>
-#include <base/coroutine/coroutine_scheduler.h>
 
 namespace net {
 

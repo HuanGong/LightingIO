@@ -3,7 +3,6 @@
 #include <vector>
 #include <iostream>
 #include "glog/logging.h"
-#include "coroutine_scheduler.h"
 #include <atomic>
 #include <iostream>
 #include <mutex>

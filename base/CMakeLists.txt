@@ -22,7 +22,7 @@ SET(BASE_SOURCES
   utils/ns_convertor.cc
   #coroutine
   coroutine/coroutine.cc
-  coroutine/coroutine_scheduler.cc
+  coroutine/coroutine_runner.cc
   #new eventloop
   message_loop/fd_event.cc
   message_loop/timer_event.cc

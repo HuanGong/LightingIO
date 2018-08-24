@@ -4,7 +4,7 @@
 #include <list>
 #include "tcp_channel.h"
 #include "net_callback.h"
-#include "queued_channel.h"
+#include "client_channel.h"
 
 #include <unordered_map>
 #include "protocol/proto_message.h"

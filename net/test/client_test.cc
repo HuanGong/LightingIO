@@ -14,7 +14,7 @@
 #include "clients/client_router.h"
 //#include "clients/client_channel.h"
 #include "dispatcher/coro_dispatcher.h"
-#include "base/coroutine/coroutine_scheduler.h"
+#include "base/coroutine/coroutine_runner.h"
 #include "base/closure/closure_task.h"
 #include "net/dispatcher/coro_dispatcher.h"
 #include "net/protocol/raw/raw_message.h"

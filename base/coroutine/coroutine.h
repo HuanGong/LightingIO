@@ -30,7 +30,7 @@ public:
 class Coroutine : public coro_context,
                   public std::enable_shared_from_this<Coroutine> {
 public:
-  friend class CoroScheduler;
+  friend class CoroRunner;
   friend void coro_main(void* coro);
 
   static std::shared_ptr<Coroutine> Create(CoroDelegate* d, bool main = false);
