@@ -12,7 +12,7 @@ WorkLoadDispatcher::WorkLoadDispatcher(bool work_in_io)
 }
 
 base::MessageLoop* WorkLoadDispatcher::GetNextWorkLoop() {
-  if (work_loops_.size() && !work_in_io_) {
+  if (work_loops_.size()) {
     uint32_t counter = round_robin_counter_.fetch_add(1);
     int32_t index = counter % work_loops_.size();
     return work_loops_[index];
@@ -25,24 +25,16 @@ bool WorkLoadDispatcher::SetWorkContext(WorkContext& ctx) {
   return ctx.loop != NULL;
 }
 
-bool WorkLoadDispatcher::SetWorkContext(ProtocolMessage* message) {
-  CHECK(message);
-  auto& work_context = message->GetWorkCtx();
-  work_context.loop = base::MessageLoop::Current();
-  return work_context.loop != NULL;
-}
-
 bool WorkLoadDispatcher::TransmitToWorker(base::StlClosure& clourse) {
   if (HandleWorkInIOLoop()) {
     clourse();
     return true;
   }
   base::MessageLoop* loop = GetNextWorkLoop();
-  if (loop) {
-    loop->PostTask(base::NewClosure(clourse));
-    return true;
+  if (nullptr == loop) {
+    return false;
   }
-  return false;
+  return loop->PostTask(base::NewClosure(clourse));
 }
 
 }//end namespace net

@@ -29,9 +29,6 @@ FailInfo ProtocolMessage::MessageFailInfo() const {
 void ProtocolMessage::SetIOContextWeakChannel(const RefTcpChannel& channel) {
   io_context_.channel = channel;
 }
-void ProtocolMessage::SetIOContextWeakChannel(WeakPtrTcpChannel& channel) {
-  io_context_.channel = channel;
-}
 
 void ProtocolMessage::SetResponse(RefProtocolMessage&& response) {
   response_ = response;

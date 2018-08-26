@@ -40,7 +40,7 @@ std::shared_ptr<Coroutine> Coroutine::Create(CoroDelegate* d, bool main) {
 Coroutine::Coroutine(CoroDelegate* d, bool main) :
   wc_(0),
   delegate_(d),
-  task_identify_(0) {
+  identify_(0) {
 
   stack_.ssze = 0;
   stack_.sptr = nullptr;
@@ -70,8 +70,9 @@ Coroutine::Coroutine(CoroDelegate* d, bool main) :
 
 Coroutine::~Coroutine() {
   coroutine_counter.fetch_sub(1);
-  CHECK(state_ != kPaused);
-  LOG(INFO) << "Coroutine Gone -1, now has" << coroutine_counter.load();
+  LOG(INFO) << "Coroutine Gone" << " state:" << StateToString() << " now has" << coroutine_counter.load();
+
+  CHECK(state_ == CoroState::kDone);
   VLOG(GLOG_VTRACE) << "coroutine gone! count:" << coroutine_counter.load() << "st:" << StateToString();
 
   if (stack_.ssze != 0) {
@@ -81,7 +82,6 @@ Coroutine::~Coroutine() {
 
 void Coroutine::SetTask(CoroClosure task) {
   coro_task_ = task;
-  task_identify_++;
 };
 
 void Coroutine::SelfHolder(RefCoroutine& self) {
@@ -95,19 +95,14 @@ void Coroutine::Reset() {
   state_ = CoroState::kInitialized;
 }
 
-bool Coroutine::Resume(uint64_t id) {
-  LOG_IF(ERROR, !resume_func_) << "resume-function is empty, can't resume this coro";
-  LOG_IF(ERROR, (state_ != CoroState::kPaused)) << "Can't resume a coroutine its paused, state:" << StateToString();
-
-  if (resume_func_) {
-    resume_func_();
-    return true;
-  }
-  return false;
+void Coroutine::Resume(uint64_t id) {
+  LOG_IF(ERROR, (state_ != CoroState::kPaused)) << "Can't resume a coroutine not paused, state:" << StateToString()
+    << " resume identify:" << id << " current identify:" << identify_;
+  delegate_->ResumeCoroutine(shared_from_this());
 }
 
 std::string Coroutine::StateToString() const {
-  switch(state_.load()) {
+  switch(state_) {
     case CoroState::kInitialized:
       return "Initialized";
     case CoroState::kRunning:

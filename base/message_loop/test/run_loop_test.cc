@@ -33,8 +33,8 @@ bool CoroutineTaskTest() {
     LOG(INFO) << "Task Run At Coroutine, task 2 start";
     base::RefCoroutine coro = base::CoroRunner::CurrentCoro();
     weak1 = coro;
-    coro1_id = coro->TaskIdentify();
-    base::CoroRunner::TlsCurrent()->YieldCurrent();
+    coro1_id = coro->Identify();
+    base::CoroRunner::YieldCurrent();
     LOG(INFO) << "Task Run At Coroutine, task 2 resume";
   });
   loop.PostCoroTask([](){
@@ -44,8 +44,8 @@ bool CoroutineTaskTest() {
     LOG(INFO) << "Task Run At Coroutine, task 4";
     base::RefCoroutine coro = base::CoroRunner::CurrentCoro();
     weak2 = coro;
-    coro2_id = coro->TaskIdentify();
-    base::CoroRunner::TlsCurrent()->YieldCurrent();
+    coro2_id = coro->Identify();
+    base::CoroRunner::YieldCurrent();
     LOG(INFO) << "Task Run At Coroutine, task 4 resume";
   });
 
@@ -82,7 +82,7 @@ int main(int argc, char** argv) {
   //FdEventTest();
   //TimerEventTest();
   //static void signal(int sig, const std::function<void()>& handler);
-  
+
 
   //MessageLoopTest();
   CoroutineTaskTest();

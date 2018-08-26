@@ -274,7 +274,6 @@ int ResParseContext::OnHttpResponseEnd(http_parser* parser) {
     if (0 != base::Gzip::decompress_gzip(context->current_->body_, decompress_body)) {
       LOG(ERROR) << " Decode gzip HttpRequest Body Failed";
       context->current_->AppendFailMessage("HttpRequest gzip Decompression Failed");
-      //context->current_->body_.clear();
     }
     context->current_->body_ = std::move(decompress_body);
   }
@@ -283,7 +282,6 @@ int ResParseContext::OnHttpResponseEnd(http_parser* parser) {
     if (0 != base::Gzip::decompress_deflate(context->current_->body_, decompress_body)) {
       LOG(ERROR) << " Decode deflate HttpRequest Body Failed";
       context->current_->AppendFailMessage("HttpRequest deflate Decompression Failed");
-      //context->current_->body_.clear();
     }
     context->current_->body_ = std::move(decompress_body);
   }

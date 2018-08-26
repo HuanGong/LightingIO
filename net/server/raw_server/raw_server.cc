@@ -86,23 +86,23 @@ void RawServer::ServeAddress(const std::string address, RawMessageHandler handle
 }
 
 void RawServer::OnRawRequest(const RefProtocolMessage& request) {
-  LOG(INFO) << __FUNCTION__ << " Got a Raw request message";
   VLOG(GLOG_VTRACE) << "IOService::HandleRequest handle a request";
 
   if (!dispatcher_) {
-    return HandleRawRequest(request);
+    HandleRawRequest(request);
+    return;
   }
 
   base::StlClosure functor = std::bind(&RawServer::HandleRawRequest, this, request);
   if (false == dispatcher_->TransmitToWorker(functor)) {
-    LOG(ERROR) << __FUNCTION__ << " dispatcher_->TransmitToWorker failed";
     RefTcpChannel channel = request->GetIOCtx().channel.lock();
     if (channel) {
       channel->ShutdownChannel();
     }
+    LOG(ERROR) << __FUNCTION__ << " dispatcher_->TransmitToWorker failed";
   }
 }
-//
+
 void RawServer::HandleRawRequest(const RefProtocolMessage request) {
 
   RefTcpChannel channel = request->GetIOCtx().channel.lock();

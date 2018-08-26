@@ -24,43 +24,28 @@ void CoroWlDispatcher::TransferAndYield(base::MessageLoop* ioloop, base::StlClos
   CHECK(base::CoroRunner::CurrentCoro());
   ioloop->PostTask(base::NewClosure(std::move(clourse)));
 
-  base::CoroRunner::TlsCurrent()->YieldCurrent();
+  base::CoroRunner::YieldCurrent();
 }
 
 bool CoroWlDispatcher::ResumeWorkContext(WorkContext& ctx) {
   base::RefCoroutine coro = ctx.weak_coro.lock();
-  if (!coro || coro->TaskIdentify() != ctx.task_identify) {
+  if (!coro || coro->Identify() != ctx.task_identify) {
     VLOG(GLOG_VINFO) << "Resume Croutine from workcontext failed";
     return false;
   }
-  return coro->Resume(ctx.task_identify);
+  coro->Resume(ctx.task_identify);
+  return true;
 }
 
 bool CoroWlDispatcher::SetWorkContext(WorkContext& ctx) {
   if (base::MessageLoop::Current() &&
-      base::CoroRunner::TlsCurrent()->CanYield()) {
+      base::CoroRunner::CanYield()) {
 
     base::RefCoroutine coro = base::CoroRunner::CurrentCoro();
 
     ctx.weak_coro = coro;
     ctx.loop = base::MessageLoop::Current();
-    ctx.task_identify = coro->TaskIdentify();
-    return true;
-  }
-  return false;
-}
-
-bool CoroWlDispatcher::SetWorkContext(ProtocolMessage* message) {
-  CHECK(message);
-  if (base::MessageLoop::Current() &&
-      base::CoroRunner::TlsCurrent()->CanYield()) {
-
-    auto& work_context = message->GetWorkCtx();
-
-    work_context.loop = base::MessageLoop::Current();
-    base::RefCoroutine coro = base::CoroRunner::CurrentCoro();
-    work_context.weak_coro = coro;
-    work_context.task_identify = coro->TaskIdentify();
+    ctx.task_identify = coro->Identify();
     return true;
   }
   return false;

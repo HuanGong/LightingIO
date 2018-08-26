@@ -139,14 +139,14 @@ void ClientRouter::OnClientChannelClosed(const RefClientChannel& channel) {
 void ClientRouter::OnRequestGetResponse(const RefProtocolMessage& request,
                                         const RefProtocolMessage& response) {
   CHECK(request);
-
   request->SetResponse(response);
-  LOG(INFO) << __FUNCTION__ << " got response, resume workctx id:" << request->GetWorkCtx().task_identify;
+
   dispatcher_->ResumeWorkContext(request->GetWorkCtx());
 }
 
 ProtocolMessage* ClientRouter::SendClientRequest(RefProtocolMessage& message) {
   CHECK(dispatcher_);
+
   if (!dispatcher_->SetWorkContext(message->GetWorkCtx())) {
     LOG(FATAL) << "this task can't by yield, send failed";
     return NULL;

@@ -25,6 +25,7 @@ int64_t SystemCoroutineCount();
 class CoroDelegate {
 public:
   virtual void RecallCoroutineIfNeeded() = 0;
+  virtual void ResumeCoroutine(const RefCoroutine&) = 0;
 };
 
 class Coroutine : public coro_context,
@@ -34,27 +35,33 @@ public:
   friend void coro_main(void* coro);
 
   static std::shared_ptr<Coroutine> Create(CoroDelegate* d, bool main = false);
-  ~Coroutine();
 
-  bool Resume(uint64_t id);
+  ~Coroutine();
+  void Resume(uint64_t id);
   std::string StateToString() const;
-  const CoroState Status() const {return state_.load();}
-  uint64_t TaskIdentify() const {return task_identify_;}
+  CoroState Status() const {return state_;}
+  uint64_t Identify() const {return identify_;}
 private:
   Coroutine(CoroDelegate* d, bool main);
+
   void Reset();
   void SetTask(CoroClosure task);
-  void SetCoroState(CoroState st) {state_ = st;}
   void SelfHolder(RefCoroutine& self);
+  void SetCoroState(CoroState st) {state_ = st;}
   void ReleaseSelfHolder(){self_holder_.reset();};
 
+private:
   int32_t wc_;
   CoroDelegate* delegate_;
+
+  CoroState state_;
   coro_stack stack_;
-  std::atomic<CoroState> state_;
   CoroClosure coro_task_;
-  uint64_t task_identify_;
-  StlClosure resume_func_;
+  /* 此identify_ 只有在每次从暂停状态转换成running状态之后才会自增; 用于防止非正确的唤醒; eg:
+   * coro running -> coro paused 之后有多个事件都可能唤醒他，其中一个已经唤醒过此coro，唤醒之后
+   * 再次puased， 若此前另外一个事件唤醒coro， 将导致不正确的状态.*/
+  uint64_t identify_;
+
   RefCoroutine self_holder_;
   DISALLOW_COPY_AND_ASSIGN(Coroutine);
 };

@@ -14,14 +14,12 @@ public:
   WorkLoadDispatcher(bool work_in_io);
   virtual ~WorkLoadDispatcher() {};
 
-
   base::MessageLoop* GetNextWorkLoop();
   bool HandleWorkInIOLoop() const {return work_in_io_;}
   void SetWorkerLoops(std::vector<base::MessageLoop*>& loops) {work_loops_ = loops;};
 
   // must call at Worker Loop, may ioworker or woker according to HandleWorkInIOLoop
   virtual bool SetWorkContext(WorkContext& ctx);
-  virtual bool SetWorkContext(ProtocolMessage* message);
   // transmit task from IO TO worker loop
   virtual bool TransmitToWorker(base::StlClosure& closuse);
 private:

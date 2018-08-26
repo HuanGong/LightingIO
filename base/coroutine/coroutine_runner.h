@@ -18,22 +18,19 @@ typedef std::set<RefCoroutine> CoroSet;
 
 class CoroRunner : public CoroDelegate {
 public:
-  static CoroRunner* TlsCurrent();
+  static bool CanYield();
   static RefCoroutine CurrentCoro();
-  /*a snapshot for current*/
-  //static SnapShot();
+  static void YieldCurrent(int32_t wc = 1);
 
-  bool CanYield() const;
-  void YieldCurrent(int32_t wc = 1);
   /* New Scheduler with message loop */
-  void RunScheduledTasks(std::list<StlClosure>&& tasks);
+  static void RunScheduledTasks(std::list<StlClosure>&& tasks);
   /* ============ end ==============================*/
 protected:
   CoroRunner();
   ~CoroRunner();
 
   /* swich call stack from different coroutine*/
-  bool Transfer(RefCoroutine& next);
+  bool Transfer(const RefCoroutine& next);
   /* reuse: insert to freelist or gc: delete for free memory; then switch to thread coroutine*/
   void GcCoroutine();
   /* release the coroutine memory */
@@ -42,9 +39,13 @@ protected:
    * case 2: scheduled_task empty, recall to freelist or gc it */
   void RecallCoroutineIfNeeded() override;
   /* a callback function using for resume a kPaused coroutine */
-  bool ResumeCoroutine(MessageLoop* loop, std::weak_ptr<Coroutine> coro);
+  void ResumeCoroutine(const RefCoroutine& coro);
+  /* judge wheather running in a main coroutine with thread*/
+  bool InMainCoroutine() const { return (main_coro_ == current_);}
 
-  bool root_coroutine() { return (main_coro_ && main_coro_ == current_);}
+  void InvokeCoroutineTasks();
+
+  RefCoroutine RetrieveCoroutine();
 private:
   RefCoroutine current_;
   RefCoroutine main_coro_;
@@ -52,15 +53,15 @@ private:
 
   StlClosure gc_task_;
   bool gc_task_scheduled_;
-  std::vector<RefCoroutine> expired_coros_;
+  MessageLoop* bind_loop_;
 
   std::list<StlClosure> coro_tasks_;
+  std::vector<RefCoroutine> expired_coros_;
 
   /* 根据系统实际负载分配的每个线程最大的可复用coroutine数量*/
   size_t max_reuse_coroutines_;
   std::list<RefCoroutine> free_list_;
 
-  CoroCallback coro_recall_func_;
   DISALLOW_COPY_AND_ASSIGN(CoroRunner);
 };
 

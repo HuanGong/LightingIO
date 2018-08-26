@@ -139,11 +139,6 @@ int main(int arvc, char **argv) {
     }
   })));
 
-  //init coro_woker
-  worker.PostTask(base::NewClosure([&]() {
-    base::CoroScheduler::TlsCurrent();
-  }));
-
   LOG(INFO) << "Start Run Tests";
   sleep(2);
 

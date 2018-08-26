@@ -20,26 +20,26 @@ std::vector<base::MessageLoop*> loops;
 std::vector<base::MessageLoop*> workers;
 
 CoroWlDispatcher* dispatcher_ = new CoroWlDispatcher(true);
-
+std::atomic_int64_t http_count;
 void HandleHttp(const HttpRequest* req, HttpResponse* res) {
-  LOG(INFO) << "Got A Http Message path:" << req->RequestUrl();
+  http_count++;
+  LOG(INFO) << "http count:" << http_count << " enter";
 
-  auto loop = base::MessageLoop::Current();
-  auto coro = base::CoroRunner::CurrentCoro();
-  int64_t id = coro->TaskIdentify();
+  //auto loop = base::MessageLoop::Current();
+  //auto coro = base::CoroRunner::CurrentCoro();
+  //int64_t id = coro->Identify();
   //broadcast
   if (req->RequestUrl() == "/br") {
-    for (int i = 0; i < 5; i++) {
-      loop->PostCoroTask(std::bind([=]() {
-        SendRawRequest();
-        coro->Resume(id);
-      }));
-    }
-    base::CoroRunner::TlsCurrent()->YieldCurrent(5);
+    //loop->PostCoroTask(std::bind([=]() {
+      SendRawRequest();
+      //coro->Resume(id);
+    //}));
+    //base::CoroRunner::YieldCurrent();
   }
 
   res->SetResponseCode(200);
   res->MutableBody() = "hello world";
+  LOG(INFO) << "http count:" << http_count << " leave";
 }
 
 void HandleRaw(const RawMessage* req, RawMessage* res) {
@@ -214,7 +214,7 @@ int main(int argc, char* argv[]) {
 
   google::ParseCommandLineFlags(&argc, &argv, true);  // 初始化 gflags
   main_loop.Start();
-
+  http_count.store(0);
   PrepareLoops(std::thread::hardware_concurrency(), 1);
   dispatcher_->SetWorkerLoops(workers);
 

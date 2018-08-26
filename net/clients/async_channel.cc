@@ -67,10 +67,8 @@ void AsyncChannel::OnRequestTimeout(WeakProtocolMessage weak) {
   CHECK(identify != MessageIdentifyType::KInvalidIdentify);
 
   size_t numbers = in_progress_.erase(identify);
-  if (numbers == 0) {
-    return;
-  }
-
+  CHECK(numbers == 1);
+  LOG(INFO) << "raw request timeout";
   request->SetFailInfo(FailInfo::kTimeOut);
   delegate_->OnRequestGetResponse(request, kNullResponse);
 }

@@ -52,7 +52,6 @@ public:
   IOContext& GetIOCtx() {return io_context_;}
   WorkContext& GetWorkCtx() {return work_context_;}
   void SetIOContextWeakChannel(const RefTcpChannel& channel);
-  void SetIOContextWeakChannel(WeakPtrTcpChannel& channel);
 
   void SetFailInfo(FailInfo reason);
   FailInfo MessageFailInfo() const;

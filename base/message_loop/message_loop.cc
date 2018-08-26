@@ -453,8 +453,7 @@ void MessageLoop::RunCoroutineTask(bool with_fd) {
   if (count == 0) {
     return;
   }
-  CoroRunner* coro_scheduler = CoroRunner::TlsCurrent();
-  coro_scheduler->RunScheduledTasks(std::move(all_coro_task_));
+  CoroRunner::RunScheduledTasks(std::move(all_coro_task_));
   VLOG(GLOG_VTRACE) << __FUNCTION__ << " Leave, this tick run coro task count:" << count;
 }
 
