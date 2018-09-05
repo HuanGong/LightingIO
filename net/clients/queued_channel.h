@@ -5,7 +5,6 @@
 #include "tcp_channel.h"
 #include "net_callback.h"
 #include "client_channel.h"
-#include "requests_keeper.h"
 #include "protocol/proto_message.h"
 #include "protocol/proto_service.h"
 

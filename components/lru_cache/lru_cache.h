@@ -52,12 +52,10 @@ namespace component {
           auto it = cache_items_map_.find(k);
           if (it == cache_items_map_.cend()) {
             return false;
-          } else {
-            const_cast<LRUCache *>(this)->
-              cache_items_list_.splice(cache_items_list_.begin(), cache_items_list_, it->second);
-            *v = it->second->second;
-            return true;
           }
+          const_cast<LRUCache *>(this)->cache_items_list_.splice(cache_items_list_.begin(), cache_items_list_, it->second);
+          *v = it->second->second;
+          return true;
         }
 
         bool Exists(const K& k) const {

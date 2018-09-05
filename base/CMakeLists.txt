@@ -42,6 +42,7 @@ SET(BASE_SOURCES
 )
 
 SET(LTBASE_DEPENDENCY
+  3rd
   coro
 )
 

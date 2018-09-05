@@ -48,9 +48,9 @@ SET(LTNETEXECUTE_LINKLIBS
   ${Tcmalloc_LIBRARIES}
   ltnet
   ltbase
-  http_parser
   ${GLOG_LIBRARY}
   ${ZLIB_LIBRARIES}
+  3rd
   coro
   gflags
   unwind
@@ -59,7 +59,6 @@ SET(LTNETEXECUTE_LINKLIBS
 
 SET(LTNET_DEPENDENCY
   ltbase
-  http_parser
 )
 
 ADD_LIBRARY(ltnet STATIC
