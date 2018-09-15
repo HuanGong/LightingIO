@@ -4,17 +4,6 @@ SET(CMAKE_C_COMPILER g++)
 ADD_DEFINITIONS(-std=c++1y)
 ADD_DEFINITIONS(-fPIC)
 
-include(ExternalProject)
-ExternalProject_Add(concurrentqueue
-  CONFIGURE_COMMAND ""
-  SOURCE_DIR ${PROJECT_SOURCE_DIR}/thirdparty/concurrentqueue
-  UPDATE_COMMAND ""
-  BUILD_COMMAND ${MAKE}
-  # Specify build dir location
-  BINARY_DIR ${PROJECT_SOURCE_DIR}/thirdparty/concurrentqueue/build
-  #BUILD_IN_SOURCE 0
-  INSTALL_COMMAND ""
-)
 
 SET(BASE_SOURCES
   time/timestamp.cc
