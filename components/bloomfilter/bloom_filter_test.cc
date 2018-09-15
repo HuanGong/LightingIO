@@ -7,18 +7,17 @@
 #define CATCH_CONFIG_MAIN //only once
 #include <catch/catch.hpp>
 
-TEST_CASE("Add Item", "[Add New Item To BloomFilter]") {
+TEST_CASE("base", "[Add New Item To BloomFilter]") {
 
   component::BloomFilter filter(1000000, 0.00001);
 
   for (uint64_t i = 0; i < 1000000; i++) {
     filter.Set(&i, sizeof(uint64_t));
-
     REQUIRE(filter.IsSet(&i, sizeof(uint64_t)));
   }
 }
 
-TEST_CASE("False Ratio", "[false case]") {
+TEST_CASE("false-rate", "[false case]") {
   component::BloomFilter filter(1000000, 0.00001);
 
   for (uint64_t i = 0; i < 1000000; i++) {

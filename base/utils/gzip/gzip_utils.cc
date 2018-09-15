@@ -165,7 +165,6 @@ int decompress_gzip(const std::string& str, std::string& outstring) {
 
   if (inflateInit2(&zs, MOD_GZIP_ZLIB_WINDOWSIZE + 16) != Z_OK) {
     //throw(std::runtime_error("inflateInit failed while decompressing."));
-    std::cout << __FUNCTION__ << " return -1;";
     return -1;
   }
   outstring.resize(INITSTRINGSIZE, '\0');
@@ -196,13 +195,11 @@ int decompress_gzip(const std::string& str, std::string& outstring) {
   } while (ret == Z_OK);
 
   if (Z_OK != inflateEnd(&zs)) {
-    std::cout << __FUNCTION__ << " return -1;";
     return -1;
   }
 
   if (ret != Z_STREAM_END) {          // an error occurred that was not EOF
     //throw(std::runtime_error(oss.str()));
-    std::cout << __FUNCTION__ << " return -1;";
     return -1;
   }
   return 0;

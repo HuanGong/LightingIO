@@ -48,12 +48,13 @@ namespace component {
           }
         }
 
-        bool Get(const K & k, V* v) const {
+        bool Get(const K & k, V* v) {
           auto it = cache_items_map_.find(k);
           if (it == cache_items_map_.cend()) {
             return false;
           }
-          const_cast<LRUCache *>(this)->cache_items_list_.splice(cache_items_list_.begin(), cache_items_list_, it->second);
+          //const_cast<LRUCache<K,V> *>(this)->cache_items_list_.splice(cache_items_list_.begin(), cache_items_list_, it->second);
+          cache_items_list_.splice(cache_items_list_.begin(), cache_items_list_, it->second);
           *v = it->second->second;
           return true;
         }

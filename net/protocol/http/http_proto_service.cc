@@ -6,7 +6,7 @@
 #include "http_proto_service.h"
 #include "http_constants.h"
 #include "net/protocol/proto_message.h"
-#include "base/compression_utils/gzip_utils.h"
+#include "base/utils/gzip/gzip_utils.h"
 
 namespace net {
 

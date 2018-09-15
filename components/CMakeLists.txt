@@ -11,8 +11,7 @@ SET(LTCOMPONENT_DEPENDENCY
 
 SET(COMPONENT_SOURCES
   ./bloomfilter/bloom_filter.cc
-  ./count_min_sketch/count_min_sketch.cc
-)
+  ./count_min_sketch/count_min_sketch.cc)
 
 ADD_LIBRARY(ltcomponent STATIC
   ${COMPONENT_SOURCES}
@@ -31,12 +30,20 @@ TARGET_LINK_LIBRARIES(bloomfilter_unittest
   ltcomponent
   ${LTCOMPONENT_DEPENDENCY}
 )
-
 ADD_EXECUTABLE(countminsketch_unittest
   ./count_min_sketch/count_min_sketch_unittests.cc
 )
 set_target_properties(countminsketch_unittest PROPERTIES EXCLUDE_FROM_ALL TRUE)
 TARGET_LINK_LIBRARIES(countminsketch_unittest
+  ltcomponent
+  ${LTCOMPONENT_DEPENDENCY}
+)
+
+ADD_EXECUTABLE(lrucache_unittest
+  lru_cache/lru_cache_unittest.cpp
+)
+set_target_properties(lrucache_unittest PROPERTIES EXCLUDE_FROM_ALL TRUE)
+TARGET_LINK_LIBRARIES(lrucache_unittest
   ltcomponent
   ${LTCOMPONENT_DEPENDENCY}
 )

@@ -27,7 +27,7 @@ SET(BASE_SOURCES
   #memory
   memory/lazy_instance.cc
   # gzip compression utils
-  compression_utils/gzip_utils.cc
+  utils/gzip/gzip_utils.cc
 )
 
 SET(LTBASE_DEPENDENCY
