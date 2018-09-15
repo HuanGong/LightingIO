@@ -20,8 +20,8 @@ CountMinSketch::CountMinSketch(double err, double certainty) :
   error_rate_(err),
   distinct_count_(0) {
 
-  width_ = std::ceil(2.0 / err);
-  depth_ = std::ceil(std::log(1.0 - certainty_) / std::log(1.0/2.0));
+  width_ = static_cast<uint64_t>(std::ceil(2.0 / err));
+  depth_ = static_cast<uint64_t>(std::ceil(std::log(1.0 - certainty_) / std::log(1.0 / 2.0)));
 
   for (uint32_t i = 0 ; i < depth_; i++) {
     CountType* d = (CountType*)malloc(width_ * sizeof(CountType));
@@ -43,12 +43,16 @@ void CountMinSketch::Increase(const std::string& key, int32_t count) {
 
 void CountMinSketch::Increase(const void* data, size_t len, int32_t count) {
   uint64_t result[2];
-  bool brand_new = true;
+  bool brand_new = false;
   for (uint32_t depth = 0; depth < depth_;) {
     MurmurHash3_x64_128(data, len, depth << 0x1F | depth, result);
-    brand_new = (0 == __sync_fetch_and_add(&matrix_[depth++][result[0] % width_], count));
+    if (0 == __sync_fetch_and_add(&matrix_[depth++][result[0] % width_], count) && !brand_new) {
+      brand_new = true;
+    };
     if (depth < depth_) {
-      brand_new = (0 == __sync_fetch_and_add(&matrix_[depth++][result[1] % width_], count));
+      if (0 == __sync_fetch_and_add(&matrix_[depth++][result[1] % width_], count) && !brand_new) {
+        brand_new = true;
+      };
     }
   }
   if (brand_new) {
