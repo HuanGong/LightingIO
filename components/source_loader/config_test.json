@@ -1,0 +1,49 @@
+{
+  "name": "file_test",
+  "namespace": "source",
+  "schemes": [
+    {
+      "name": "name",
+      "type": "string",
+      "default": "",
+      "repeat": true,
+      "delimiter": ",",
+      "allow_null": false
+    },
+    {
+      "name": "age",
+      "type": "int",
+      "default": "",
+      "repeat": false,
+      "delimiter": "",
+      "allow_null": true
+    },
+    {
+      "name": "info",
+      "type": "json",
+      "default": "{}",
+      "repeat": false,
+      "delimiter": "",
+      "allow_null": true
+    }
+  ],
+  "source": {
+    "loader": {
+      "type": "file",
+      "mode": "content",
+      "resources": [
+        {
+          "path": "./data_file_test.txt"
+        }
+      ]
+    },
+    "parser": {
+      "type": "column",
+      "delimiter":"#"
+    },
+    "reloader": {
+      "mode": "interval",
+      "interval": 3000
+    }
+  }
+}
