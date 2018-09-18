@@ -16,7 +16,7 @@ LoaderFactory& LoaderFactory::Instance() {
   return loader_instance.get();
 }
 
-Loader* LoaderFactory::CreateLoader(ReaderDelegate* d, Json& conf) {
+Loader* LoaderFactory::CreateLoader(LoaderDelegate* d, Json& conf) {
   const std::string& type = conf.at("type").get<std::string>();
   if (type == "file") {
     return new FileLoader(d, conf);

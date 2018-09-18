@@ -10,7 +10,7 @@
 #define CATCH_CONFIG_MAIN //only once
 #include <catch/catch.hpp>
 
-class DummyDelegate : public component::sl::ReaderDelegate {
+class DummyDelegate : public component::sl::LoaderDelegate {
 public:
 	void OnFinish(int code) {
 		std::cout << "finish load with code:" << code << std::endl;

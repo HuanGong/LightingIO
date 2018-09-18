@@ -8,7 +8,7 @@
 namespace component {
 namespace sl {
 
-FileLoader::FileLoader(ReaderDelegate* watcher, Json reader_config)
+FileLoader::FileLoader(LoaderDelegate* watcher, Json reader_config)
 	: Loader(watcher, reader_config) {
 }
 

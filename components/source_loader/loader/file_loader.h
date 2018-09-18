@@ -10,7 +10,7 @@ namespace sl {
 
 class FileLoader : public Loader {
 public:
-	FileLoader(ReaderDelegate* watcher, Json reader_config);
+	FileLoader(LoaderDelegate* watcher, Json reader_config);
 	~FileLoader() override;
 
 	int Initialize() override;

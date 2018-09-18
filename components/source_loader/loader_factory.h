@@ -15,7 +15,7 @@ namespace sl {
 class LoaderFactory{
 public:
   static LoaderFactory& Instance();
-  Loader* CreateLoader(ReaderDelegate*, Json&);
+  Loader* CreateLoader(LoaderDelegate*, Json&);
 };
 
 }}

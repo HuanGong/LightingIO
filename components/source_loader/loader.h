@@ -11,17 +11,15 @@ namespace sl {
 
 using Json = nlohmann::json;
 
-class ReaderDelegate {
+class LoaderDelegate {
 public:
 	virtual void OnFinish(int code) = 0;
 	virtual void OnReadData(const std::string& data) = 0;
 };
 
-
-
 class Loader {
 public:
-  Loader(ReaderDelegate* watcher, Json reader_config) :
+  Loader(LoaderDelegate* watcher, Json reader_config) :
     config_(reader_config),
 	  watcher_(watcher) {
   };
@@ -31,7 +29,7 @@ public:
   virtual int Load() = 0;
 protected:
 	Json config_;
-	ReaderDelegate* watcher_;
+	LoaderDelegate* watcher_;
 };
 
 }}

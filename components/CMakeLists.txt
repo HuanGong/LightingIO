@@ -11,11 +11,14 @@ SET(LTCOMPONENT_DEPENDENCY
 
 SET(COMPONENT_SOURCES
 	./bloomfilter/bloom_filter.cc
-  ./source_loader/source.cpp
+	./count_min_sketch/count_min_sketch.cc
+
+  ./source_loader/source.cc
+  ./source_loader/parser.cc
 	./source_loader/loader_factory.cc
 	./source_loader/loader/file_loader.cc
-	./count_min_sketch/count_min_sketch.cc
-)
+	./source_loader/parser/column_parser.cc
+  ./source_loader/parser/column_parser.cc)
 
 SET(COMPONENT_LINKLIBS
 	3rd
@@ -55,9 +58,9 @@ ADD_EXECUTABLE(countminsketch_unittest
 set_target_properties(countminsketch_unittest PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
 ADD_EXECUTABLE(lrucache_unittest
-  lru_cache/lru_cache_unittest.cpp)
+  lru_cache/lru_cache_unittest.cc)
 set_target_properties(lrucache_unittest PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
 ADD_EXECUTABLE(source_loader_unittest
-	source_loader/unittest/source_loader_unittest.cpp)
+	source_loader/unittest/source_loader_unittest.cc)
 set_target_properties(source_loader_unittest PROPERTIES EXCLUDE_FROM_ALL TRUE)

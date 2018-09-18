@@ -32,5 +32,14 @@ bool Source::Initialize() {
 	return true;
 }
 
+void Source::OnFinish(int code) {
+  LOG(INFO) << "source [" << source_config_.at("name").get<std::string>()
+    << " finish loader with code [" << code << "]";
+}
+
+void OnReadData(const std::string&) {
+
+};
+
 
 }} //component::sl
