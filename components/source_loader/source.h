@@ -25,7 +25,7 @@ protected:
 	Json source_config_;
 	std::string source_name_;
 
-	std::unique_ptr<Reader> reader_;
+	std::unique_ptr<Loader> loader_;
 };
 
 }} //end component::sl

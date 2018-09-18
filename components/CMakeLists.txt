@@ -11,8 +11,11 @@ SET(LTCOMPONENT_DEPENDENCY
 
 SET(COMPONENT_SOURCES
 	./bloomfilter/bloom_filter.cc
-	source_loader/loader/file_loader.cc
-	./count_min_sketch/count_min_sketch.cc source_loader/reader_factory.cpp)
+  ./source_loader/source.cpp
+	./source_loader/loader_factory.cc
+	./source_loader/loader/file_loader.cc
+	./count_min_sketch/count_min_sketch.cc
+)
 
 SET(COMPONENT_LINKLIBS
 	3rd

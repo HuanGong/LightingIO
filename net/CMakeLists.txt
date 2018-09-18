@@ -74,37 +74,22 @@ add_dependencies(ltnet
   ${LTNET_DEPENDENCY}
 )
 
+link_libraries(
+  ${LTNETEXECUTE_LINKLIBS}
+)
+
 ADD_EXECUTABLE(reuseport_test
   test/reuseport_test.cc
 )
-TARGET_LINK_LIBRARIES(reuseport_test
-  ${LTNETEXECUTE_LINKLIBS}
-)
-
 ADD_EXECUTABLE(acceptor_test
   test/acceptor_test.cc
 )
-TARGET_LINK_LIBRARIES(acceptor_test
-  ${LTNETEXECUTE_LINKLIBS}
-)
-
 ADD_EXECUTABLE(ioservice_test
   test/io_service_test.cc
 )
-TARGET_LINK_LIBRARIES(ioservice_test
-  ${LTNETEXECUTE_LINKLIBS}
-)
-
 ADD_EXECUTABLE(client_test
   test/client_test.cc
 )
-TARGET_LINK_LIBRARIES(client_test
-  ${LTNETEXECUTE_LINKLIBS}
-)
-
 ADD_EXECUTABLE(new_server_model
   test/new_server_model.cc
-)
-TARGET_LINK_LIBRARIES(new_server_model
-  ${LTNETEXECUTE_LINKLIBS}
 )

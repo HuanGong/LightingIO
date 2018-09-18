@@ -8,7 +8,7 @@
 namespace component {
 namespace sl {
 
-class FileLoader : Loader {
+class FileLoader : public Loader {
 public:
 	FileLoader(ReaderDelegate* watcher, Json reader_config);
 	~FileLoader() override;

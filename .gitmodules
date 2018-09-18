@@ -1,6 +1,6 @@
 [submodule "thirdparty/concurrentqueue"]
 	path = thirdparty/concurrentqueue
 	url = https://github.com/cameron314/concurrentqueue.git
-[submodule "thirdparty/rapidjson"]
-	path = thirdparty/rapidjson
-	url = https://github.com/Tencent/rapidjson.git
+[submodule "thirdparty/hat-trie"]
+	path = thirdparty/hat-trie
+	url = https://github.com/Tessil/hat-trie.git
