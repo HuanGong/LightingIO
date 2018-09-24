@@ -17,7 +17,7 @@ const static std::function<void()> null_func;
 
 //IMPORTANT: NO HEAP MEMORY HERE!!!
 void coro_main(void* arg) {
-  Coroutine* coroutine = static_cast<Coroutine*>(arg);
+  auto * coroutine = static_cast<Coroutine*>(arg);
   CHECK(coroutine);
   do {
     CHECK(coroutine->coro_task_ && CoroState::kRunning == coroutine->state_);

@@ -6,8 +6,22 @@
 #include <unistd.h>
 #include <time/time_utils.h>
 
+#include <iostream>
+#include <unistd.h>
+#include <stdlib.h>
+#include <atomic>
+
+#define CATCH_CONFIG_MAIN //only once
+#include <catch/catch.hpp>
+
 base::MessageLoop mainloop;
 base::MessageLoop taskloop;
+
+void coro_f() {
+  LOG(INFO) << " coro_f enter";
+  usleep(1000);
+  LOG(INFO) << " coro_f leave";
+}
 
 void coro_fun(std::string tag) {
   LOG(INFO) << tag << " coro_fun enter";
@@ -39,11 +53,31 @@ void TestCoroutineWithLoop() {
   //auto end = base::time_us();
 }
 
-
-int main() {
+TEST_CASE("coro_base", "[test coroutine base with message loop]") {
   mainloop.Start();
   taskloop.Start();
-
   TestCoroutineWithLoop();
-  return 0;
+}
+
+TEST_CASE("go_coro", "[go flag call coroutine]") {
+  base::MessageLoop loop;
+  base::MessageLoop loop2;
+  loop.Start();
+  loop2.Start();
+
+  loop.PostTask(base::NewClosure([&]() {
+    LOG(INFO) << " start test go flag enter";
+
+    go coro_f;
+
+    go std::bind(&coro_fun, "tag_from_go_synatax");
+
+    go []() {
+      LOG(INFO) << " run lambda in coroutine";
+    };
+
+    LOG(INFO) << " start test go flag leave";
+  }));
+  loop.WaitLoopEnd();
+  loop2.WaitLoopEnd();
 }

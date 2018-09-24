@@ -12,6 +12,12 @@ namespace __detail {
 }
 static thread_local base::LazyInstance<__detail::_T> current_runner = LAZY_INSTANCE_INIT;
 
+
+//static
+CoroRunner& CoroRunner::Runner() {
+  return current_runner.get();
+}
+
 //static
 RefCoroutine CoroRunner::CurrentCoro() {
   return current_runner->current_;
@@ -161,6 +167,7 @@ void CoroRunner::InvokeCoroutineTasks() {
     // 当yield的之后的task重新被标记成可运行，那么做coro的切换就无法避免了，直接使用resumecoroutine
     // 切换调度, 此时调度结束后调用RecallCoroutineIfNeeded，task队列中应该会是空的
   }
+  invoke_coro_shceduled_ = false;
 }
 
 RefCoroutine CoroRunner::RetrieveCoroutine() {
