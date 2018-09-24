@@ -28,5 +28,6 @@
 #include "trim.hpp"
 #include "case_conv.hpp"
 #include "predicate.hpp"
+#include "string_utils.hpp"
 
 #endif

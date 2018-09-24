@@ -5,24 +5,28 @@
 #ifndef LIGHTINGIO_COMPONENT_SOURCE_H
 #define LIGHTINGIO_COMPONENT_SOURCE_H
 
-#include "loader.h"
-#include "parser.h"
+#include "components/source_loader/loader/loader.h"
+#include "components/source_loader/parser/parser.h"
 #include <memory>
 
 namespace component {
 namespace sl {
 
+void RegisterParserCreator(const std::string& name, std::function<Parser* ()>);
+
 class Source : public LoaderDelegate,
-               public ParserDelegate {
+							 public ParserDelegate {
 public:
-	Source(Json& source_config);
+	explicit Source(Json& source_config);
 	virtual ~Source();
 
-	bool Initialize();
+	virtual bool Initialize();
 
 	const std::string& Name() const {
 		return source_name_;
 	}
+
+	int StartLoad();
 
   //override from LoaderDelegate
   void OnFinish(int code) override;

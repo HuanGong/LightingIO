@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include "file_loader.h"
 #include "glog/logging.h"
+#include "base/base_constants.h"
 #include "base/memory/scoped_guard.h"
 
 namespace component {
@@ -17,14 +18,15 @@ FileLoader::~FileLoader() {
 
 int FileLoader::Initialize() {
 	if (!ParseAndCheckConfig()) {
+		LOG(WARNING) << __FUNCTION__ << " Initialize failed, config:" << config_;
 		return -1;
 	}
-
-	return Load();
+	return 0;
 }
 
 int FileLoader::Load() {
-	LOG(INFO) << "file loader start load resources; file count:" << files_.size();
+	VLOG(GLOG_VTRACE) << __FUNCTION__ << " Enter, source count:" << files_.size();
+
 	int result = 0;
 
 	std::ifstream ifs;
@@ -32,26 +34,23 @@ int FileLoader::Load() {
 	for (auto& file : files_) {
 		ifs.open(file);
 		if (!ifs.is_open()) {
-			LOG(ERROR) << "file [" << file << "] can't be open correctly";
+			LOG(ERROR) << __FUNCTION__ << " file [" << file << "] can't be open correctly";
 			continue;
 		}
+
 		{
 			base::ScopedGuard guard([&]() {
 				ifs.close();
 			});
 
-			if (parse_mode_ == "line") {
+			if (parser_content_mode_ == "line") {
 				std::string line;
 
 				while(!ifs.eof()) {
-
 					std::getline(ifs, line);
-					if (watcher_) {
-						watcher_->OnReadData(line);
-					}
+					watcher_->OnReadData(line);
 				};
-
-			} else if (parse_mode_ == "content") {
+			} else if (parser_content_mode_ == "content") {
 				std::string content;
 
 				ifs.seekg(0, std::ios::end);
@@ -59,9 +58,7 @@ int FileLoader::Load() {
 				ifs.seekg(0, std::ios::beg);
 				content.assign((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
 
-				if (watcher_) {
-					watcher_->OnReadData(content);
-				}
+				watcher_->OnReadData(content);
 			} else {
 				LOG(ERROR) << "not supported mode to read file:[" << file << "]";
 				result = -1;
@@ -70,29 +67,28 @@ int FileLoader::Load() {
 		}
 	}
 
-	if (watcher_) {
-		watcher_->OnFinish(result);
-	}
-	LOG(INFO) << "file loader load resources finished; all file loaded";
+	watcher_->OnFinish(result);
+	VLOG(GLOG_VTRACE) << __FUNCTION__ << " Leave with result :" << result;
 	return result;
 }
 
 bool FileLoader::ParseAndCheckConfig() {
-	if (config_.at("type").get<std::string>() != "file") {
+	if (!config_.is_object()) return false;
+
+	const static Json nil_json;
+
+	if (config_.value("type", "") != "file") {
 		return false;
 	}
-	parse_mode_ = config_.at("mode").get<std::string>();
-	if (parse_mode_.empty()) {
-		return false;
-	}
-	Json resources = config_["resources"];
+	const Json& resources = config_.value("resources", nil_json);
 	if (!resources.is_array()) {
 		return false;
 	}
-	for (Json::iterator iter = resources.begin(); iter != resources.end(); iter++) {
+	for (Json::const_iterator iter = resources.begin(); iter != resources.end(); iter++) {
 		CHECK((*iter).is_object());
-		std::string file = (*iter)["path"].get<std::string>();
+		std::string file = iter->value("path", "");
 		if (file.empty()) {
+			LOG(INFO) << __FUNCTION__ << " resource:" << *iter << " be omited for empty path";
 			continue;
 		}
 		files_.push_back(file);

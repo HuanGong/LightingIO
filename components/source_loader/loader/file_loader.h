@@ -3,7 +3,7 @@
 
 #include <vector>
 #include <string>
-#include "components/source_loader/loader.h"
+#include "loader.h"
 
 namespace component {
 namespace sl {
@@ -11,7 +11,7 @@ namespace sl {
 class FileLoader : public Loader {
 public:
 	FileLoader(LoaderDelegate* watcher, Json reader_config);
-	~FileLoader() override;
+	~FileLoader();
 
 	int Initialize() override;
 	int Load() override;

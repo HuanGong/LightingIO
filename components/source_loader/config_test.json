@@ -1,10 +1,9 @@
 {
-  "name": "file_test",
+  "name": "test_source_file",
   "namespace": "source",
   "source": {
     "loader": {
       "type": "file",
-      "mode": "content",
       "resources": [
         {
           "path": "./data_file_test.txt"
@@ -15,28 +14,33 @@
       "type": "column",
       "delimiter":"#",
       "primary": "name",
+      "content_mode": "line",
+      "ignore_header_line":false,
+      "header": [
+        "name",
+        "age",
+        "info",
+        "ext"
+      ],
       "schemes": [
         {
           "name": "name",
           "type": "string",
           "default": "",
-          "repeat": true,
-          "delimiter": ",",
+          "delimiter": "",
           "allow_null": false
         },
         {
           "name": "age",
           "type": "int",
-          "default": "",
-          "repeat": false,
+          "default": 5,
           "delimiter": "",
           "allow_null": true
         },
         {
           "name": "info",
           "type": "json",
-          "default": "{}",
-          "repeat": false,
+          "default": {},
           "delimiter": "",
           "allow_null": true
         }

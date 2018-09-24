@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 
 SET(CMAKE_C_COMPILER g++)
 
-ADD_DEFINITIONS(-std=c++1y)
+ADD_DEFINITIONS(-std=c++1z)
 ADD_DEFINITIONS(-fPIC)
 
 SET(LTCOMPONENT_DEPENDENCY
@@ -14,8 +14,8 @@ SET(COMPONENT_SOURCES
 	./count_min_sketch/count_min_sketch.cc
 
   ./source_loader/source.cc
-  ./source_loader/parser.cc
-	./source_loader/loader_factory.cc
+	source_loader/parser/parser.cc
+	source_loader/loader/loader_factory.cc
 	./source_loader/loader/file_loader.cc
 	./source_loader/parser/column_parser.cc
   ./source_loader/parser/column_parser.cc)
