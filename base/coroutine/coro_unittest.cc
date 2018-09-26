@@ -50,7 +50,6 @@ void TestCoroutineWithLoop() {
 
   mainloop.WaitLoopEnd();
   taskloop.WaitLoopEnd();
-  //auto end = base::time_us();
 }
 
 TEST_CASE("coro_base", "[test coroutine base with message loop]") {
@@ -75,7 +74,6 @@ TEST_CASE("go_coro", "[go flag call coroutine]") {
     go []() {
       LOG(INFO) << " run lambda in coroutine";
     };
-
     LOG(INFO) << " start test go flag leave";
   }));
   loop.WaitLoopEnd();

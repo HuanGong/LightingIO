@@ -28,6 +28,8 @@ SET(BASE_SOURCES
   memory/lazy_instance.cc
   # gzip compression utils
   utils/gzip/gzip_utils.cc
+  # closure
+  closure/location.cc
 )
 
 SET(LTBASE_DEPENDENCY
@@ -66,10 +68,10 @@ TARGET_LINK_LIBRARIES(eventloop_benchmark
   ${LTBASEEXECUTE_LINKLIBS}
 )
 
-ADD_EXECUTABLE(coro2_test
-  coroutine/test_main.cc
+ADD_EXECUTABLE(coro_unittest
+  coroutine/coro_unittest.cc
 )
-TARGET_LINK_LIBRARIES(coro2_test
+TARGET_LINK_LIBRARIES(coro_unittest
   ${LTBASEEXECUTE_LINKLIBS}
 )
 

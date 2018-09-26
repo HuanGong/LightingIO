@@ -4,11 +4,13 @@
 #include <cinttypes>
 #include <atomic>
 #include "config.h"
+#include <memory>
+#include <functional>
+#include <base_micro.h>
 #include "libcoro/coro.h"
-#include "coroutine_task.h"
-#include "closure/closure_task.h"
 
 namespace base {
+typedef std::function<void()> CoroClosure;
 
 enum CoroState {
   kInitialized = 0,
