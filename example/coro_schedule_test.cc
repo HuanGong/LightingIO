@@ -43,7 +43,7 @@ void request_done_cb(evhttp_request* request, void* arg) {
     LOG(ERROR) << __FUNCTION__ << " Check request Failed";
     HttpRequest* req = static_cast<HttpRequest*>(arg);
     req->handler_worker->PostTask(
-      base::NewClosure(std::bind(&ResumeHttpRequestCoro, req)));
+      NewClosure(std::bind(&ResumeHttpRequestCoro, req)));
     return;
   }
   HttpRequest* req = static_cast<HttpRequest*>(arg);
@@ -55,14 +55,14 @@ void request_done_cb(evhttp_request* request, void* arg) {
     req->response[m_len] = '\0';
   }
   req->handler_worker->PostTask(
-    base::NewClosure(std::bind(&ResumeHttpRequestCoro, req)));
+    NewClosure(std::bind(&ResumeHttpRequestCoro, req)));
 }
 
 void MakeHttpRequest(HttpRequest* req) {
   if (!client_channels.size()) {
     req->response = "ERROR";
     req->handler_worker->PostTask(
-      base::NewClosure(std::bind(&ResumeHttpRequestCoro, req)));
+      NewClosure(std::bind(&ResumeHttpRequestCoro, req)));
     return;
   }
 
@@ -84,7 +84,7 @@ void MakeHttpRequest(HttpRequest* req) {
   if (ret != 0) {
     LOG(ERROR) << "evhttp_make_reqeust failed";
     req->handler_worker->PostTask(
-      base::NewClosure(std::bind(&ResumeHttpRequestCoro, req)));
+      NewClosure(std::bind(&ResumeHttpRequestCoro, req)));
   }
 }
 
@@ -97,7 +97,7 @@ void HttpRequestCoro(std::shared_ptr<HttpMessage> msg) {
 
   LOG(INFO) << "make httprequest, request_count:" << (request_count++);
 
-  msg->io->PostTask(base::NewClosure(std::bind(&MakeHttpRequest, &request)));
+  msg->io->PostTask(NewClosure(std::bind(&MakeHttpRequest, &request)));
   base::Coroutine::Current()->Yield();
   resume_count++;
   LOG(INFO) << "httprequest resumed" << "get response:" << request.response;
@@ -129,7 +129,7 @@ int main(int arvc, char **argv) {
 
   LOG(INFO) << "main thread" << std::this_thread::get_id();
   //init connect client
-  loop.PostTask(base::NewClosure(std::bind([&](){
+  loop.PostTask(NewClosure(std::bind([&](){
     net::ChannelInfo info;
     info.host = "127.0.0.1";
     info.port = 6666;
@@ -145,20 +145,20 @@ int main(int arvc, char **argv) {
   //a fake httpmsg to worker
   long fake_httpmessage_count = 5000;
   for (; fake_httpmessage_count > 0; fake_httpmessage_count--) {
-    loop.PostTask(base::NewClosure([&]() {
+    loop.PostTask(NewClosure([&]() {
       std::shared_ptr<HttpMessage> incoming_http(new HttpMessage());
       incoming_http->code = 200;
       incoming_http->io = &loop;
       incoming_http->content = "hello world";
 
       auto handle_in_works = std::bind(&HandleHttpMsg, std::move(incoming_http));
-      worker.PostTask(base::NewClosure(handle_in_works));
+      worker.PostTask(NewClosure(handle_in_works));
     }));
     usleep(5000);
   }
 
   bool running = true;
-  worker.PostTask(base::NewClosure([&]() {
+  worker.PostTask(NewClosure([&]() {
     running = false;
   }));
 

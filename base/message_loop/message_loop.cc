@@ -46,15 +46,15 @@ void IgnoreSigPipeSignalOnCurrentThread2() {
 }
 
 /* a helper class for re-schedule timer task */
-class MessageLoop::SetTimerTask : public QueuedTask {
+class MessageLoop::SetTimerTask : public TaskBase {
  public:
-  SetTimerTask(std::unique_ptr<QueuedTask> task, uint32_t ms)
+  SetTimerTask(std::unique_ptr<TaskBase> task, uint32_t ms)
     : task_(std::move(task)),
       milliseconds_(ms),
       posted_(time_ms()) {
   }
  private:
-  bool Run() override {
+  void Run() override {
     uint32_t post_time = time_ms() - posted_;
     uint32_t new_time = post_time > milliseconds_ ? 0 : milliseconds_ - post_time;
     CHECK(MessageLoop::Current() != NULL);
@@ -65,35 +65,35 @@ class MessageLoop::SetTimerTask : public QueuedTask {
       VLOG(GLOG_VINFO) <<  "Re-Schedule timer in loop, will run task after " << new_time << " ms";
       MessageLoop::Current()->PostDelayTask(std::move(task_), new_time);
     }
-    return true;
   }
-  std::unique_ptr<QueuedTask> task_;
+  std::unique_ptr<TaskBase> task_;
   const uint32_t milliseconds_;
   const uint32_t posted_;
 };
 
-class MessageLoop::BindReplyTask : public QueuedTask {
+class MessageLoop::BindReplyTask : public TaskBase {
 public:
-  static std::unique_ptr<QueuedTask> Create(std::unique_ptr<QueuedTask>& task,
-                                            std::unique_ptr<QueuedTask>& reply,
+  static std::unique_ptr<TaskBase> Create(std::unique_ptr<TaskBase>& task,
+                                            std::unique_ptr<TaskBase>& reply,
                                             MessageLoop* reply_loop,
                                             int notify_fd) {
-    return std::unique_ptr<QueuedTask>(new BindReplyTask(task, reply, reply_loop, notify_fd));
+    return std::unique_ptr<TaskBase>(new BindReplyTask(task, reply, reply_loop, notify_fd));
   }
-  bool Run() override {
+  void Run() override {
     static uint64_t msg = 1;
 
-    if (!task_->Run()) {
+    if (task_) {
+      task_->Run();
       task_.release(); // remove it
     }
+
     holder_->CommitReply();
     int ret = ::write(notify_fd_, &msg, sizeof(msg));
     CHECK(ret == sizeof(msg));
-    return true;
   }
 private:
-  BindReplyTask(std::unique_ptr<QueuedTask>& task,
-                std::unique_ptr<QueuedTask>& reply,
+  BindReplyTask(std::unique_ptr<TaskBase>& task,
+                std::unique_ptr<TaskBase>& reply,
                 MessageLoop* reply_loop,
                 int notify_fd) :
     notify_fd_(notify_fd),
@@ -105,7 +105,7 @@ private:
   }
 
   int notify_fd_;
-  std::unique_ptr<QueuedTask> task_;
+  std::unique_ptr<TaskBase> task_;
   std::shared_ptr<ReplyHolder> holder_;
 };
 
@@ -241,7 +241,7 @@ void MessageLoop::ThreadMain() {
   threadlocal_current_ = NULL;
 }
 
-void MessageLoop::PostDelayTask(std::unique_ptr<QueuedTask> task, uint32_t ms) {
+void MessageLoop::PostDelayTask(std::unique_ptr<TaskBase> task, uint32_t ms) {
   if (status_ != ST_STARTED) {
     LOG(ERROR) << "MessageLoop: " << loop_name_ << " Not Started";
     return;
@@ -251,11 +251,11 @@ void MessageLoop::PostDelayTask(std::unique_ptr<QueuedTask> task, uint32_t ms) {
     RefTimerEvent timer = TimerEvent::CreateOneShotTimer(ms, std::move(task));
     event_pump_->ScheduleTimer(timer);
   } else {
-    PostTask(std::unique_ptr<QueuedTask>(new SetTimerTask(std::move(task), ms)));
+    PostTask(std::unique_ptr<TaskBase>(new SetTimerTask(std::move(task), ms)));
   }
 }
 
-bool MessageLoop::PostTask(std::unique_ptr<QueuedTask> task) {
+bool MessageLoop::PostTask(std::unique_ptr<TaskBase> task) {
   const static uint64_t count = 1;
 
   if (status_ != ST_STARTED) {
@@ -273,7 +273,7 @@ bool MessageLoop::PostTask(std::unique_ptr<QueuedTask> task) {
     return true;
   }
 
-  QueuedTask* task_id = task.get();  // Only used for comparison.
+  TaskBase* task_id = task.get();  // Only used for comparison.
   CHECK(task_id);
 
   {
@@ -285,7 +285,7 @@ bool MessageLoop::PostTask(std::unique_ptr<QueuedTask> task) {
     LOG(ERROR) << "write to eventfd failed, errno:" << errno;
     {
       base::SpinLockGuard guard(task_lock_);
-      scheduled_task_.remove_if([task_id](std::unique_ptr<QueuedTask>& t) {
+      scheduled_task_.remove_if([task_id](std::unique_ptr<TaskBase>& t) {
         return t.get() == task_id;
       });
     }
@@ -298,9 +298,8 @@ void MessageLoop::RunNestedTask() {
   CHECK(IsInLoopThread());
 
   for (auto& task : inloop_scheduled_task_) {
-    if (task && !task->Run()) {
-      task.release();
-    }
+    task->Run();
+    task.release();
   }
   inloop_scheduled_task_.clear();
 }
@@ -316,16 +315,15 @@ void MessageLoop::RunScheduledTask(ScheduledTaskType type) {
         return;
       }
 
-      std::list<std::unique_ptr<QueuedTask>> scheduled_tasks;
+      std::list<std::unique_ptr<TaskBase>> scheduled_tasks;
       {
         base::SpinLockGuard guard(task_lock_);
         scheduled_tasks = std::move(scheduled_task_);
         scheduled_task_.clear();
       }
       for (auto& task : scheduled_tasks) {
-        if (task && !task->Run()) {
-          task.release();
-        }
+        task->Run();
+        task.release();
       }
 
     } break;
@@ -364,16 +362,16 @@ void MessageLoop::OnHandleCommand() {
   }
 }
 
-void MessageLoop::PostTaskAndReply(std::unique_ptr<QueuedTask> task,
-                                   std::unique_ptr<QueuedTask> reply,
+void MessageLoop::PostTaskAndReply(std::unique_ptr<TaskBase> task,
+                                   std::unique_ptr<TaskBase> reply,
                                    MessageLoop* reply_loop) {
   CHECK(reply_loop);
   auto wraper = BindReplyTask::Create(task, reply, reply_loop, reply_loop->reply_event_fd_);
   PostTask(std::move(wraper));
 }
 
-bool MessageLoop::PostTaskAndReply(std::unique_ptr<QueuedTask> task,
-                                   std::unique_ptr<QueuedTask> reply) {
+bool MessageLoop::PostTaskAndReply(std::unique_ptr<TaskBase> task,
+                                   std::unique_ptr<TaskBase> reply) {
 
   MessageLoop* reply_loop = Current() ? Current() : this;
   PostTaskAndReply(std::move(task), std::move(reply), reply_loop);
@@ -423,7 +421,7 @@ bool MessageLoop::PostCoroTask(StlClosure task) {
     LOG(ERROR) << "Schedule Coro Task Notify Failed";
     /*
        base::SpinLockGuard guard(coro_task_lock_);
-       coro_task_.remove_if([task_id](std::unique_ptr<QueuedTask>& t) {
+       coro_task_.remove_if([task_id](std::unique_ptr<TaskBase>& t) {
        return t.get() == task_id;
        });
     */

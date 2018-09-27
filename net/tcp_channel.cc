@@ -66,7 +66,7 @@ void TcpChannel::Start() {
   }
 
   auto task = std::bind(&TcpChannel::OnConnectionReady, shared_from_this());
-  work_loop_->PostTask(base::NewClosure(std::move(task)));
+  work_loop_->PostTask(NewClosure(std::move(task)));
 }
 
 TcpChannel::~TcpChannel() {

@@ -47,7 +47,7 @@ void AsyncChannel::SendRequest(RefProtocolMessage request)  {
   LOG(INFO) << __FUNCTION__ << " schedule tiemout task";
   WeakProtocolMessage weak(request); // weak ptr must init outside, Take Care of weakptr
   auto functor = std::bind(&AsyncChannel::OnRequestTimeout, shared_from_this(), weak);
-  IOLoop()->PostDelayTask(base::NewClosure(functor), request_timeout_);
+  IOLoop()->PostDelayTask(NewClosure(functor), request_timeout_);
 
   uint64_t message_identify = request->MessageIdentify();
   CHECK(message_identify !=MessageIdentifyType::KInvalidIdentify);

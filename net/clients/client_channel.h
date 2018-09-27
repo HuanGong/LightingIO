@@ -30,7 +30,7 @@ public:
       return;
     }
     auto functor = std::bind(&TcpChannel::ShutdownChannel, channel_);
-    IOLoop()->PostTask(base::NewClosure(functor));
+    IOLoop()->PostTask(NewClosure(functor));
   }
   virtual void SendRequest(RefProtocolMessage request) = 0;
 

@@ -10,6 +10,7 @@ public:
   // Constructor should be called with a long-lived char*, such as __FILE__.
   // It assumes the provided value will persist as a global constant, and it
   // will not make a copy of it.
+  Location() {};
   Location(const Location& other);
   Location(const char* function_name, const char* file_name, int line_number);
 

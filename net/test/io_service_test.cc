@@ -108,7 +108,7 @@ private:
   void ExitSignalHandle() {
     LOG(INFO) << " ExitSignalHandle quit AcceptorLoop";
     acceptor_loop_.PostTask(
-      base::NewClosure(std::bind(&IOService::StopIOService, ioservice_)));
+      NewClosure(std::bind(&IOService::StopIOService, ioservice_)));
   }
   base::MessageLoop iowork_loop_;
   base::MessageLoop acceptor_loop_;

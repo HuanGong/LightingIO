@@ -40,7 +40,7 @@ void IOService::StartIOService() {
 
   if (!acceptor_loop_->IsInLoopThread()) {
     auto functor = std::bind(&IOService::StartIOService, this);
-    acceptor_loop_->PostTask(base::NewClosure(std::move(functor)));
+    acceptor_loop_->PostTask(NewClosure(std::move(functor)));
     return;
   }
 
@@ -52,7 +52,7 @@ void IOService::StartIOService() {
 void IOService::StopIOService() {
   if (!acceptor_loop_->IsInLoopThread()) {
     auto functor = std::bind(&IOService::StopIOService, this);
-    acceptor_loop_->PostTask(base::NewClosure(std::move(functor)));
+    acceptor_loop_->PostTask(NewClosure(std::move(functor)));
     return;
   }
 
@@ -64,8 +64,8 @@ void IOService::StopIOService() {
   //async
   for (auto& channel : connections_) {
     base::MessageLoop* loop = channel->IOLoop();
-    //loop->PostTask(base::NewClosure(std::bind(&TcpChannel::ShutdownChannel, channel)));
-    loop->PostTask(base::NewClosure(std::bind(&TcpChannel::ForceShutdown, channel)));
+    //loop->PostTask(NewClosure(std::bind(&TcpChannel::ShutdownChannel, channel)));
+    loop->PostTask(NewClosure(std::bind(&TcpChannel::ForceShutdown, channel)));
   }
 
   if (connections_.size() == 0) {
@@ -123,7 +123,7 @@ void IOService::OnNewConnection(int local_socket, const InetAddress& peer_addr) 
 void IOService::OnChannelClosed(const RefTcpChannel& connection) {
   if (!acceptor_loop_->IsInLoopThread()) {
     auto functor = std::bind(&IOService::RemoveConncetion, this, connection);
-    acceptor_loop_->PostTask(base::NewClosure(std::move(functor)));
+    acceptor_loop_->PostTask(NewClosure(std::move(functor)));
     return;
   }
   RemoveConncetion(connection);

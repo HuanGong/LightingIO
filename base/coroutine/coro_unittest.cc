@@ -40,11 +40,11 @@ void TestCoroutineWithLoop() {
       taskloop.PostCoroTask(functor);
   } while(i++ < 10);
 
-  mainloop.PostDelayTask(base::NewClosure([]() {
+  mainloop.PostDelayTask(NewClosure([]() {
     mainloop.QuitLoop();
   }), 1000);
 
-  taskloop.PostDelayTask(base::NewClosure([]() {
+  taskloop.PostDelayTask(NewClosure([]() {
     mainloop.QuitLoop();
   }), 1000);
 
@@ -64,7 +64,7 @@ TEST_CASE("go_coro", "[go flag call coroutine]") {
   loop.Start();
   loop2.Start();
 
-  loop.PostTask(base::NewClosure([&]() {
+  loop.PostTask(NewClosure([&]() {
     LOG(INFO) << " start test go flag enter";
 
     go coro_f;
@@ -72,10 +72,22 @@ TEST_CASE("go_coro", "[go flag call coroutine]") {
     go std::bind(&coro_fun, "tag_from_go_synatax");
 
     go []() {
-      LOG(INFO) << " run lambda in coroutine";
+      LOG(INFO) << " run lambda in coroutine" ;
     };
     LOG(INFO) << " start test go flag leave";
   }));
   loop.WaitLoopEnd();
   loop2.WaitLoopEnd();
+}
+
+TEST_CASE("task_location", "[new task tracking location ]") {
+  base::MessageLoop loop;
+  loop.Start();
+
+  loop.PostTask(NewClosure([&]() {
+    LOG(INFO) << " task_location exception enter";
+    int *p = (int *) 12345;
+    LOG(INFO) << " task_location exception leave" << *p;
+  }));
+  loop.WaitLoopEnd();
 }

@@ -34,7 +34,7 @@ bool WorkLoadDispatcher::TransmitToWorker(base::StlClosure& clourse) {
   if (nullptr == loop) {
     return false;
   }
-  return loop->PostTask(base::NewClosure(clourse));
+  return loop->PostTask(NewClosure(clourse));
 }
 
 }//end namespace net

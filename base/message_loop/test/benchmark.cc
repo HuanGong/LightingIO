@@ -19,7 +19,7 @@ void TaskProducer(int i) {
   int64_t total = 0;
   for (int i = 0; i < max_task_per_producer; i++) {
 
-    bool ok = g_loop.PostTask(base::NewClosure([&]() {
+    bool ok = g_loop.PostTask(NewClosure([&]() {
       finished_task_counter++;
       if (finished_task_counter == g_post_counter && thread_end == std::thread::hardware_concurrency()) {
         LOG(INFO) << " all task finished @" << base::time_ms();

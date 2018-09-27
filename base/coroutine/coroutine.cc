@@ -19,6 +19,7 @@ const static std::function<void()> null_func;
 void coro_main(void* arg) {
   auto * coroutine = static_cast<Coroutine*>(arg);
   CHECK(coroutine);
+
   do {
     CHECK(coroutine->coro_task_ && CoroState::kRunning == coroutine->state_);
 

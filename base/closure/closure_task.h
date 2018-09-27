@@ -7,53 +7,79 @@
 #include <assert.h>
 #include <functional>
 #include "glog/logging.h"
-
+#include "location.h"
 #include "base/base_micro.h"
+
+#define NewClosureAlias(Location, Functor) ::base::CreateClosure(Location, Functor)
+#define NewClosureWithCallbackAlias(Location, Functor, Cleanup) ::base::CreateClosureWithCallback(Location, Functor, Cleanup)
+
+#define NewClosure(Functor) NewClosureAlias(FROM_HERE, Functor)
+#define NewClosureWithCleanup(Functor, Cleanup) NewClosureWithCallbackAlias(Location, Functor, Cleanup)
 
 namespace base {
 
-class QueuedTask {
+class TaskBase {
 public:
-  QueuedTask() {}
-  virtual ~QueuedTask() {}
-  virtual bool Run() = 0;
+  TaskBase() {} //TODO remove it
+  explicit TaskBase(const Location& location) : location_(location) {}
+  virtual ~TaskBase() {}
+  virtual void Run() = 0;
+
+  std::string ClosureInfo() const {
+    return location_.ToString();
+  };
 private:
-  DISALLOW_COPY_AND_ASSIGN(QueuedTask);
+  Location location_;
+  DISALLOW_COPY_AND_ASSIGN(TaskBase);
 };
 
 
 template <class Closure>
-class ClosureTask : public QueuedTask {
+class ClosureTask : public TaskBase {
 public:
-  explicit ClosureTask(const Closure& closure) : closure_(closure) {}
-private:
-  bool Run() override {
-    closure_();
-    return true;
+  explicit ClosureTask(const Location& location, const Closure& closure)
+   : TaskBase(location),
+     closure_task(closure) {
   }
-  Closure closure_;
+  void Run() override {
+    try {
+      closure_task();
+    } catch (...) {
+      LOG(WARNING) << "LT Task Closure Exception, Task From:" << ClosureInfo();
+    }
+  }
+private:
+  Closure closure_task;
 };
 
 template <class Closure, class Cleanup>
 class ClosureTaskWithCleanup : public ClosureTask<Closure> {
 public:
-  ClosureTaskWithCleanup(const Closure& closure, Cleanup cleanup)
-      : ClosureTask<Closure>(closure), cleanup_(cleanup) {}
-  ~ClosureTaskWithCleanup() { cleanup_(); }
+  ClosureTaskWithCleanup(const Location& location, const Closure& closure, const Cleanup& cleanup)
+      : ClosureTask<Closure>(location, closure),
+        cleanup_task(cleanup) {
+  }
+  ~ClosureTaskWithCleanup() {
+    try {
+      cleanup_task();
+    } catch (...) {
+      LOG(WARNING) << "LT Cleanup Closure Exception, Task From:" << TaskBase::ClosureInfo();
+    }
+  }
 private:
-  Cleanup cleanup_;
+  Cleanup cleanup_task;
 };
 
 template <class Closure>
-static std::unique_ptr<QueuedTask> NewClosure(const Closure& closure) {
-  return std::unique_ptr<QueuedTask>(new ClosureTask<Closure>(closure));
+static std::unique_ptr<TaskBase> CreateClosure(const Location& location, const Closure& closure) {
+  return std::unique_ptr<TaskBase>(new ClosureTask<Closure>(location, closure));
 }
 
 template <class Closure, class Cleanup>
-static std::unique_ptr<QueuedTask> NewClosure(const Closure& closure,
-                                              const Cleanup& cleanup) {
-  return std::unique_ptr<QueuedTask>(
-      new ClosureTaskWithCleanup<Closure, Cleanup>(closure, cleanup));
+static std::unique_ptr<TaskBase> CreateClosureWithCallback(const Location& location,
+                                                           const Closure& closure,
+                                                           const Cleanup& cleanup) {
+  return std::unique_ptr<TaskBase>(new ClosureTaskWithCleanup<Closure, Cleanup>(location, closure, cleanup));
 }
 
 typedef std::function<void()> SigHandler;

@@ -7,7 +7,7 @@
 
 namespace base {
 
-typedef std::unique_ptr<QueuedTask> UniqueTimerTask;
+typedef std::unique_ptr<TaskBase> UniqueTimerTask;
 
 class TimerEvent {
 public:

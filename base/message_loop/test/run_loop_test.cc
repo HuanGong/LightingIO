@@ -18,74 +18,62 @@
 bool MessageLoopTest();
 bool FdEventTest();
 bool TimerEventTest();
-bool CoroutineTaskTest() {
+
+bool LocationTaskTest() {
   base::MessageLoop loop;
 
-  uint64_t coro1_id = 0;
-  std::weak_ptr<base::Coroutine> weak1;
-  uint64_t coro2_id = 0;
-  std::weak_ptr<base::Coroutine> weak2;
-
-  loop.PostCoroTask([](){
-    LOG(INFO) << "Task Run At Coroutine, task 1";
-  });
-  loop.PostCoroTask([&](){
-    LOG(INFO) << "Task Run At Coroutine, task 2 start";
-    base::RefCoroutine coro = base::CoroRunner::CurrentCoro();
-    weak1 = coro;
-    coro1_id = coro->Identify();
-    base::CoroRunner::YieldCurrent();
-    LOG(INFO) << "Task Run At Coroutine, task 2 resume";
-  });
-  loop.PostCoroTask([](){
-    LOG(INFO) << "Task Run At Coroutine, task 3";
-  });
-  loop.PostCoroTask([&](){
-    LOG(INFO) << "Task Run At Coroutine, task 4";
-    base::RefCoroutine coro = base::CoroRunner::CurrentCoro();
-    weak2 = coro;
-    coro2_id = coro->Identify();
-    base::CoroRunner::YieldCurrent();
-    LOG(INFO) << "Task Run At Coroutine, task 4 resume";
-  });
-
   loop.Start();
-  loop.PostTask(base::NewClosure([](){
-    LOG(INFO) << "Normal Task Run, task";
+  loop.PostTask(NewClosure([](){
+    throw "task error";
   }));
-
-  loop.PostDelayTask(base::NewClosure([&](){
-    LOG(INFO) << "resume coroutine 2 start";
-    base::RefCoroutine coro = weak1.lock();
-    coro->Resume(coro1_id);
-    LOG(INFO) << "resume coroutine 2 finished";
-
-    LOG(INFO) << "resume coroutine 4 start";
-    base::RefCoroutine coro2 = weak2.lock();
-    coro->Resume(coro2_id);
-    LOG(INFO) << "resume coroutine 4 finished";
-  }), 1000);
-
-  loop.PostDelayTask(base::NewClosure([&](){
-    LOG(INFO) << "Quit Loop";
-    loop.QuitLoop();
-  }), 10*1000);
+  loop.PostTask(NewClosure([](){
+    LOG(INFO) << " program continue";
+  }));
+  loop.PostTask(NewClosure([](){
+    LOG(INFO) << " program continue 2";
+  }));
 
   loop.WaitLoopEnd();
   return  true;
 }
 
+void ouch(int sig) {
+	LOG(INFO) << " Catch Sigsegv signal";
+	throw "bad signal";
+}
+
+void FailHandle() {
+  LOG(INFO) << " Catch Failed from Glog";
+  throw "program failed";
+}
+
+void FailureDump(const char* failure, int size) {
+  LOG(INFO) << __FUNCTION__ << std::string(failure, size);
+  throw "program failed";
+}
+
 int main(int argc, char** argv) {
   //google::InitGoogleLogging(argv[0]);  // 初始化 glog
-  //google::ParseCommandLineFlags(&argc, &argv, true);  // 初始化 gflags
+  google::ParseCommandLineFlags(&argc, &argv, true);  // 初始化 gflags
+  google::InstallFailureSignalHandler();
+  google::InstallFailureWriter(FailureDump);
+  google::InstallFailureFunction(FailHandle);
 
   //FdEventTest();
   //TimerEventTest();
   //static void signal(int sig, const std::function<void()>& handler);
+  /*
+  struct sigaction act;
+  act.sa_handler = ouch;
+  sigemptyset(&act.sa_mask);
+  act.sa_flags = 0;
+  //sigaction(SIGINT, &act, 0);
+  sigaction(SIGSEGV, &act, 0);
+  */
 
 
   //MessageLoopTest();
-  CoroutineTaskTest();
+  LocationTaskTest();
   return 0;
 }
 
@@ -99,12 +87,12 @@ bool MessageLoopTest() {
   reply_loop.Start();
   {
 
-    loop.PostTaskAndReply(base::NewClosure([&](){
+    loop.PostTaskAndReply(NewClosure([&](){
         LOG(INFO) << "PostTaskAndReply task run";
-      }), base::NewClosure([&]() {
+      }), NewClosure([&]() {
         LOG(INFO) << "PostTaskAndReply reply run";
         reply_loop.Pump()->Quit();
-        loop.PostTask(base::NewClosure([&]() {
+        loop.PostTask(NewClosure([&]() {
           loop.Pump()->Quit();
         }));
       }), &reply_loop);
@@ -183,7 +171,7 @@ bool TimerEventTest() {
   {
     base::RefTimerEvent timer = std::make_shared<base::TimerEvent>(5000);
     uint32_t timer_id = loop.ScheduleTimer(timer);
-    timer->SetTimerTask(base::NewClosure([&]() {
+    timer->SetTimerTask(NewClosure([&]() {
       LOG(INFO) << "timer1(once) Invoked";
     }));
     timer_id = timer_id; //jsut make gcc happy
@@ -192,7 +180,7 @@ bool TimerEventTest() {
   {
     base::RefTimerEvent timer2 = std::make_shared<base::TimerEvent>(2000, false);
     uint32_t timer_id2 = loop.ScheduleTimer(timer2);
-    timer2->SetTimerTask(base::NewClosure([&]() {
+    timer2->SetTimerTask(NewClosure([&]() {
       LOG(INFO) << "timer2(repeated) Invoked";
       if (3 == (++repeat_count)) {
         loop.CancelTimer(timer_id2);
@@ -203,7 +191,7 @@ bool TimerEventTest() {
   {
     base::RefTimerEvent timer3 = std::make_shared<base::TimerEvent>(10000);
     uint32_t timer_id3 = loop.ScheduleTimer(timer3);
-    timer3->SetTimerTask(base::NewClosure([&]() {
+    timer3->SetTimerTask(NewClosure([&]() {
       LOG(INFO) << "timer3( for quit ) Invoked";
       loop.Quit();
     }));

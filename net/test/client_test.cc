@@ -75,7 +75,7 @@ int main(int argc, char* argv[]) {
   router_config.message_timeout = 1000;
   router->SetupRouter(router_config);
   router->SetWorkLoadTransfer(dispatcher_);
-  loop.PostTask(base::NewClosure(std::bind(&net::ClientRouter::StartRouter, router)));
+  loop.PostTask(NewClosure(std::bind(&net::ClientRouter::StartRouter, router)));
 
   sleep(5);
 

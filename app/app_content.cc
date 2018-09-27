@@ -22,7 +22,7 @@ void App::RunApplication() {
   LOG(INFO) << " Application Start";
 
   //auto functor = std::bind(&App::ContentMain, this);
-  //content_loop_.PostTask(base::NewClosure(functor));
+  //content_loop_.PostTask(NewClosure(functor));
   this->ContentMain();
 
   content_loop_.WaitLoopEnd();

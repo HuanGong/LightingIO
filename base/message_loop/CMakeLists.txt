@@ -10,18 +10,15 @@ add_dependencies(ltnet
   glog
   base_shared
 )
+LINK_LIBRARIES(
+	base_shared
+)
 
 ADD_EXECUTABLE(runloop_test
   test/run_loop_test.cc
 )
-TARGET_LINK_LIBRARIES(runloop_test
-  base_shared
-)
 
 ADD_EXECUTABLE(benchmark_test
   test/benchmark.cc
-)
-TARGET_LINK_LIBRARIES(runloop_test
-  base_shared
 )
 

@@ -22,7 +22,7 @@ CoroWlDispatcher::~CoroWlDispatcher() {
 void CoroWlDispatcher::TransferAndYield(base::MessageLoop* ioloop, base::StlClosure clourse) {
   CHECK(ioloop);
   CHECK(base::CoroRunner::CurrentCoro());
-  ioloop->PostTask(base::NewClosure(std::move(clourse)));
+  ioloop->PostTask(NewClosure(std::move(clourse)));
 
   base::CoroRunner::YieldCurrent();
 }

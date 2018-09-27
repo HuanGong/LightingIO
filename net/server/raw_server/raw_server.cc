@@ -138,7 +138,7 @@ void RawServer::HandleRawRequest(const RefProtocolMessage request) {
         channel->ShutdownChannel();
       }
     };
-    channel->IOLoop()->PostTask(base::NewClosure(std::move(functor)));
+    channel->IOLoop()->PostTask(NewClosure(std::move(functor)));
   }
 }
 

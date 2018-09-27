@@ -39,7 +39,7 @@ void ClientRouter::SetupRouter(const RouterConf& config) {
 void ClientRouter::StartRouter() {
   for (uint32_t i = 0; i < channel_count_; i++) {
     auto functor = std::bind(&Connector::LaunchAConnection, connector_, server_addr_);
-    work_loop_->PostTask(base::NewClosure(functor));
+    work_loop_->PostTask(NewClosure(functor));
   }
 }
 
@@ -70,7 +70,7 @@ void ClientRouter::OnClientConnectFailed() {
   }
   LOG(INFO) << server_addr_.IpPortAsString() << " connect failed try after " << reconnect_interval_ << " ms";
   auto functor = std::bind(&Connector::LaunchAConnection, connector_, server_addr_);
-  work_loop_->PostDelayTask(base::NewClosure(functor), reconnect_interval_);
+  work_loop_->PostDelayTask(NewClosure(functor), reconnect_interval_);
 }
 
 base::MessageLoop* ClientRouter::GetLoopForClient() {
@@ -111,7 +111,7 @@ void ClientRouter::OnNewClientConnected(int socket_fd, InetAddress& local, InetA
 void ClientRouter::OnClientChannelClosed(const RefClientChannel& channel) {
   if (!work_loop_->IsInLoopThread()) {
     auto functor = std::bind(&ClientRouter::OnClientChannelClosed, this, channel);
-    work_loop_->PostTask(base::NewClosure(std::move(functor)));
+    work_loop_->PostTask(NewClosure(std::move(functor)));
     return;
   }
 
@@ -132,7 +132,7 @@ void ClientRouter::OnClientChannelClosed(const RefClientChannel& channel) {
   if (!is_stopping_ && channels_.size() < channel_count_) {
     VLOG(GLOG_VTRACE) << "Broken, ReConnect After:" << reconnect_interval_ << " ms";
     auto functor = std::bind(&Connector::LaunchAConnection, connector_, server_addr_);
-    work_loop_->PostDelayTask(base::NewClosure(functor), reconnect_interval_);
+    work_loop_->PostDelayTask(NewClosure(functor), reconnect_interval_);
   }
 }
 

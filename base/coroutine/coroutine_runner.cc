@@ -85,7 +85,7 @@ void CoroRunner::ResumeCoroutine(const RefCoroutine& coroutine) {
 
   if (!bind_loop_->IsInLoopThread() || CanYield()) {
     auto f = std::bind(&CoroRunner::ResumeCoroutine, this, coroutine);
-    bind_loop_->PostTask(base::NewClosure(f));
+    bind_loop_->PostTask(NewClosure(f));
     return;
   }
 

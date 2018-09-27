@@ -69,7 +69,7 @@ bool QueuedChannel::TrySendRequestInternal() {
     CHECK(in_progress_request_);
     WeakProtocolMessage weak(in_progress_request_);   // weak ptr must init outside, Take Care of weakptr
     auto functor = std::bind(&QueuedChannel::OnRequestTimeout, shared_from_this(), weak);
-    IOLoop()->PostDelayTask(base::NewClosure(functor), request_timeout_);
+    IOLoop()->PostDelayTask(NewClosure(functor), request_timeout_);
   }
   return success;
 }

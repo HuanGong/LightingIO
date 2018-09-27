@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
   };
 
   net::ServiceAcceptor* acceptor;
-  loop.PostTask(base::NewClosure([&]() {
+  loop.PostTask(NewClosure([&]() {
 
     net::InetAddress addr(5005);
     acceptor = new net::ServiceAcceptor(loop.Pump(), addr);

@@ -26,24 +26,25 @@ enum LoopState {
 
 class ReplyHolder {
 public:
-  static std::shared_ptr<ReplyHolder> Create(std::unique_ptr<QueuedTask> task) {
+  static std::shared_ptr<ReplyHolder> Create(std::unique_ptr<TaskBase> task) {
     return std::make_shared<ReplyHolder>(std::move(task));
   }
   bool InvokeReply() {
     if (!reply_ || !commited_) {
       return false;
     }
-    return reply_->Run();
+    reply_->Run();
+    return true;
   }
   inline void CommitReply() {commited_ = true;}
   inline bool IsCommited() {return commited_;};
-  ReplyHolder(std::unique_ptr<QueuedTask> task) :
+  ReplyHolder(std::unique_ptr<TaskBase> task) :
     commited_(false),
     reply_(std::move(task)) {
   }
 private:
   bool commited_;
-  std::unique_ptr<QueuedTask> reply_;
+  std::unique_ptr<TaskBase> reply_;
 };
 
 class MessageLoop : public PumpDelegate {
@@ -62,18 +63,18 @@ class MessageLoop : public PumpDelegate {
 
     bool PostCoroTask(StlClosure task);
 
-    bool PostTask(std::unique_ptr<QueuedTask> task);
+    bool PostTask(std::unique_ptr<TaskBase> task);
 
-    void PostDelayTask(std::unique_ptr<QueuedTask> t, uint32_t milliseconds);
+    void PostDelayTask(std::unique_ptr<TaskBase> t, uint32_t milliseconds);
 
     /* Task will run in target loop thread,
      * reply will run in Current() loop if it exist,
      * otherwise the reply task will run in target messageloop thread too*/
-    bool PostTaskAndReply(std::unique_ptr<QueuedTask> task,
-                          std::unique_ptr<QueuedTask> reply);
+    bool PostTaskAndReply(std::unique_ptr<TaskBase> task,
+                          std::unique_ptr<TaskBase> reply);
 
-    void PostTaskAndReply(std::unique_ptr<QueuedTask> task,
-                          std::unique_ptr<QueuedTask> reply,
+    void PostTaskAndReply(std::unique_ptr<TaskBase> task,
+                          std::unique_ptr<TaskBase> reply,
                           MessageLoop* reply_queue);
 
     bool InstallSigHandler(int, const SigHandler);
@@ -127,7 +128,7 @@ class MessageLoop : public PumpDelegate {
     int task_event_fd_ = -1;
     RefFdEvent task_event_;
     base::SpinLock task_lock_;
-    std::list<std::unique_ptr<QueuedTask>> scheduled_task_;
+    std::list<std::unique_ptr<TaskBase>> scheduled_task_;
 
     int reply_event_fd_ = -1;
     RefFdEvent reply_event_;
@@ -135,7 +136,7 @@ class MessageLoop : public PumpDelegate {
     std::list<std::shared_ptr<ReplyHolder>> future_replys_;
 
     // those task was post inloop thread, no lock needed
-    std::list<std::unique_ptr<QueuedTask>> inloop_scheduled_task_;
+    std::list<std::unique_ptr<TaskBase>> inloop_scheduled_task_;
 
     //new version <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
