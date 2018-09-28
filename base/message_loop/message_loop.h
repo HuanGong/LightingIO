@@ -61,8 +61,6 @@ class MessageLoop : public PumpDelegate {
     MessageLoop();
     virtual ~MessageLoop();
 
-    bool PostCoroTask(StlClosure task);
-
     bool PostTask(std::unique_ptr<TaskBase> task);
 
     void PostDelayTask(std::unique_ptr<TaskBase> t, uint32_t milliseconds);
@@ -99,7 +97,6 @@ class MessageLoop : public PumpDelegate {
     void ThreadMain();
 
     void OnHandleCommand();  // NOLINT
-    void RunCoroutineTask(bool with_fd = true);
     void RunScheduledTask(ScheduledTaskType t);
 
     // nested task: in a inloop task , post another task in current loop
@@ -117,13 +114,6 @@ class MessageLoop : public PumpDelegate {
 
     std::string loop_name_;
     std::unique_ptr<std::thread> thread_ptr_;
-
-    //new version >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    int coro_task_event_fd_ = -1;
-    RefFdEvent coro_task_event_;
-    base::SpinLock coro_task_lock_;
-    std::list<base::StlClosure> coro_task_;
-    std::list<base::StlClosure> inloop_coro_task_;
 
     int task_event_fd_ = -1;
     RefFdEvent task_event_;

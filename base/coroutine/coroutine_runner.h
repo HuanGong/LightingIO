@@ -18,26 +18,29 @@ namespace base {
 class CoroRunner : public CoroDelegate {
 public:
   typedef struct __go {
-    __go(const char* file, int line) : file_(file), line_(line) {};
+    __go(const char* func, const char* file, int line)
+      : location_(func, file, line) {
+    }
+
     template <typename Functor>
-    inline void operator-(Functor const& arg) {
+    inline void operator-(Functor arg) {
         CoroRunner& runner = Runner();
-        runner.coro_tasks_.push_back(arg);
-        if (!runner.invoke_coro_shceduled_) {
+        runner.coro_tasks_.push_back(std::move(CreateClosure(location_, arg)));
+        if (!runner.invoke_coro_shceduled_ && target_loop_) {
           target_loop_->PostTask(NewClosure(std::bind(&CoroRunner::InvokeCoroutineTasks, &runner)));
         }
     }
-    const char* file_;
-    const int   line_;
+    Location location_;
     base::MessageLoop* target_loop_ = MessageLoop::Current();
   }__go;
+
 public:
   static bool CanYield();
   static RefCoroutine CurrentCoro();
   static void YieldCurrent(int32_t wc = 1);
 
   /* New Scheduler with message loop */
-  static void RunScheduledTasks(std::list<StlClosure>&& tasks);
+  static void RunScheduledTasks(std::list<ClosurePtr>&& tasks);
 protected:
   CoroRunner();
   ~CoroRunner();
@@ -69,7 +72,7 @@ private:
   MessageLoop* bind_loop_;
 
   bool invoke_coro_shceduled_;
-  std::list<StlClosure> coro_tasks_;
+  std::list<ClosurePtr> coro_tasks_;
   std::vector<RefCoroutine> expired_coros_;
 
   /* coroutines waiting for resume */
@@ -84,7 +87,7 @@ private:
   DISALLOW_COPY_AND_ASSIGN(CoroRunner);
 };
 
-#define go base::CoroRunner::__go(__FILE__, __LINE__)-
+#define go base::CoroRunner::__go(__FUNCTION__, __FILE__, __LINE__)-
 
 }// end base
 #endif

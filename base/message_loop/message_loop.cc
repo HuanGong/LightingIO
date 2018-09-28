@@ -24,8 +24,6 @@
 #include "file_util_linux.h"
 #include "base/time/time_utils.h"
 
-#include "base/coroutine/coroutine_runner.h"
-
 namespace base {
 
 static const char kQuit = 1;
@@ -140,12 +138,6 @@ MessageLoop::MessageLoop()
   CHECK(reply_event_);
   reply_event_->SetReadCallback(std::bind(&MessageLoop::RunScheduledTask, this, ScheduledTaskType::TaskTypeReply));
 
-  //coroutine task
-  coro_task_event_fd_ = ::eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
-  coro_task_event_ = FdEvent::Create(coro_task_event_fd_, EPOLLIN);
-  coro_task_event_->SetReadCallback(std::bind(&MessageLoop::RunCoroutineTask, this, true));
-  CHECK(coro_task_event_);
-
   running_.clear();
 }
 
@@ -168,12 +160,10 @@ MessageLoop::~MessageLoop() {
 
   task_event_.reset();
   reply_event_.reset();
-  coro_task_event_.reset();
   task_event_fd_ = -1;
   reply_event_fd_ = -1;
   wakeup_pipe_in_ = -1;
   wakeup_pipe_out_ = -1;
-  coro_task_event_fd_ = -1;
 
   event_pump_.reset();
 }
@@ -223,7 +213,6 @@ void MessageLoop::ThreadMain() {
   event_pump_->InstallFdEvent(wakeup_event_.get());
   event_pump_->InstallFdEvent(task_event_.get());
   event_pump_->InstallFdEvent(reply_event_.get());
-  event_pump_->InstallFdEvent(coro_task_event_.get());
 
   //delegate_->BeforeLoopRun();
   LOG(INFO) << "MessageLoop: " << loop_name_ << " Start Runing";
@@ -234,7 +223,6 @@ void MessageLoop::ThreadMain() {
   event_pump_->RemoveFdEvent(task_event_.get());
   event_pump_->RemoveFdEvent(reply_event_.get());
   event_pump_->RemoveFdEvent(wakeup_event_.get());
-  event_pump_->RemoveFdEvent(coro_task_event_.get());
 
   LOG(INFO) << "MessageLoop: " << loop_name_ << " Stop Runing";
   status_.store(ST_STOPED);
@@ -343,7 +331,6 @@ void MessageLoop::RunScheduledTask(ScheduledTaskType type) {
       LOG(ERROR) << " Should Not Reached Here!!!";
     break;
   }
-
 }
 
 //static
@@ -402,57 +389,6 @@ bool MessageLoop::InstallSigHandler(int sig, const SigHandler handler) {
 
 void MessageLoop::QuitLoop() {
   event_pump_->Quit();
-}
-
-bool MessageLoop::PostCoroTask(StlClosure task) {
-  const static uint64_t count = 1;
-  if (IsInLoopThread()) {
-    inloop_coro_task_.push_back(std::move(task));
-    LOG_IF(ERROR, Notify(coro_task_event_fd_, &count, sizeof(count)) < 0) << "InLoop Coro Notify Failed";
-    return true;
-  }
-
-  {
-    base::SpinLockGuard guard(coro_task_lock_);
-    coro_task_.push_back(std::move(task));
-  }
-  int r = Notify(coro_task_event_fd_, &count, sizeof(count));
-  if (r < 0) {
-    LOG(ERROR) << "Schedule Coro Task Notify Failed";
-    /*
-       base::SpinLockGuard guard(coro_task_lock_);
-       coro_task_.remove_if([task_id](std::unique_ptr<TaskBase>& t) {
-       return t.get() == task_id;
-       });
-    */
-    return false;
-  }
-  return true;
-}
-
-void MessageLoop::RunCoroutineTask(bool with_fd) {
-  uint64_t count = 0;
-  if (with_fd) {
-    int ret = read(coro_task_event_fd_, &count, sizeof(count));
-    LOG_IF(ERROR, ret < 0) << "read corotask fd fail:" << ret << " errno:" << errno;
-  }
-
-  std::list<base::StlClosure> all_coro_task_;
-  {
-    base::SpinLockGuard guard(coro_task_lock_);
-    all_coro_task_ = std::move(coro_task_);
-    coro_task_.clear();
-  }
-
-  all_coro_task_.splice(all_coro_task_.end(), std::move(inloop_coro_task_));
-  inloop_coro_task_.clear();
-
-  count = all_coro_task_.size();
-  if (count == 0) {
-    return;
-  }
-  CoroRunner::RunScheduledTasks(std::move(all_coro_task_));
-  VLOG(GLOG_VTRACE) << __FUNCTION__ << " Leave, this tick run coro task count:" << count;
 }
 
 int MessageLoop::Notify(int fd, const void* data, size_t count) {

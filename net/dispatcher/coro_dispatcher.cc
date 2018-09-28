@@ -59,7 +59,13 @@ bool CoroWlDispatcher::TransmitToWorker(base::StlClosure& closure) {
     return false;
   }
 
-  loop->PostCoroTask(closure);
+  if (loop->IsInLoopThread()) {
+    go closure;
+  } else {
+    loop->PostTask(NewClosure([=]() {
+      go closure;
+    }));
+  }
   return true;
 }
 

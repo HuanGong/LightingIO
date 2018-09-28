@@ -5,6 +5,7 @@
 #include "server/raw_server/raw_server.h"
 #include "server/http_server/http_server.h"
 #include "dispatcher/coro_dispatcher.h"
+#include "dispatcher/workload_dispatcher.h"
 #include "coroutine/coroutine_runner.h"
 
 #include "clients/client_connector.h"
@@ -20,21 +21,16 @@ std::vector<base::MessageLoop*> loops;
 std::vector<base::MessageLoop*> workers;
 
 CoroWlDispatcher* dispatcher_ = new CoroWlDispatcher(true);
+WorkLoadDispatcher* common_dispatcher = new WorkLoadDispatcher(true);
+
 std::atomic_int64_t http_count;
 void HandleHttp(const HttpRequest* req, HttpResponse* res) {
   http_count++;
   LOG(INFO) << "http count:" << http_count << " enter";
 
-  //auto loop = base::MessageLoop::Current();
-  //auto coro = base::CoroRunner::CurrentCoro();
-  //int64_t id = coro->Identify();
   //broadcast
   if (req->RequestUrl() == "/br") {
-    //loop->PostCoroTask(std::bind([=]() {
       SendRawRequest();
-      //coro->Resume(id);
-    //}));
-    //base::CoroRunner::YieldCurrent();
   }
 
   res->SetResponseCode(200);
@@ -217,6 +213,7 @@ int main(int argc, char* argv[]) {
   http_count.store(0);
   PrepareLoops(std::thread::hardware_concurrency(), 1);
   dispatcher_->SetWorkerLoops(workers);
+  common_dispatcher->SetWorkerLoops(workers);
 
   net::RawServer raw_server;
   raw_server.SetIoLoops(loops);

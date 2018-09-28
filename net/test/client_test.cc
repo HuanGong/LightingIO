@@ -79,10 +79,11 @@ int main(int argc, char* argv[]) {
 
   sleep(5);
 
-  for (int i = 0; i < 10; i++) {
-    base::StlClosure send_request = std::bind(SendRequest, i);
-    loop.PostCoroTask(send_request);
-  }
+  loop.PostTask(NewClosure([]() {
+    for (int i = 0; i < 10; i++) {
+      go std::bind(SendRequest, i);
+    }
+  }));
 
   loop.WaitLoopEnd();
   delete router;

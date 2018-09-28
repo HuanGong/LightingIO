@@ -5,7 +5,7 @@
 #include "memory/lazy_instance.h"
 
 namespace base {
-static const int kMaxReuseCoroutineNumbersPerThread = 5000;
+static const int kMaxReuseCoroutineNumbersPerThread = 50000;
 
 namespace __detail {
   struct _T : public CoroRunner {};
@@ -110,7 +110,7 @@ bool CoroRunner::Transfer(const RefCoroutine& next) {
 
   coro_context* to = next.get();
   coro_context* from = current_.get();
-  
+
   if (current_->state_ != CoroState::kDone) {
     current_->SetCoroState(CoroState::kPaused);
   }
@@ -137,7 +137,7 @@ void CoroRunner::RecallCoroutineIfNeeded() {
   GcCoroutine();
 }
 
-void CoroRunner::RunScheduledTasks(std::list<StlClosure>&& tasks) {
+void CoroRunner::RunScheduledTasks(std::list<ClosurePtr>&& tasks) {
   MessageLoop* loop = MessageLoop::Current();
   CHECK(loop == current_runner->bind_loop_);
 

@@ -8,6 +8,7 @@
 #include <functional>
 #include <base_micro.h>
 #include "libcoro/coro.h"
+#include <closure/closure_task.h>
 
 namespace base {
 typedef std::function<void()> CoroClosure;
@@ -47,7 +48,7 @@ private:
   Coroutine(CoroDelegate* d, bool main);
 
   void Reset();
-  void SetTask(CoroClosure task);
+  void SetTask(ClosurePtr&& task);
   void SelfHolder(RefCoroutine& self);
   void SetCoroState(CoroState st) {state_ = st;}
   void ReleaseSelfHolder(){self_holder_.reset();};
@@ -58,7 +59,7 @@ private:
 
   CoroState state_;
   coro_stack stack_;
-  CoroClosure coro_task_;
+  ClosurePtr coro_task_;
   /* 此identify_ 只有在每次从暂停状态转换成running状态之后才会自增; 用于防止非正确的唤醒; eg:
    * coro running -> coro paused 之后有多个事件都可能唤醒他，其中一个已经唤醒过此coro，唤醒之后
    * 再次puased， 若此前另外一个事件唤醒coro， 将导致不正确的状态.*/

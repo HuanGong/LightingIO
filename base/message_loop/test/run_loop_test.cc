@@ -24,53 +24,31 @@ bool LocationTaskTest() {
 
   loop.Start();
   loop.PostTask(NewClosure([](){
-    throw "task error";
-  }));
-  loop.PostTask(NewClosure([](){
-    LOG(INFO) << " program continue";
-  }));
-  loop.PostTask(NewClosure([](){
-    LOG(INFO) << " program continue 2";
+    printf("FailureDump throw failed exception");
+    *(int*)0 = 10;
   }));
 
+  loop.PostDelayTask(NewClosure([&]() {
+    loop.QuitLoop();
+  }), 2000);
   loop.WaitLoopEnd();
-  return  true;
-}
-
-void ouch(int sig) {
-	LOG(INFO) << " Catch Sigsegv signal";
-	throw "bad signal";
-}
-
-void FailHandle() {
-  LOG(INFO) << " Catch Failed from Glog";
-  throw "program failed";
+  return false;
 }
 
 void FailureDump(const char* failure, int size) {
-  LOG(INFO) << __FUNCTION__ << std::string(failure, size);
-  throw "program failed";
+  std::string failure_info = std::string(failure, size);
+  throw failure_info;
 }
 
 int main(int argc, char** argv) {
   //google::InitGoogleLogging(argv[0]);  // 初始化 glog
-  google::ParseCommandLineFlags(&argc, &argv, true);  // 初始化 gflags
+  //google::ParseCommandLineFlags(&argc, &argv, true);  // 初始化 gflags
   google::InstallFailureSignalHandler();
   google::InstallFailureWriter(FailureDump);
-  google::InstallFailureFunction(FailHandle);
 
   //FdEventTest();
   //TimerEventTest();
   //static void signal(int sig, const std::function<void()>& handler);
-  /*
-  struct sigaction act;
-  act.sa_handler = ouch;
-  sigemptyset(&act.sa_mask);
-  act.sa_flags = 0;
-  //sigaction(SIGINT, &act, 0);
-  sigaction(SIGSEGV, &act, 0);
-  */
-
 
   //MessageLoopTest();
   LocationTaskTest();

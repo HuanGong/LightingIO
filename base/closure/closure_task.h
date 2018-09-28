@@ -24,32 +24,31 @@ public:
   explicit TaskBase(const Location& location) : location_(location) {}
   virtual ~TaskBase() {}
   virtual void Run() = 0;
-
+protected:
   std::string ClosureInfo() const {
     return location_.ToString();
   };
 private:
   Location location_;
-  DISALLOW_COPY_AND_ASSIGN(TaskBase);
 };
 
 
-template <class Closure>
+template <typename Functor>
 class ClosureTask : public TaskBase {
 public:
-  explicit ClosureTask(const Location& location, const Closure& closure)
+  explicit ClosureTask(const Location& location, const Functor& closure)
    : TaskBase(location),
      closure_task(closure) {
   }
   void Run() override {
-    try {
+    //try {
       closure_task();
-    } catch (...) {
-      LOG(WARNING) << "LT Task Closure Exception, Task From:" << ClosureInfo();
-    }
+    //} catch (...) {
+      //LOG(WARNING) << "Task Closure Exception, Task From:" << ClosureInfo();
+    //}
   }
 private:
-  Closure closure_task;
+  Functor closure_task;
 };
 
 template <class Closure, class Cleanup>
@@ -60,11 +59,11 @@ public:
         cleanup_task(cleanup) {
   }
   ~ClosureTaskWithCleanup() {
-    try {
+    //try {
       cleanup_task();
-    } catch (...) {
-      LOG(WARNING) << "LT Cleanup Closure Exception, Task From:" << TaskBase::ClosureInfo();
-    }
+    //} catch (...) {
+      LOG(WARNING) << "Cleanup Closure Exception, Task From:" << TaskBase::ClosureInfo();
+    //}
   }
 private:
   Cleanup cleanup_task;
@@ -84,6 +83,7 @@ static std::unique_ptr<TaskBase> CreateClosureWithCallback(const Location& locat
 
 typedef std::function<void()> SigHandler;
 typedef std::function<void()> StlClosure;
+typedef std::unique_ptr<TaskBase> ClosurePtr;
 
 }// end namespace
 #endif

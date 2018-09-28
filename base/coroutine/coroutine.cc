@@ -23,7 +23,8 @@ void coro_main(void* arg) {
   do {
     CHECK(coroutine->coro_task_ && CoroState::kRunning == coroutine->state_);
 
-    coroutine->coro_task_();
+    coroutine->coro_task_->Run();
+    coroutine->coro_task_.release();
 
     coroutine->delegate_->RecallCoroutineIfNeeded();
   } while(true);
@@ -81,8 +82,8 @@ Coroutine::~Coroutine() {
   }
 }
 
-void Coroutine::SetTask(CoroClosure task) {
-  coro_task_ = task;
+void Coroutine::SetTask(ClosurePtr&& task) {
+  coro_task_ = std::move(task);
 };
 
 void Coroutine::SelfHolder(RefCoroutine& self) {
@@ -92,7 +93,7 @@ void Coroutine::SelfHolder(RefCoroutine& self) {
 
 void Coroutine::Reset() {
   wc_ = 0;
-  coro_task_ = null_func;
+  coro_task_.reset();
   state_ = CoroState::kInitialized;
 }
 
