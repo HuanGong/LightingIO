@@ -118,7 +118,6 @@ int ReqParseContext::OnBodyParsed(http_parser* parser, const char *body_start, s
 
   context->current_->MutableBody().append(body_start, len);
 
-  LOG(INFO) << __FUNCTION__ << "Got A Request Body";
   return 0;
 }
 
@@ -190,14 +189,14 @@ int ResParseContext::OnHttpResponseBegin(http_parser* parser) {
   return 0;
 }
 int ResParseContext::OnUrlParsed(http_parser* parser, const char *url_start, size_t url_len) {
-  LOG(INFO) << __FUNCTION__ << " Parse Request Should Not Reached";
+  //LOG(INFO) << __FUNCTION__ << " Parse Request Should Not Reached";
   return 0;
 }
 int ResParseContext::OnStatusCodeParsed(http_parser* parser, const char *start, size_t len) {
   ResParseContext* context = (ResParseContext*)parser->data;
   CHECK(context);
 
-  LOG(INFO) << __FUNCTION__ << " status code:" << std::string(start, len);
+  //LOG(INFO) << __FUNCTION__ << " status code:" << std::string(start, len);
   //context->current_->status_code_ =
   return 0;
 }

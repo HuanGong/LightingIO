@@ -72,7 +72,7 @@ Coroutine::Coroutine(CoroDelegate* d, bool main) :
 
 Coroutine::~Coroutine() {
   coroutine_counter.fetch_sub(1);
-  LOG(INFO) << "Coroutine Gone" << " state:" << StateToString() << " now has" << coroutine_counter.load();
+  LOG(INFO) << "Coroutine Gone now has" << coroutine_counter.load() << " live coroutine";
 
   CHECK(state_ == CoroState::kDone);
   VLOG(GLOG_VTRACE) << "coroutine gone! count:" << coroutine_counter.load() << "st:" << StateToString();

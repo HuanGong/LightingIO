@@ -5,7 +5,7 @@
 #include "memory/lazy_instance.h"
 
 namespace base {
-static const int kMaxReuseCoroutineNumbersPerThread = 50000;
+static const int kMaxReuseCoroutineNumbersPerThread = 2;
 
 namespace __detail {
   struct _T : public CoroRunner {};
@@ -28,18 +28,19 @@ bool CoroRunner::CanYield() {
 }
 
 void CoroRunner::GcCoroutine() {
-
+  CHECK(main_coro_ != current_);
   if (free_list_.size() < max_reuse_coroutines_) {
 
     current_->Reset();
     free_list_.push_back(current_);
-
+    LOG(INFO) << "add coroutine to freelist size:" << free_list_.size() << " gc list:" << expired_coros_.size();
   } else {
 
     current_->ReleaseSelfHolder();
-    current_->SetCoroState(CoroState::kDone); 
+    current_->SetCoroState(CoroState::kDone);
 
     expired_coros_.push_back(current_);
+    LOG(INFO) << "push to gc list count:" << expired_coros_.size();
 
     if (!gc_task_scheduled_ || expired_coros_.size() > 100) {
       bind_loop_->PostDelayTask(NewClosure(gc_task_), 1);
@@ -137,14 +138,6 @@ void CoroRunner::RecallCoroutineIfNeeded() {
   GcCoroutine();
 }
 
-void CoroRunner::RunScheduledTasks(std::list<ClosurePtr>&& tasks) {
-  MessageLoop* loop = MessageLoop::Current();
-  CHECK(loop == current_runner->bind_loop_);
-
-  current_runner->coro_tasks_.splice(current_runner->coro_tasks_.end(), tasks);
-  current_runner->InvokeCoroutineTasks();
-}
-
 void CoroRunner::InvokeCoroutineTasks() {
 
   while (coro_tasks_.size() > 0) {
@@ -173,19 +166,14 @@ void CoroRunner::InvokeCoroutineTasks() {
 RefCoroutine CoroRunner::RetrieveCoroutine() {
 
   RefCoroutine coro;
-
-  while(free_list_.size()) {
+  do {
     coro = std::move(free_list_.front());
     free_list_.pop_front();
-  }
+  } while(!coro && free_list_.size());
 
   if (!coro) { //create new coroutine
-
     coro = Coroutine::Create(this);
     coro->SelfHolder(coro);
-
-    uint32_t new_size = max_reuse_coroutines_ + 200;
-    max_reuse_coroutines_ = new_size > kMaxReuseCoroutineNumbersPerThread ? kMaxReuseCoroutineNumbersPerThread : new_size;
   }
   return std::move(coro);
 }

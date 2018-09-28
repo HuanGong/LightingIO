@@ -50,7 +50,6 @@ private:
   friend class RawProtoService;
   std::string& MutableContent() {return content_;}
   void SetSequenceId(uint64_t id) {
-    LOG(INFO) << __FUNCTION__ << " call set sequence id" << id << " old:" << header_.sequence_id;
     CHECK(header_.sequence_id == 0);
     header_.sequence_id = id;
   }

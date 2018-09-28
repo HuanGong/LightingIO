@@ -27,15 +27,13 @@ std::atomic_int64_t http_count;
 void HandleHttp(const HttpRequest* req, HttpResponse* res) {
   http_count++;
   LOG(INFO) << "http count:" << http_count << " enter";
-
   //broadcast
   if (req->RequestUrl() == "/br") {
       SendRawRequest();
   }
-
   res->SetResponseCode(200);
   res->MutableBody() = "hello world";
-  LOG(INFO) << "http count:" << http_count << " leave";
+  LOG(INFO) << "http count: " << http_count << " leave";
 }
 
 void HandleRaw(const RawMessage* req, RawMessage* res) {
@@ -107,8 +105,6 @@ void SendHttpRequest() {
 }
 
 void SendRawRequest() {
-  LOG(INFO) << __FUNCTION__ << " enter ";
-
   auto raw_request = std::make_shared<RawMessage>();
   raw_request->SetMethod(1);
   raw_request->SetContent("ABC");
@@ -211,7 +207,7 @@ int main(int argc, char* argv[]) {
   google::ParseCommandLineFlags(&argc, &argv, true);  // 初始化 gflags
   main_loop.Start();
   http_count.store(0);
-  PrepareLoops(std::thread::hardware_concurrency(), 1);
+  PrepareLoops(1, 1);
   dispatcher_->SetWorkerLoops(workers);
   common_dispatcher->SetWorkerLoops(workers);
 

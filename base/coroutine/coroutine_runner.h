@@ -39,8 +39,6 @@ public:
   static RefCoroutine CurrentCoro();
   static void YieldCurrent(int32_t wc = 1);
 
-  /* New Scheduler with message loop */
-  static void RunScheduledTasks(std::list<ClosurePtr>&& tasks);
 protected:
   CoroRunner();
   ~CoroRunner();

@@ -48,7 +48,7 @@ void RawProtoService::OnDataRecieved(const RefTcpChannel& channel, IOBuffer* buf
     std::string& content = raw_message->MutableContent();
     content.append((const char*)buffer->GetRead(), body_size);
     buffer->Consume(body_size);
-    LOG(INFO) << " protocol service " << InMessageType() << " got sequence:" << raw_message->header_.sequence_id;
+    //LOG(INFO) << " protocol service " << InMessageType() << " got sequence:" << raw_message->header_.sequence_id;
     if (message_handler_) {
       message_handler_(std::static_pointer_cast<ProtocolMessage>(raw_message));
     }
@@ -71,7 +71,7 @@ bool RawProtoService::EncodeToBuffer(const ProtocolMessage* msg, IOBuffer* out_b
 
   const RawMessage* raw_message = static_cast<const RawMessage*>(msg);
   CHECK(raw_message->header_.frame_size == kRawHeaderSize + raw_message->content_.size());
-  LOG(INFO) << __FUNCTION__ << " encode identify:" << raw_message->header_.sequence_id;
+  //LOG(INFO) << __FUNCTION__ << " encode identify:" << raw_message->header_.sequence_id;
 
   out_buffer->EnsureWritableSize(raw_message->header_.frame_size);
 
@@ -88,7 +88,7 @@ bool RawProtoService::EncodeToBuffer(const ProtocolMessage* msg, IOBuffer* out_b
 void RawProtoService::BeforeReplyMessage(ProtocolMessage* in, ProtocolMessage* out) {
   RawMessage* raw_response = (RawMessage*)out;
   RawMessage* raw_request = (RawMessage*)in;
-  LOG(INFO) << "raw server replay request id:" << raw_request->Header().sequence_id;
+  //LOG(INFO) << "raw server replay request id:" << raw_request->Header().sequence_id;
   raw_response->SetSequenceId(raw_request->Header().sequence_id);
 }
 

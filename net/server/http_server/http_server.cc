@@ -87,7 +87,6 @@ void HttpServer::ServeAddress(const std::string address, HttpMessageHandler hand
 }
 
 void HttpServer::OnHttpRequest(const RefProtocolMessage& request) {
-  LOG(INFO) << __FUNCTION__ << "a http request message come";
   VLOG(GLOG_VTRACE) << __FUNCTION__ << "a http request message come";
 
   if (!dispatcher_) {
