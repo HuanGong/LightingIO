@@ -29,12 +29,10 @@ void AsyncChannel::StartClient() {
 
 void AsyncChannel::SendRequest(RefProtocolMessage request)  {
   CHECK(channel_->InIOLoop());
-  //LOG(INFO) << __FUNCTION__ << " enter";
 
   bool success = channel_->GetProtoService()->EnsureProtocol(request.get());
 
   if (success) {
-    //LOG(INFO) << __FUNCTION__ << " call channel sendprotomessage";
     success = channel_->SendProtoMessage(request);
   }
 
@@ -44,16 +42,13 @@ void AsyncChannel::SendRequest(RefProtocolMessage request)  {
     return;
   }
 
-  //LOG(INFO) << __FUNCTION__ << " schedule tiemout task";
   WeakProtocolMessage weak(request); // weak ptr must init outside, Take Care of weakptr
   auto functor = std::bind(&AsyncChannel::OnRequestTimeout, shared_from_this(), weak);
   IOLoop()->PostDelayTask(NewClosure(functor), request_timeout_);
 
   uint64_t message_identify = request->MessageIdentify();
   CHECK(message_identify !=MessageIdentifyType::KInvalidIdentify);
-  //LOG(INFO) << "Send Request identify:" << message_identify;
   in_progress_.insert(std::make_pair(message_identify, std::move(request)));
-  //LOG(INFO) << __FUNCTION__ << " leave";
 }
 
 void AsyncChannel::OnRequestTimeout(WeakProtocolMessage weak) {

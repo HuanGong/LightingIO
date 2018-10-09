@@ -29,9 +29,8 @@ typedef enum {
 } MessageIdentifyType;
 
 typedef struct {
-  uint64_t task_identify;
   base::MessageLoop* loop;
-  std::weak_ptr<base::Coroutine> weak_coro;
+  base::StlClosure resume_ctx;
 } WorkContext;
 
 class ProtocolMessage;

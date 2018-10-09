@@ -10,7 +10,7 @@
 NAMESPACE_BEGIN
 
 template <typename T>
-static std::string join(const std::vector<T> &v, const std::string &token) {
+std::string join(const std::vector<T> &v, const std::string &token) {
   std::ostringstream result;
   for (typename std::vector<T>::const_iterator i = v.begin(); i != v.end(); i++){
     if (i != v.begin())

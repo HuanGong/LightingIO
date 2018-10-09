@@ -1,10 +1,9 @@
-
+#include <unistd.h>
 #include "coroutine.h"
 #include "glog/logging.h"
 #include "coroutine_runner.h"
-#include <message_loop/message_loop.h>
-#include <unistd.h>
 #include <time/time_utils.h>
+#include <message_loop/message_loop.h>
 
 #include <iostream>
 #include <unistd.h>
@@ -40,6 +39,10 @@ TEST_CASE("go_coro", "[go flag call coroutine]") {
     };
     LOG(INFO) << " start test go flag leave";
   }));
+
+  go &loop << []() {
+    LOG(INFO) << "go coroutine in loop ok!!!";
+  };
 
   loop.PostDelayTask(NewClosure([&](){
     loop.QuitLoop();

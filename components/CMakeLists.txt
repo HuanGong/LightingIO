@@ -18,7 +18,11 @@ SET(COMPONENT_SOURCES
 	source_loader/loader/loader_factory.cc
 	./source_loader/loader/file_loader.cc
 	./source_loader/parser/column_parser.cc
-  ./source_loader/parser/column_parser.cc)
+  ./source_loader/parser/column_parser.cc
+ 
+  #inverted_indexer
+  ./inverted_indexer/expression.cc
+)
 
 SET(COMPONENT_LINKLIBS
 	3rd
@@ -64,3 +68,7 @@ set_target_properties(lrucache_unittest PROPERTIES EXCLUDE_FROM_ALL TRUE)
 ADD_EXECUTABLE(source_loader_unittest
 	source_loader/unittest/source_loader_unittest.cc)
 set_target_properties(source_loader_unittest PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+ADD_EXECUTABLE(inverted_indexer_unittest
+	./inverted_indexer/inverted_indexer_unittest.cc)
+set_target_properties(inverted_indexer_unittest PROPERTIES EXCLUDE_FROM_ALL TRUE)

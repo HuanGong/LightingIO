@@ -58,7 +58,7 @@ class MessageLoop::SetTimerTask : public TaskBase {
     CHECK(MessageLoop::Current() != NULL);
     if (new_time == 0) {
       VLOG(GLOG_VINFO) <<  "Time was expired, run this timer task directly";
-      task_->Run(); task_.release();
+      task_->Run();
     } else {
       VLOG(GLOG_VINFO) <<  "Re-Schedule timer in loop, will run task after " << new_time << " ms";
       MessageLoop::Current()->PostDelayTask(std::move(task_), new_time);
@@ -82,7 +82,6 @@ public:
 
     if (task_) {
       task_->Run();
-      task_.release(); // remove it
     }
 
     holder_->CommitReply();
@@ -287,7 +286,6 @@ void MessageLoop::RunNestedTask() {
 
   for (auto& task : inloop_scheduled_task_) {
     task->Run();
-    task.release();
   }
   inloop_scheduled_task_.clear();
 }
@@ -311,7 +309,6 @@ void MessageLoop::RunScheduledTask(ScheduledTaskType type) {
       }
       for (auto& task : scheduled_tasks) {
         task->Run();
-        task.release();
       }
 
     } break;

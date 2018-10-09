@@ -9,6 +9,7 @@
 #include "glog/logging.h"
 #include "location.h"
 #include "base/base_micro.h"
+#include <atomic>
 
 #define NewClosureAlias(Location, Functor) ::base::CreateClosure(Location, Functor)
 #define NewClosureWithCallbackAlias(Location, Functor, Cleanup) ::base::CreateClosureWithCallback(Location, Functor, Cleanup)
@@ -20,7 +21,7 @@ namespace base {
 
 class TaskBase {
 public:
-  TaskBase() {} //TODO remove it
+  TaskBase() {}
   explicit TaskBase(const Location& location) : location_(location) {}
   virtual ~TaskBase() {}
   virtual void Run() = 0;
@@ -41,11 +42,11 @@ public:
      closure_task(closure) {
   }
   void Run() override {
-    //try {
+    try {
       closure_task();
-    //} catch (...) {
-      //LOG(WARNING) << "Task Closure Exception, Task From:" << ClosureInfo();
-    //}
+    } catch (...) {
+      LOG(WARNING) << "Task Closure Exception, Task From:" << ClosureInfo();
+    }
   }
 private:
   Functor closure_task;

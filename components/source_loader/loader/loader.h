@@ -4,9 +4,7 @@
 #include <string>
 #include <cinttypes>
 #include <iostream>
-#include <json/json.hpp>
-#include "rapidjson/include/rapidjson/rapidjson.h"
-#include "rapidjson/include/rapidjson/document.h"
+#include <nlohmann/json.hpp>
 
 namespace component {
 namespace sl {

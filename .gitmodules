@@ -4,6 +4,3 @@
 [submodule "thirdparty/hat-trie"]
 	path = thirdparty/hat-trie
 	url = https://github.com/Tessil/hat-trie.git
-[submodule "thirdparty/rapidjson"]
-	path = thirdparty/rapidjson
-	url = https://github.com/Tencent/rapidjson.git

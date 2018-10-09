@@ -25,7 +25,6 @@ bool LocationTaskTest() {
   loop.Start();
   loop.PostTask(NewClosure([](){
     printf("FailureDump throw failed exception");
-    *(int*)0 = 10;
   }));
 
   loop.PostDelayTask(NewClosure([&]() {
@@ -43,8 +42,8 @@ void FailureDump(const char* failure, int size) {
 int main(int argc, char** argv) {
   //google::InitGoogleLogging(argv[0]);  // 初始化 glog
   //google::ParseCommandLineFlags(&argc, &argv, true);  // 初始化 gflags
-  google::InstallFailureSignalHandler();
-  google::InstallFailureWriter(FailureDump);
+  //google::InstallFailureSignalHandler();
+  //google::InstallFailureWriter(FailureDump);
 
   //FdEventTest();
   //TimerEventTest();

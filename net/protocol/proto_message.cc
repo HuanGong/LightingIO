@@ -9,7 +9,6 @@ ProtocolMessage::ProtocolMessage(const std::string protocol)
     type_(kNone),
     responsed_(false) {
   work_context_.loop = NULL;
-  work_context_.task_identify = 0;
 }
 
 ProtocolMessage::~ProtocolMessage() {

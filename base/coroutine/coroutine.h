@@ -28,7 +28,6 @@ int64_t SystemCoroutineCount();
 class CoroDelegate {
 public:
   virtual void RecallCoroutineIfNeeded() = 0;
-  virtual void ResumeCoroutine(const RefCoroutine&) = 0;
 };
 
 class Coroutine : public coro_context,
@@ -40,7 +39,6 @@ public:
   static std::shared_ptr<Coroutine> Create(CoroDelegate* d, bool main = false);
 
   ~Coroutine();
-  void Resume(uint64_t id);
   std::string StateToString() const;
   CoroState Status() const {return state_;}
   uint64_t Identify() const {return identify_;}
@@ -51,7 +49,11 @@ private:
   void SetTask(ClosurePtr&& task);
   void SelfHolder(RefCoroutine& self);
   void SetCoroState(CoroState st) {state_ = st;}
-  void ReleaseSelfHolder(){self_holder_.reset();};
+  void ReleaseSelfHolder() {
+    LOG(INFO) << ">>> use count:" << self_holder_.use_count();
+    self_holder_.reset();
+  };
+  std::weak_ptr<Coroutine> AsWeakPtr() {return shared_from_this();}
 
 private:
   int32_t wc_;

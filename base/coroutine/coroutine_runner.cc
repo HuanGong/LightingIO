@@ -5,42 +5,28 @@
 #include "memory/lazy_instance.h"
 
 namespace base {
-static const int kMaxReuseCoroutineNumbersPerThread = 2;
+static const int kMaxReuseCoroutineNumbersPerThread = 500;
 
 namespace __detail {
   struct _T : public CoroRunner {};
 }
-static thread_local base::LazyInstance<__detail::_T> current_runner = LAZY_INSTANCE_INIT;
-
-
-//static
-CoroRunner& CoroRunner::Runner() {
-  return current_runner.get();
-}
-
-//static
-RefCoroutine CoroRunner::CurrentCoro() {
-  return current_runner->current_;
-}
+static thread_local base::LazyInstance<__detail::_T> tls_runner = LAZY_INSTANCE_INIT;
 
 bool CoroRunner::CanYield() {
-  return !current_runner->InMainCoroutine();
+  return !tls_runner->InMainCoroutine();
 }
 
 void CoroRunner::GcCoroutine() {
   CHECK(main_coro_ != current_);
+
   if (free_list_.size() < max_reuse_coroutines_) {
 
     current_->Reset();
     free_list_.push_back(current_);
-    LOG(INFO) << "add coroutine to freelist size:" << free_list_.size() << " gc list:" << expired_coros_.size();
+
   } else {
-
-    current_->ReleaseSelfHolder();
     current_->SetCoroState(CoroState::kDone);
-
     expired_coros_.push_back(current_);
-    LOG(INFO) << "push to gc list count:" << expired_coros_.size();
 
     if (!gc_task_scheduled_ || expired_coros_.size() > 100) {
       bind_loop_->PostDelayTask(NewClosure(gc_task_), 1);
@@ -48,7 +34,7 @@ void CoroRunner::GcCoroutine() {
     }
   }
 
-  Transfer(main_coro_);
+  TransferTo(main_coro_);
 }
 
 CoroRunner::CoroRunner()
@@ -56,7 +42,9 @@ CoroRunner::CoroRunner()
     bind_loop_(MessageLoop::Current()),
     max_reuse_coroutines_(kMaxReuseCoroutineNumbersPerThread) {
 
-  current_ = main_coro_ = Coroutine::Create(this, true);
+  RefCoroutine coro_ptr = Coroutine::Create(this, true);
+  coro_ptr->SelfHolder(coro_ptr);
+  current_ = main_coro_ = coro_ptr.get();
 
   gc_task_ = std::bind(&CoroRunner::ReleaseExpiredCoroutine, this);
   LOG_IF(ERROR, !bind_loop_) << "CoroRunner need constructor with initialized loop";
@@ -64,64 +52,90 @@ CoroRunner::CoroRunner()
 }
 
 CoroRunner::~CoroRunner() {
-  expired_coros_.clear();
+  ReleaseExpiredCoroutine();
+  current_->ReleaseSelfHolder();
+  main_coro_->ReleaseSelfHolder();
+  current_ = nullptr;
+  main_coro_ = nullptr;
+}
 
-  current_.reset();
-  main_coro_.reset();
+CoroRunner& CoroRunner::Runner() {
+  return tls_runner.get();
 }
 
 void CoroRunner::YieldCurrent(int32_t wc) {
-  CHECK(!current_runner->InMainCoroutine());
-  CHECK(current_runner->current_->wc_ == 0);
-  current_runner->current_->wc_ = wc;
+  CHECK(tls_runner->current_->wc_ == 0);
 
-  current_runner->Transfer(current_runner->main_coro_);
+  if (tls_runner->InMainCoroutine()) {
+    LOG(INFO) << " You try to going pause a coroutine which can't be yield";
+    return;
+  }
+  tls_runner->current_->wc_ = wc;
+  tls_runner->TransferTo(tls_runner->main_coro_);
 }
 
 /* 如果本身是在一个子coro里面, 需要在重新将resumecoroutine调度到主coroutine内
  * 不支持嵌套的coroutinetransfer........
  * 如果本身是主coro， 则直接tranfer去执行.
  * 如果不是在调度的线程里， 则posttask去Resume*/
-void CoroRunner::ResumeCoroutine(const RefCoroutine& coroutine) {
+void CoroRunner::ResumeCoroutine(std::weak_ptr<Coroutine> weak, uint64_t id) {
 
   if (!bind_loop_->IsInLoopThread() || CanYield()) {
-    auto f = std::bind(&CoroRunner::ResumeCoroutine, this, coroutine);
+    auto f = std::bind(&CoroRunner::ResumeCoroutine, this, weak, id);
     bind_loop_->PostTask(NewClosure(f));
     return;
   }
 
   CHECK(InMainCoroutine());
+  Coroutine* coroutine = nullptr;
+  {
+    RefCoroutine coro = weak.lock();
+    if (!coro) {
+      LOG(ERROR) << " coroutine has gone";
+      return;
+    }
+    coroutine = coro.get();
+  }
 
-  if (coroutine->Status() != CoroState::kPaused) {
-    LOG(ERROR) << " Attempt resume a not paused coroutine id:" << coroutine->identify_
-      << " wait counter:" << coroutine->wc_;
+  if (coroutine->Status() != CoroState::kPaused || coroutine->identify_ != id) {
+    LOG(ERROR) << " can't resume this coroutine, id:" << coroutine->identify_
+               << " wait counter:" << coroutine->wc_;
     return;
   }
 
   if (--(coroutine->wc_) > 0) {
     return;
   }
+
   coroutine->wc_ = 0;
   coroutine->identify_++;
-  Transfer(coroutine);
+  TransferTo(coroutine);
 }
 
-bool CoroRunner::Transfer(const RefCoroutine& next) {
+StlClosure CoroRunner::CurrentCoroResumeCtx() {
+  return std::bind(&CoroRunner::ResumeCoroutine,
+                   tls_runner.ptr(),
+                   tls_runner->current_->AsWeakPtr(),
+                   tls_runner->current_->identify_);
+}
+
+void CoroRunner::TransferTo(Coroutine *next) {
   CHECK(current_ != next);
 
-  coro_context* to = next.get();
-  coro_context* from = current_.get();
-
+  coro_context* to = next;
+  coro_context* from = current_;
   if (current_->state_ != CoroState::kDone) {
     current_->SetCoroState(CoroState::kPaused);
   }
   current_ = next;
   current_->SetCoroState(CoroState::kRunning);
   coro_transfer(from, to);
-  return true;
 }
 
 void CoroRunner::ReleaseExpiredCoroutine() {
+  for (auto& coro : expired_coros_) {
+    coro->ReleaseSelfHolder();
+  }
   expired_coros_.clear();
   gc_task_scheduled_ = false;
 }
@@ -142,13 +156,13 @@ void CoroRunner::InvokeCoroutineTasks() {
 
   while (coro_tasks_.size() > 0) {
 
-    RefCoroutine coro = RetrieveCoroutine();
+    Coroutine* coro = RetrieveCoroutine();
     CHECK(coro);
 
     coro->SetTask(std::move(coro_tasks_.front()));
     coro_tasks_.pop_front();
 
-    Transfer(coro);
+    TransferTo(coro);
 
     // 只有当这个corotine 在task运行的过程中换出(paused)，那么才会重新回到这里,否则是在task运行完成之后
     // 会调用RecallCoroutine，在依旧有task需要运行的时候，可以设置task， 让这个coro继续
@@ -163,19 +177,20 @@ void CoroRunner::InvokeCoroutineTasks() {
   invoke_coro_shceduled_ = false;
 }
 
-RefCoroutine CoroRunner::RetrieveCoroutine() {
+Coroutine* CoroRunner::RetrieveCoroutine() {
 
-  RefCoroutine coro;
-  do {
-    coro = std::move(free_list_.front());
+  Coroutine* coro = nullptr;
+  while(free_list_.size() && !coro) {
+    coro = free_list_.front();
     free_list_.pop_front();
-  } while(!coro && free_list_.size());
-
-  if (!coro) { //create new coroutine
-    coro = Coroutine::Create(this);
-    coro->SelfHolder(coro);
   }
-  return std::move(coro);
+
+  if (nullptr == coro) { //create new coroutine
+    auto coro_ptr = Coroutine::Create(this);
+    coro_ptr->SelfHolder(coro_ptr);
+    coro = coro_ptr.get();
+  }
+  return coro;
 }
 
 }// end base

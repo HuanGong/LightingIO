@@ -14,7 +14,7 @@ static int64_t finished_task_counter = 0;
 
 void TaskProducer(int i) {
   while(g_flag == 0) { //when g_flag !=  0, start run
-      sleep(0); 
+      sleep(0);
   }
   int64_t total = 0;
   for (int i = 0; i < max_task_per_producer; i++) {
@@ -26,7 +26,7 @@ void TaskProducer(int i) {
         g_loop.QuitLoop();
       }
     }));
-    
+
     if (ok) {
       total++;
       g_post_counter++;

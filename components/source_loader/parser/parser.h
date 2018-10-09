@@ -2,7 +2,7 @@
 #define LIGHTINGIO_SOURCE_LOADER_PARSER_H
 
 #include <string>
-#include "json/json.hpp"
+#include "nlohmann/json.hpp"
 
 namespace component {
 namespace sl{

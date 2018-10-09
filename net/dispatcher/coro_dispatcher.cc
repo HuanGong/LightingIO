@@ -21,31 +21,23 @@ CoroWlDispatcher::~CoroWlDispatcher() {
 
 void CoroWlDispatcher::TransferAndYield(base::MessageLoop* ioloop, base::StlClosure clourse) {
   CHECK(ioloop);
-  CHECK(base::CoroRunner::CurrentCoro());
   ioloop->PostTask(NewClosure(std::move(clourse)));
-
   base::CoroRunner::YieldCurrent();
 }
 
 bool CoroWlDispatcher::ResumeWorkContext(WorkContext& ctx) {
-  base::RefCoroutine coro = ctx.weak_coro.lock();
-  if (!coro || coro->Identify() != ctx.task_identify) {
-    VLOG(GLOG_VINFO) << "Resume Croutine from workcontext failed";
-    return false;
-  }
-  coro->Resume(ctx.task_identify);
-  return true;
+	if (ctx.resume_ctx) {
+	  ctx.resume_ctx();
+	}
+	return true;
 }
 
 bool CoroWlDispatcher::SetWorkContext(WorkContext& ctx) {
   if (base::MessageLoop::Current() &&
       base::CoroRunner::CanYield()) {
 
-    base::RefCoroutine coro = base::CoroRunner::CurrentCoro();
-
-    ctx.weak_coro = coro;
     ctx.loop = base::MessageLoop::Current();
-    ctx.task_identify = coro->Identify();
+    ctx.resume_ctx = base::CoroRunner::CurrentCoroResumeCtx();
     return true;
   }
   return false;

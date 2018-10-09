@@ -13,7 +13,6 @@ namespace base {
 
 static base::SpinLock g_coro_lock;
 static std::atomic_int64_t coroutine_counter;
-const static std::function<void()> null_func;
 
 //IMPORTANT: NO HEAP MEMORY HERE!!!
 void coro_main(void* arg) {
@@ -24,7 +23,7 @@ void coro_main(void* arg) {
     CHECK(coroutine->coro_task_ && CoroState::kRunning == coroutine->state_);
 
     coroutine->coro_task_->Run();
-    coroutine->coro_task_.release();
+    coroutine->coro_task_.reset();
 
     coroutine->delegate_->RecallCoroutineIfNeeded();
   } while(true);
@@ -67,12 +66,12 @@ Coroutine::Coroutine(CoroDelegate* d, bool main) :
     coro_create(this, coro_main, this, stack_.sptr, stack_.ssze);
   }
   coroutine_counter.fetch_add(1);
-  LOG(INFO) << "Coroutine Born +1";
+  LOG(INFO) << "Coroutine +1 now has" << coroutine_counter.load() << " live coroutine";
 }
 
 Coroutine::~Coroutine() {
   coroutine_counter.fetch_sub(1);
-  LOG(INFO) << "Coroutine Gone now has" << coroutine_counter.load() << " live coroutine";
+  LOG(INFO) << "Coroutine -1 now has " << coroutine_counter.load() << " live coroutine";
 
   CHECK(state_ == CoroState::kDone);
   VLOG(GLOG_VTRACE) << "coroutine gone! count:" << coroutine_counter.load() << "st:" << StateToString();
@@ -95,12 +94,6 @@ void Coroutine::Reset() {
   wc_ = 0;
   coro_task_.reset();
   state_ = CoroState::kInitialized;
-}
-
-void Coroutine::Resume(uint64_t id) {
-  LOG_IF(ERROR, (state_ != CoroState::kPaused)) << "Can't resume a coroutine not paused, state:" << StateToString()
-    << " resume identify:" << id << " current identify:" << identify_;
-  delegate_->ResumeCoroutine(shared_from_this());
 }
 
 std::string Coroutine::StateToString() const {

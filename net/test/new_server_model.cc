@@ -66,7 +66,7 @@ void StartRawClient() {
     raw_router = new net::ClientRouter(&main_loop, server_address);
     net::RouterConf router_config;
     router_config.protocol = "raw";
-    router_config.connections = 1;
+    router_config.connections = 10;
     router_config.recon_interal = 5000;
     router_config.message_timeout = 1000;
     raw_router->SetupRouter(router_config);
@@ -207,19 +207,19 @@ int main(int argc, char* argv[]) {
   google::ParseCommandLineFlags(&argc, &argv, true);  // 初始化 gflags
   main_loop.Start();
   http_count.store(0);
-  PrepareLoops(1, 1);
+  PrepareLoops(std::thread::hardware_concurrency(), 1);
   dispatcher_->SetWorkerLoops(workers);
   common_dispatcher->SetWorkerLoops(workers);
 
   net::RawServer raw_server;
   raw_server.SetIoLoops(loops);
   raw_server.SetDispatcher(dispatcher_);
-  raw_server.ServeAddressSync("raw://127.0.0.1:5005", std::bind(HandleRaw, std::placeholders::_1, std::placeholders::_2));
+  raw_server.ServeAddressSync("raw://0.0.0.0:5005", std::bind(HandleRaw, std::placeholders::_1, std::placeholders::_2));
 
   net::HttpServer http_server;
   http_server.SetIoLoops(loops);
   http_server.SetDispatcher(dispatcher_);
-  http_server.ServeAddressSync("http://127.0.0.1:5006", std::bind(HandleHttp, std::placeholders::_1, std::placeholders::_2));
+  http_server.ServeAddressSync("http://0.0.0.0:5006", std::bind(HandleHttp, std::placeholders::_1, std::placeholders::_2));
 
 #if 0
   StartHttpClients();
