@@ -19,8 +19,9 @@ SET(COMPONENT_SOURCES
 	./source_loader/loader/file_loader.cc
 	./source_loader/parser/column_parser.cc
   ./source_loader/parser/column_parser.cc
- 
+
   #inverted_indexer
+  ./inverted_indexer/indexer.cc
   ./inverted_indexer/expression.cc
 )
 

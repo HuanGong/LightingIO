@@ -5,53 +5,28 @@ namespace component {
 
 using Json = nlohmann::json;
 
-/* document
- *
- * {
- *  "doc": 001,
- *  "conditions": [
- *    {
- *     "field": "name",
- *     "true_exps" [
- *       "huan",
- *       "xiao"
- *     ]
- *    },
- *    {
- *     "field": "ip",
- *     "true_exps" [
- *       "192.168.18.*"
- *     ],
- *     "false_exps": [
- *       "127.0.0.1"
- *     ]
- *    }
- *  ]
- *}
-*/
-
 void to_json(Json& j, const Expression& expr) {
   j["field"] = expr.FieldName();
-  j["true_exps"] = expr.TrueValues();
-  j["false_exps"] = expr.FalseValues();
+  j["exps"] = expr.Values();
+  j["exclude"] = expr.IsExclude();
 }
 
 void from_json(const Json& j, Expression& expr) {
   expr.SetFieldName(j.value("field", ""));
   Json empty_json;
-  const Json& true_exp = j.value("true_exps", empty_json);
+  const Json& true_exp = j.value("exps", empty_json);
   if (true_exp.is_array()) {
-    expr.MutableTrueValues() = true_exp.get<std::vector<std::string> >();
-  }
-  const Json& false_exp = j.value("false_exps", empty_json);
-  if (false_exp.is_array()) {
-    expr.MutableFalseValues() = false_exp.get<std::vector<std::string> >();
+    expr.MutableValues() = true_exp.get<std::vector<std::string>>();
   }
 }
 
 
 void Document::AddExpression(const Expression& exp) {
   conditions_.insert(std::make_pair(exp.FieldName(), exp));
+}
+
+bool Document::HasConditionExpression(const std::string& field) {
+  return conditions_.end() != conditions_.find(field);
 }
 
 void to_json(Json& j, const Document& document) {
@@ -66,10 +41,11 @@ void to_json(Json& j, const Document& document) {
 }
 
 void from_json(const Json& j, Document& document) {
-  std::string id = j.value("doc", "");
-  document.SetDocumentId(id);
-
   Json empty_json;
+
+  const Json& doc_id = j.value("doc", empty_json);
+  document.SetDocumentId(doc_id.get<int64_t>());
+
   const Json& j_conditions = j.value("conditions", empty_json);
   if (!j_conditions.is_array()) {
     return;
