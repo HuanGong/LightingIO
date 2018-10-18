@@ -1,0 +1,14 @@
+{"doc":1,"conditions":[{"exclude":false,"exps":["desc_01"],"field":"desc"},{"exclude":false,"exps":["name_value01"],"field":"name"}]}
+{"doc":2,"conditions":[{"exclude":false,"exps":["desc_02"],"field":"desc"},{"exclude":false,"exps":["name_value01"],"field":"name"}]}
+{"doc":6,"conditions":[{"exclude":false,"exps":["desc_06", "desc_xx"],"field":"desc"},{"exclude":false,"exps":["name_value02"],"field":"name"}]}
+{"doc":7,"conditions":[{"exclude":false,"exps":["desc_07", "desc_xx"],"field":"desc"},{"exclude":false,"exps":["name_value02"],"field":"name"}]}
+{"doc":10,"conditions":[{"exclude":true,"exps":["desc_10"],"field":"desc"},{"exclude":false,"exps":["name_value03"],"field":"name"}]}
+{"doc":11,"conditions":[{"exclude":true,"exps":["desc_11"],"field":"desc"},{"exclude":false,"exps":["name_value03"],"field":"name"}]}
+{"doc":15,"conditions":[{"exclude":true,"exps":["desc_15", "desc_xx"],"field":"desc"},{"exclude":false,"exps":["name_value04"],"field":"name"}]}
+{"doc":16,"conditions":[{"exclude":true,"exps":["desc_16", "desc_xx"],"field":"desc"},{"exclude":false,"exps":["name_value04"],"field":"name"}]}
+{"doc":110,"conditions":[{"exclude":false,"exps":["title_value01"],"field":"title"}]}
+{"doc":120,"conditions":[{"exclude":false,"exps":["title_value02"],"field":"title"}]}
+{"doc":130,"conditions":[{"exclude":false,"exps":["title_value03"],"field":"title"}]}
+{"doc":140,"conditions":[{"exclude":false,"exps":["title_value03"],"field":"title"}]}
+{"doc":500,"conditions":[{"exclude":true,"exps":[],"field":"source"}]}
+{"doc":501,"conditions":[{"exclude":false,"exps":[],"field":"source"}]}

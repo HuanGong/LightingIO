@@ -14,8 +14,8 @@ SET(COMPONENT_SOURCES
 	./count_min_sketch/count_min_sketch.cc
 
   ./source_loader/source.cc
-	source_loader/parser/parser.cc
-	source_loader/loader/loader_factory.cc
+	./source_loader/parser/parser.cc
+	./source_loader/loader/loader_factory.cc
 	./source_loader/loader/file_loader.cc
 	./source_loader/parser/column_parser.cc
   ./source_loader/parser/column_parser.cc
@@ -23,6 +23,11 @@ SET(COMPONENT_SOURCES
   #inverted_indexer
   ./inverted_indexer/indexer.cc
   ./inverted_indexer/expression.cc
+  ./inverted_indexer/bitmap_merger.cc
+	./inverted_indexer/posting_field/field.cc
+	./inverted_indexer/posting_field/general_str_field.cc
+  ./inverted_indexer/posting_field/bitmap_posting_list.cc
+	./inverted_indexer/posting_field/posting_list_manager.cc
 )
 
 SET(COMPONENT_LINKLIBS
@@ -71,5 +76,5 @@ ADD_EXECUTABLE(source_loader_unittest
 set_target_properties(source_loader_unittest PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
 ADD_EXECUTABLE(inverted_indexer_unittest
-	./inverted_indexer/inverted_indexer_unittest.cc)
+	./inverted_indexer/test/inverted_indexer_unittest.cc)
 set_target_properties(inverted_indexer_unittest PROPERTIES EXCLUDE_FROM_ALL TRUE)

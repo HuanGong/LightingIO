@@ -20,6 +20,9 @@ uint32_t crc32_ieee_le(uint32_t start, const uint8_t *buf, uint32_t siz);
 
 uint32_t crc32_ieee_le_rev(uint32_t e, const uint8_t *buf, uint32_t siz);
 
+uint64_t crc64(uint64_t crc, const unsigned char *s, uint64_t l);
+
+
 #if defined(__cplusplus) || defined(c_plusplus)
 }
 #endif

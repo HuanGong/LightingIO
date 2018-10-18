@@ -1,36 +1,45 @@
-#ifndef _LT_COMPONENT_INVERTED_INDEX_INDEXER_H_ 
+#ifndef _LT_COMPONENT_INVERTED_INDEX_INDEXER_H_
 #define _LT_COMPONENT_INVERTED_INDEX_INDEXER_H_
 
 #include "expression.h"
+#include "posting_field/general_str_field.h"
+#include "posting_field/posting_list_manager.h"
 
 namespace component {
 
-typedef struct PostingList {
-  IdList wildcards;
-  std::unordered_map<std::string, IdList> include_pl;
-  std::unordered_map<std::string, IdList> exclude_pl;
-} PostingList;
+typedef std::set<std::string> FieldsSet;
+typedef std::function<FieldPtr()> FieldCreator;
+
+typedef std::map<std::string, std::vector<std::string>> IndexerQuerys;
 
 class Indexer {
 public:
-  void Query();
-  PostingList& GetPostingListForField(const std::string field) {
-    return indexer_table_[field];
-  }
-  void DebugDump();
-private:
-  std::unordered_map<std::string, PostingList> indexer_table_;
-};
+  Indexer();
 
-class IndexerBuilder {
-public:
+  std::set<int64_t> UnifyQuery(const IndexerQuerys& query);
+
   void AddDocument(const RefDocument&& document);
-  std::shared_ptr<Indexer> Build();
+  void RegisterGeneralStrField(const std::string field);
+  void RegisterFieldWithCreator(const std::string& f, FieldCreator creator);
+
+  void BuildIndexer();
+  void DebugDump(std::ostringstream& oss);
+  void DebugDumpField(const std::string& field, std::ostringstream& oss);
+
 private:
-  std::set<std::string> fields_;
+  Field* GetPostingListField(const std::string& field);
+
+  bool keep_docments_;
   std::vector<RefDocument> all_documents_;
+
+  FieldsSet indexer_fields_;
+
+  std::set<int64_t> all_documens_ids_;
+
+  std::unordered_map<std::string, FieldPtr> indexer_table_;
+  std::unordered_map<std::string, FieldCreator> creators_;
+  std::unique_ptr<PostingListManager> posting_list_manager_;
 };
 
-
-}
+}  // namespace component
 #endif
