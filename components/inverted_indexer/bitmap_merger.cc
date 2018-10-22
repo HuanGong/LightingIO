@@ -1,3 +1,4 @@
+#include <iostream>
 #include "bitmap_merger.h"
 #include "posting_field/posting_list_manager.h"
 

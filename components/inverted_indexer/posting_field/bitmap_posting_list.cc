@@ -49,4 +49,15 @@ void BitMapPostingList::Substract(const BitMapPostingList* other) {
   }
 }
 
+std::string BitMapPostingList::DumpBits() {
+  std::ostringstream oss;
+  for (size_t i = 0; i < ids_bitmap_.size(); i++) {
+    oss << std::bitset<64>(ids_bitmap_[i]);
+    if (i < ids_bitmap_.size() - 1) {
+      oss << "-";
+    }
+  }
+  return oss.str();
+}
+
 } //end namespace

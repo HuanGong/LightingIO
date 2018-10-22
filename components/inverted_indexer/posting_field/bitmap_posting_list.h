@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 #include <memory>
-#include <iostream>
+#include <bitset>
 #include <sstream>
 #include <unordered_map>
 #include "glog/logging.h"
@@ -30,14 +30,7 @@ public:
   void Intersect(const BitMapPostingList* other);
   void Substract(const BitMapPostingList* other);
 
-  std::string DebugDump() const {
-    std::ostringstream oss;
-    for (const auto& v : ids_bitmap_) {
-      oss << " " << v;
-    }
-    oss << "\n";
-    return oss.str();
-  }
+  std::string DumpBits();
 private:
 	uint64_t id_count_ = 0;
   uint64_t bit_count_ = 0;

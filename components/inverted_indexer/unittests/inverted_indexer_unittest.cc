@@ -1,16 +1,16 @@
+#include <catch/catch.hpp>
+
 #include <stdlib.h>
 #include <unistd.h>
 #include <atomic>
 #include <iostream>
 #include <sstream>
+#include <fstream>
 #include <string>
-#include "../bitmap_merger.h"
-#include "../expression.h"
 #include "../indexer.h"
+#include "../expression.h"
+#include "../bitmap_merger.h"
 #include "../posting_field/bitmap_posting_list.h"
-
-#define CATCH_CONFIG_MAIN  // only once
-#include <catch/catch.hpp>
 
 TEST_CASE("expression_base", "[test expression and document]") {
   component::Expression expr;
@@ -91,7 +91,6 @@ TEST_CASE("indexer_file", "[load document from text file]") {
   indexer.BuildIndexer();
 
   //typedef std::map<std::string, std::vector<std::string>> IndexerQuerys;
-
   component::IndexerQuerys querys = {
     {"source", {"2", "desc_unknown"}},
     {"desc", {"desc01", "desc_unknown"}},
@@ -117,28 +116,24 @@ TEST_CASE("bitmap_base", "[load document from text file]") {
   std::set<int64_t> s1 = {1, 2, 22};
   component::BitMapPostingList* p1 = manager.BuildBitMapPostingListForIds(s1);
   REQUIRE(p1->IdCount() == 3);
-  std::cout << "bitcount:" << p1->BitCount()
-            << " uint64 values:" << p1->DebugDump() << std::endl;
-  for (uint64_t i = 0; i < p1->BitCount(); i++) {
-    std::cout << (p1->IsBitSet(i) ? "1" : "0") << "-";
-  }
-  std::cout << std::endl;
+  std::cout << "bits info:" << p1->DumpBits() << std::endl;
+
   component::Json j = manager.GetIdsFromPostingList(p1);
-  std::cout << j << std::endl;
+  std::cout << "id from bitmap:" << j << std::endl;
   REQUIRE(s1 == manager.GetIdsFromPostingList(p1));
 
   std::set<int64_t> s2 = {1, 4, 4, 6, 11, 22};
   component::BitMapPostingList* p2 = manager.BuildBitMapPostingListForIds(s2);
   REQUIRE(p2->IdCount() == 5);
   component::Json j_s = manager.GetIdsFromPostingList(p2);
-  std::cout << j_s << std::endl;
+  std::cout << "id from bitmap:" << j_s << std::endl;
   REQUIRE(s2 == manager.GetIdsFromPostingList(p2));
 
   std::set<int64_t> s3 = {22, 22};
   component::BitMapPostingList* p3 = manager.BuildBitMapPostingListForIds(s3);
   REQUIRE(p3->IdCount() == 1);
   j_s = manager.GetIdsFromPostingList(p3);
-  std::cout << j_s << std::endl;
+  std::cout << "id from bitmap:" << j_s << std::endl;
   REQUIRE(s3 == manager.GetIdsFromPostingList(p3));
 
   std::set<int64_t> s4 = {11, 22};
@@ -146,5 +141,5 @@ TEST_CASE("bitmap_base", "[load document from text file]") {
   REQUIRE(p4->IdCount() == 2);
   REQUIRE(s4 == manager.GetIdsFromPostingList(p4));
   j_s = manager.GetIdsFromPostingList(p4);
-  std::cout << j_s << std::endl;
+  std::cout << "id from bitmap:" << j_s << std::endl;
 }
