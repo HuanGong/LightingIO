@@ -1,0 +1,9 @@
+{"doc":1,"cond":[{"excl":false,"exps":["1"],"field":"source"}]}
+{"doc":2,"cond":[{"excl":true,"exps":["1"],"field":"source"},{"excl":true,"exps":["title01"],"field":"title"}]}
+{"doc":3,"cond":[{"excl":false,"exps":["2"],"field":"source"},{"excl":false,"exps":["title01"],"field":"title"}]}
+{"doc":4,"cond":[{"excl":false,"exps":["2","3"],"field":"source"},{"excl":false,"exps":["title02","title01"],"field":"title"}]}
+{"doc":5,"cond":[{"excl":false,"exps":["3","1"],"field":"source"},{"excl":true,"exps":["title01", "title02"],"field":"title"}]}
+{"doc":6,"cond":[{"excl":false,"exps":["3"],"field":"source"},{"excl":true,"exps":["descxx"],"field":"desc"},{"excl":false,"exps":["namexx"],"field":"name"}]}
+{"doc":7,"cond":[{"excl":false,"exps":["1"],"field":"source"},{"excl":false,"exps":["descxx"],"field":"desc"},{"excl":false,"exps":["namexx"],"field":"name"}]}
+{"doc":8,"cond":[{"excl":false,"exps":["2"],"field":"source"},{"excl":false,"exps":["desc01"],"field":"desc"},{"excl":true,"exps":["name01"],"field":"name"}]}
+{"doc":9,"cond":[{"excl":false,"exps":["3"],"field":"source"},{"excl":true,"exps":["desc01"],"field":"desc"},{"excl":false,"exps":["name01"],"field":"name"}]}

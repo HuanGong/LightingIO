@@ -14,7 +14,6 @@ GeneralStrField::GeneralStrField(const std::string& field)
 void GeneralStrField::DumpTo(std::ostringstream& oss) {
 	Json out;
 	out["field"] = FieldName();
-	out["posting_list"] = GetPostingList();
 	oss << out;
 }
 

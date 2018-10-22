@@ -9,38 +9,50 @@
 
 namespace component {
 
-typedef struct PostingList {
-  IdList wildcards;
-  std::unordered_map<std::string, IdList> include_pl;
-  std::unordered_map<std::string, IdList> exclude_pl;
-} PostingList;
-void to_json(Json& j, const PostingList& pl);
-
 class Field {
 public:
   Field(std::string name);
   virtual ~Field();
 	const std::string& FieldName() const {return field_name_;}
-	const PostingList& GetPostingList() const {return posting_list_;}
-  const BitMapPostingList* WildcardsBitMap() const {return wildcards_pl_;}
-
-	void AddWildcards(int64_t wc_doc);
-	bool ResolveExpression(const Expression& expr, const Document* doc);
-  void AddPostingListValues(const std::string& value, bool is_exclude, int64_t doc);
 
   //pl relative
   void SetWildcardsPostingList(BitMapPostingList* pl);
-	virtual void DumpTo(std::ostringstream& oss) = 0;
-  virtual void ResolveValueWithPostingList(const std::string&, bool in, BitMapPostingList*) = 0;
+  const BitMapPostingList* WildcardsBitMap() const {return wildcards_pl_;}
+
   virtual std::vector<BitMapPostingList*> GetIncludeBitmap(const std::string& value) = 0;
   virtual std::vector<BitMapPostingList*> GetExcludeBitmap(const std::string& value) = 0;
+  virtual void ResolveValueWithPostingList(const std::string&, bool in, BitMapPostingList*) = 0;
+
+	virtual void DumpTo(std::ostringstream& oss) = 0;
 protected:
 	std::string field_name_;
-	PostingList posting_list_;
-
   BitMapPostingList* wildcards_pl_ = NULL;
 };
 typedef std::unique_ptr<Field> FieldPtr;
 
-}
+/* A Holder for every field, save the meta of a AssignValue to DocumentIdList
+ *
+ * FieldEntity be used for building a FieldPostingField
+ * every assianvalue will be parsed and build as PostingList
+ *  
+ *  Field -> AssignValue: DocumentIdList
+ *  eg
+ *  Field: ip
+ *               "127.0.0.1"    -> [1, 4]
+ *               "12.2.11.1"    -> [1, 2, 3]
+ *               "192.168.1.*"  -> [1, 2, 3, 4]   // this meta will parse to 192.168.1.1-192.168.1.255 map to [1, 2, 3, 4]
+ *
+ * It's will managered by indexer, and may be destroied for memory save reason
+ * */
+typedef struct FieldEntity {
+  void AddWildcardsId(DocIdType id);
+  void AddIdForAssign(const std::string assign, bool exclude, DocIdType id);
+
+  IdList wildcards;
+  std::unordered_map<std::string, IdList> include_ids;
+  std::unordered_map<std::string, IdList> exclude_ids;
+} FieldEntity;
+void to_json(Json& json, const FieldEntity& entity);
+
+} //end namespace
 #endif

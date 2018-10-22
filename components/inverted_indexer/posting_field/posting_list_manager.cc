@@ -30,13 +30,12 @@ BitMapPostingList* PostingListManager::BuildBitMapPostingListForIds(const std::s
 	}
 
 	//calculate minimal bit_size, save memory
-	uint64_t minimal_bit_size = doc_id_to_bit_idx_[to_be_build_ids[ids.size() -1]];
-	BitMapPlPtr new_ids_bitmap(new BitMapPostingList(minimal_bit_size, ids.size()));
+	uint64_t max_bit_idx = doc_id_to_bit_idx_[to_be_build_ids[ids.size() -1]];
+	BitMapPlPtr new_ids_bitmap(new BitMapPostingList(max_bit_idx + 1, ids.size()));
 
 	for (auto& doc_id : to_be_build_ids) {
 		auto iter = doc_id_to_bit_idx_.find(doc_id);
 		CHECK(iter != doc_id_to_bit_idx_.end());
-    std::cout << " set doc:" << doc_id << "\t bit:" << iter->second << std::endl;
 		new_ids_bitmap->SetBit(iter->second);
 	}
 
@@ -49,7 +48,7 @@ BitMapPostingList* PostingListManager::BuildBitMapPostingListForIds(const std::s
 void PostingListManager::SetSortedIndexedIds(const std::vector<int64_t>&& ids) {
 	sorted_doc_ids_ = std::move(ids);
 	std::sort(sorted_doc_ids_.begin(), sorted_doc_ids_.end());
-  
+
   for (uint64_t i = 0; i < sorted_doc_ids_.size(); i++) {
     doc_id_to_bit_idx_[sorted_doc_ids_[i]] = i;
     bit_idx_to_doc_id_[i] = sorted_doc_ids_[i];
@@ -58,6 +57,8 @@ void PostingListManager::SetSortedIndexedIds(const std::vector<int64_t>&& ids) {
 
 std::set<int64_t> PostingListManager::GetIdsFromPostingList(const BitMapPostingList* pl) {
   std::set<int64_t> result;
+  if (!pl) {return result;}
+
   for (uint64_t i = 0; i <= pl->BitCount(); i++) {
     if (pl->IsBitSet(i) && i < sorted_doc_ids_.size()) {
       result.insert(sorted_doc_ids_[i]);

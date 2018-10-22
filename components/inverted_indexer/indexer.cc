@@ -5,28 +5,62 @@
 
 namespace component {
 
-Indexer::Indexer() { posting_list_manager_.reset(new PostingListManager); }
+Indexer::Indexer(Delegate* d)
+    : delegate_(d),
+      entitys_meta_(new EntitysMeta),
+      pl_manager_(new PostingListManager) {}
 
 std::set<int64_t> Indexer::UnifyQuery(const IndexerQuerys& query) {
-  BitMapMerger merger(posting_list_manager_.get());
+  BitMapMerger merger(pl_manager_.get());
+
   merger.StartMerger();
 
-  for (auto& field_pair : indexer_table_) {
-    Field* postinglist_field = field_pair.second.get();
+  Json out = merger.EndMerger();
+  std::cout << "after start merge result:" << out << std::endl;
 
-    const auto& query_iter = query.find(field_name);
+  for (auto& field_pair : indexer_table_) {
+    BitMapMerger::MergerGroup grp;
+
+    Field* field_ptr = field_pair.second.get();
+
+    const auto& query_iter = query.find(field_pair.first);
     if (query_iter == query.end()) {
-      auto wildcards_pl = field_pair.second->WildcardsBitMap();
-      merger.AddMergeBitMap(wildcards_pl);
+      grp.wildcards_.insert(field_ptr->WildcardsBitMap());
+      merger.CalculateMergerGroup(grp);
+      Json out = merger.EndMerger();
+      std::cout << " field:" << field_pair.first << "\t result:" << out
+                << std::endl;
       continue;
     }
 
     const auto& query_values = query_iter->second;
-
     for (const std::string& v : query_values) {
-      merger.AddMergeBitMaps(postinglist_field->GetIncludeBitmap(v));
-      merger.AddSubstractBitMaps(postinglist_field->GetExcludeBitmap(v));
+      auto includes = field_ptr->GetIncludeBitmap(v);
+      for (auto& pl : includes) {
+        Json j_include = pl_manager_->GetIdsFromPostingList(pl);
+        std::cout << " field:" << field_pair.first << "'s value:" << v
+                  << " include ids:" << j_include << std::endl;
+      }
+      grp.includes_.insert(includes.begin(), includes.end());
+
+      auto excludes = field_ptr->GetExcludeBitmap(v);
+      for (auto& pl : excludes) {
+        Json j_exclude = pl_manager_->GetIdsFromPostingList(pl);
+        std::cout << " field:" << field_pair.first << "'s value:" << v
+                  << " exclude ids:" << j_exclude << std::endl;
+      }
+      grp.excludes_.insert(excludes.begin(), excludes.end());
     }
+    grp.wildcards_.insert(field_ptr->WildcardsBitMap());
+    out = pl_manager_->GetIdsFromPostingList(field_ptr->WildcardsBitMap());
+    std::cout << " field:" << field_pair.first << "'s wildcards ids:" << out
+              << std::endl;
+
+    merger.CalculateMergerGroup(grp);
+
+    out = merger.EndMerger();
+    std::cout << " field:" << field_pair.first << "\t result:" << out
+              << std::endl;
   }
 
   return merger.EndMerger();
@@ -34,109 +68,135 @@ std::set<int64_t> Indexer::UnifyQuery(const IndexerQuerys& query) {
 
 void Indexer::DebugDumpField(const std::string& field,
                              std::ostringstream& oss) {
-  auto pair = indexer_table_.find(field);
-  if (pair == indexer_table_.end()) {
+  auto pair = entitys_meta_->field_entitys_.find(field);
+  if (pair == entitys_meta_->field_entitys_.end()) {
     oss << "{ \"error:\" \"" << field << " not found\"}\n";
     return;
   }
-  pair->second->DumpTo(oss);
+  Json j_entity = pair->second;
+  oss << "field:" << field << "\t" << j_entity << "\n";
 }
 
 void Indexer::DebugDump(std::ostringstream& oss) {
-  for (auto& pair : indexer_table_) {
-    pair.second->DumpTo(oss);
-    oss << "\n";
+  for (auto& pair : entitys_meta_->field_entitys_) {
+    Json j_entity = pair.second;
+    oss << "field:" << pair.first << "\t" << j_entity << "\n";
   }
 }
 
 void Indexer::AddDocument(const RefDocument&& document) {
-  if (keep_docments_) {
-    all_documents_.push_back(document);
+  if (build_finished_) {
+    std::cout << " this indexer is finish build, only work for query"
+              << std::endl;
+    return;
   }
-  all_documens_ids_.insert(document->DocumentId());
 
-  for (auto field_name : indexer_fields_) {
+  entitys_meta_->all_documents_.push_back(document);
+  entitys_meta_->all_documens_ids_.insert(document->DocumentId());
+
+  for (auto& field_name : delegate_->AllRegisterFields()) {
+    DocIdType doc_id = document->DocumentId();
     auto& doc_conditions = document->Conditions();
     auto expr_iter = doc_conditions.find(field_name);
 
-    Field* pl_field = GetPostingListField(field_name);
-    if (!pl_field) {
-      std::cout << "field:" << field_name
-                << " not supported, register it before use";
+    FieldEntity& entity = entitys_meta_->field_entitys_[field_name];
+    // not found or assigns emtpy, set docid as wildcard for this field
+    if (expr_iter == doc_conditions.end() ||
+        expr_iter->second.Values().empty()) {
+      entity.AddWildcardsId(doc_id);
       continue;
     }
 
-    if (expr_iter == doc_conditions.end()) {  // not found, set wildcards
-      pl_field->AddWildcards(document->DocumentId());
-    } else {
-      pl_field->ResolveExpression(expr_iter->second, document.get());
+    const Expression& expression = expr_iter->second;
+    bool is_exclude_expression = expression.IsExclude();
+    for (const auto& assign : expression.Values()) {
+      entity.AddIdForAssign(assign, is_exclude_expression, doc_id);
+    }
+    if (is_exclude_expression) {
+      entity.AddWildcardsId(doc_id);
     }
   }
 }
 
 Field* Indexer::GetPostingListField(const std::string& field) {
-  if (indexer_fields_.find(field) == indexer_fields_.end()) {
-    return NULL;
-  }
-
   auto iter = indexer_table_.find(field);
-
-  if (indexer_table_.end() == iter) {  // create new one
-    const auto& creator = creators_.find(field);
-    FieldPtr pl_field;
-    if (creator != creators_.end()) {
-      pl_field = creator->second();
-    } else {  // use GeneralStrField
-      pl_field.reset(new GeneralStrField(field));
-    }
-    auto insert_ret =
-        indexer_table_.insert(std::make_pair(field, std::move(pl_field)));
-    return insert_ret.first->second.get();
+  if (iter != indexer_table_.end()) {
+    return iter->second.get();
   }
-  return iter->second.get();
+
+  FieldPtr field_ptr = delegate_->CreatePostinglistField(field);
+  auto ret = indexer_table_.insert(std::make_pair(field, std::move(field_ptr)));
+  return ret.first->second.get();
 }
 
-void Indexer::RegisterGeneralStrField(const std::string field) {
+void Indexer::BuildIndexer() {
+  if (build_finished_) {
+    return;
+  }
+
+  std::vector<DocIdType> ids(entitys_meta_->all_documens_ids_.begin(),
+                             entitys_meta_->all_documens_ids_.end());
+  std::sort(ids.begin(), ids.end());
+
+  pl_manager_->SetSortedIndexedIds(std::move(ids));
+
+  std::set<std::string> all_register_field = delegate_->AllRegisterFields();
+  for (auto& field_name : all_register_field) {
+    FieldEntity& entity = entitys_meta_->field_entitys_[field_name];
+
+    Field* field = GetPostingListField(field_name);
+    auto bitmap_pl =
+        pl_manager_->BuildBitMapPostingListForIds(entity.wildcards);
+    field->SetWildcardsPostingList(bitmap_pl);
+
+    for (auto& pair : entity.include_ids) {
+      const std::string& assign = pair.first;
+      if (pair.second.empty()) {
+        continue;
+      }
+      auto* in_pl = pl_manager_->BuildBitMapPostingListForIds(pair.second);
+      CHECK(in_pl);
+      field->ResolveValueWithPostingList(assign, true, in_pl);
+    }
+
+    for (auto& pair : entity.exclude_ids) {
+      const std::string& assign = pair.first;
+      if (pair.second.empty()) {
+        continue;
+      }
+      auto* ex_pl = pl_manager_->BuildBitMapPostingListForIds(pair.second);
+      CHECK(ex_pl);
+      field->ResolveValueWithPostingList(assign, false, ex_pl);
+    }
+  }  // end foreach register field
+
+  build_finished_ = true;
+}
+
+void DefaultDelegate::RegisterGeneralStrField(const std::string field) {
   indexer_fields_.insert(field);
 }
-void Indexer::RegisterFieldWithCreator(const std::string& f,
-                                       FieldCreator creator) {
+
+void DefaultDelegate::RegisterFieldWithCreator(const std::string& f,
+                                               FieldCreator creator) {
   creators_[f] = creator;
   indexer_fields_.insert(f);
 }
 
-void Indexer::BuildIndexer() {
-  std::vector<int64_t> ids(all_documens_ids_.begin(), all_documens_ids_.end());
-  std::sort(ids.begin(), ids.end());
-  posting_list_manager_->SetSortedIndexedIds(std::move(ids));
+FieldPtr DefaultDelegate::CreatePostinglistField(const std::string& name) {
+  FieldPtr field_ptr;
 
-  for (auto& field_pair : indexer_table_) {
-    FieldPtr& field_ptr = field_pair.second;
-    const std::string& field_name = field_pair.first;
+  const auto& creator = creators_.find(name);
+  if (creator != creators_.end()) {
+    field_ptr = creator->second();
+  } else {  // use GeneralStrField
+    field_ptr.reset(new GeneralStrField(name));
+  }
+  return std::move(field_ptr);
+};
 
-    const PostingList& pl_entity = field_ptr->GetPostingList();
-
-    BitMapPostingList* bitmap_pl =
-        posting_list_manager_->BuildBitMapPostingListForIds(
-            pl_entity.wildcards);
-    field_ptr->SetWildcardsPostingList(bitmap_pl);
-
-    for (auto& value_ids_pair : pl_entity.include_pl) {
-      const std::string& value = value_ids_pair.first;
-      BitMapPostingList* in_pl =
-          posting_list_manager_->BuildBitMapPostingListForIds(
-              value_ids_pair.second);
-      field_ptr->ResolveValueWithPostingList(value, true, in_pl);
-    }
-
-    for (auto& value_ids_pair : pl_entity.exclude_pl) {
-      const std::string& value = value_ids_pair.first;
-      BitMapPostingList* ex_pl =
-          posting_list_manager_->BuildBitMapPostingListForIds(
-              value_ids_pair.second);
-      field_ptr->ResolveValueWithPostingList(value, true, ex_pl);
-    }
-  }  // end foreach register field
+const std::set<std::string> DefaultDelegate::AllRegisterFields() const {
+  return indexer_fields_;
 }
 
 }  // namespace component

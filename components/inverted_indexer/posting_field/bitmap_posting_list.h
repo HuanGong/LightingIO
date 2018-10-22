@@ -19,14 +19,17 @@ public:
       bit_count_(bit_count) {
 		ids_bitmap_.resize((bit_count + 63) / 64, value);
 	}
+  void ResetBits();
 	void SetBit(uint64_t idx);
 	void ClearBit(uint64_t idx);
   bool IsBitSet(uint64_t idx) const;
 	uint64_t IdCount() const {return id_count_;};
   uint64_t BitCount() const {return bit_count_;};
 
+  void Union(const BitMapPostingList* other);
   void Intersect(const BitMapPostingList* other);
   void Substract(const BitMapPostingList* other);
+
   std::string DebugDump() const {
     std::ostringstream oss;
     for (const auto& v : ids_bitmap_) {

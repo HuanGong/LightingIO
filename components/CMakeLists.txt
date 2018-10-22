@@ -76,5 +76,5 @@ ADD_EXECUTABLE(source_loader_unittest
 set_target_properties(source_loader_unittest PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
 ADD_EXECUTABLE(inverted_indexer_unittest
-	./inverted_indexer/test/inverted_indexer_unittest.cc)
+	./inverted_indexer/unittests/inverted_indexer_unittest.cc)
 set_target_properties(inverted_indexer_unittest PROPERTIES EXCLUDE_FROM_ALL TRUE)
