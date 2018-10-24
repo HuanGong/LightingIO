@@ -79,7 +79,7 @@ ColumnParser::~ColumnParser() {
 bool ColumnParser::ParseContent(const std::string& content) {
   VLOG(GLOG_VTRACE) << __FUNCTION__ << " enter";
 
-  std::vector<std::string> results = str::split(content, delimiter_);
+  std::vector<std::string> results = base::StringUtils::Split(content, delimiter_);
   if (results.size() != header_.size()) {
     LOG(INFO) << __FUNCTION__ << " bad content:" << content << " delemiter:" << delimiter_;
     return false;

@@ -4,7 +4,7 @@
 #include "http_response.h"
 #include "http_constants.h"
 #include "base/base_constants.h"
-#include "base/string_utils/string.hpp"
+#include "base/string_utils/string_utils.hpp"
 
 namespace net {
 
