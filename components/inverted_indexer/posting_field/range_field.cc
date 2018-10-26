@@ -4,7 +4,7 @@
 #include "range_field.h"
 #include <iostream>
 #include <sstream>
-#include "base/string_utils/string_utils.hpp"
+#include "base/utils/string/str_utils.hpp"
 
 namespace component {
 
@@ -37,7 +37,7 @@ std::vector<BitMapPostingList*> RangeField::GetIncludeBitmap(
   std::vector<BitMapPostingList*> result;
 
   int32_t assign = 0;
-  if (!base::StringUtils::TryParseTo(value, assign)) {
+  if (!base::StrUtils::ParseTo(value, assign)) {
     return result;
   }
 
@@ -53,7 +53,7 @@ std::vector<BitMapPostingList*> RangeField::GetExcludeBitmap(
   std::vector<BitMapPostingList*> result;
 
   int32_t assign = 0;
-  if (!base::StringUtils::TryParseTo(value, assign)) {
+  if (!base::StrUtils::ParseTo(value, assign)) {
     return result;
   }
 
@@ -66,20 +66,20 @@ std::vector<BitMapPostingList*> RangeField::GetExcludeBitmap(
 
 bool RangeField::ParseRange(const std::string& assign, int32_t& start,
                             int32_t& end) {
-  auto range = base::StringUtils::Split(assign, delim_);
+  auto range = base::StrUtils::Split(assign, delim_);
   switch (range.size()) {
     case 0:
       return false;
     case 1: {
-      bool ok = base::StringUtils::TryParseTo(range[0], start);
+      bool ok = base::StrUtils::ParseTo(range[0], start);
       if (ok) {
         end = start;
       }
       return ok;
     } break;
     case 2: {
-      return base::StringUtils::TryParseTo(range[1], end) &&
-        base::StringUtils::TryParseTo(range[0], start);
+      return base::StrUtils::ParseTo(range[1], end) &&
+        base::StrUtils::ParseTo(range[0], start);
     } break;
     default:
       break;

@@ -1,5 +1,5 @@
-#ifndef LIGHTING_BASE_UTILS_STRINGUTILS_H
-#define LIGHTING_BASE_UTILS_STRINGUTILS_H
+#ifndef LIGHTING_BASE_UTILS_StrUtils_H
+#define LIGHTING_BASE_UTILS_StrUtils_H
 
 // COPY FROM http://tum-i5.github.io/utils/index.html BSD-3 LICIENCE
 
@@ -14,7 +14,7 @@
 
 namespace base {
 
-class StringUtils {
+class StrUtils {
 public:
   static bool Replace(std::string &str, const std::string &from,
                       const std::string &to) {
@@ -54,7 +54,7 @@ public:
   }
 
   template<typename T>
-  static bool TryParseTo(const std::string& str, T& out) {
+  static bool ParseTo(const std::string& str, T& out) {
     std::istringstream iss = std::istringstream(str);
     iss >> out;
     return iss.good();
@@ -65,12 +65,6 @@ public:
     T result;
     std::istringstream(str) >> result;
     return result;
-  }
-
-  template <typename T>
-  static T Parse(const std::string &str, bool adavanced) {
-    // By default the advanced mode is disabled for all datatypes
-    return Parse<T>(str);
   }
 
   static void ToUpper(char *s) {
@@ -161,21 +155,24 @@ public:
 };
 
 template <>
-inline std::string StringUtils::Parse(const std::string &str) {
+inline std::string StrUtils::Parse(const std::string &str) {
   return str;
 }
 
 template <>
-inline const char* StringUtils::Parse(const std::string &str) {
+inline const char* StrUtils::Parse(const std::string &str) {
   return str.c_str();
 }
 
 template <>
-inline bool StringUtils::Parse(const std::string &str, bool advanced) {
+inline bool StrUtils::Parse(const std::string &str) {
   std::string s = str;
   ToLower(s);
 
-  if (s == "on" || s == "yes" || s == "true") {
+  if (s == "1",
+      s == "on" ||
+      s == "yes" ||
+      s == "true") {
     return true;
   }
   return Parse<bool>(str);

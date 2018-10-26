@@ -5,7 +5,7 @@
 #include "column_parser.h"
 #include <glog/logging.h>
 #include "base/base_constants.h"
-#include "base/string_utils/string_utils.hpp"
+#include "base/utils/string/str_utils.hpp"
 
 /*
  *   eg: AngleZhou#21#{"email":"gopher@gmail.com"}#extra_what_ever
@@ -79,7 +79,7 @@ ColumnParser::~ColumnParser() {
 bool ColumnParser::ParseContent(const std::string& content) {
   VLOG(GLOG_VTRACE) << __FUNCTION__ << " enter";
 
-  std::vector<std::string> results = base::StringUtils::Split(content, delimiter_);
+  std::vector<std::string> results = base::StrUtils::Split(content, delimiter_);
   if (results.size() != header_.size()) {
     LOG(INFO) << __FUNCTION__ << " bad content:" << content << " delemiter:" << delimiter_;
     return false;

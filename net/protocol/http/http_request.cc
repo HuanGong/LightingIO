@@ -4,7 +4,7 @@
 #include "http_constants.h"
 #include "base/base_constants.h"
 
-#include "base/string_utils/string_utils.hpp"
+#include "base/utils/string/str_utils.hpp"
 
 namespace net {
 
@@ -113,7 +113,7 @@ const std::string HttpRequest::MessageDebug() const {
 
 void HttpRequest::SetMethod(const std::string method) {
   method_ = method;
-  base::StringUtils::ToUpper(method_);
+  base::StrUtils::ToUpper(method_);
 }
 
 bool HttpRequest::IsKeepAlive() const {
