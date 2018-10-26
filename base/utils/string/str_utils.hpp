@@ -53,6 +53,13 @@ public:
     return ss.str();
   }
 
+  template<typename T>
+  static bool TryParseTo(const std::string& str, T& out) {
+    std::istringstream iss = std::istringstream(str);
+    iss >> out;
+    return iss.good();
+  }
+
   template <typename T>
   static T Parse(const std::string &str) {
     T result;

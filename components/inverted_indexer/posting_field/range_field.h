@@ -11,7 +11,7 @@ namespace component {
 
 class RangeField : public Field {
 public:
-	RangeField(const std::string&);
+	RangeField(const std::string&, const std::string& delim);
 
 	void DumpTo(std::ostringstream& oss) override;
   void ResolveValueWithPostingList(const std::string&, bool in, BitMapPostingList*) override;
@@ -19,8 +19,9 @@ public:
   std::vector<BitMapPostingList*> GetIncludeBitmap(const std::string& value);
   std::vector<BitMapPostingList*> GetExcludeBitmap(const std::string& value);
 private:
+  const std::string delim_;
   //return start,end pair
-  std::pair<int32_t, int32_t> ParseRange(const std::string& exp);
+  bool ParseRange(const std::string& assign, int32_t& start, int32_t& end);
 
   std::unordered_map<int32_t, BitMapPostingList*> include_pl_;
   std::unordered_map<int32_t, BitMapPostingList*> exclude_pl_;

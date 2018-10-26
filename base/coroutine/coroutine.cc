@@ -60,7 +60,7 @@ Coroutine::Coroutine(CoroDelegate* d, bool main) :
   LOG_IF(ERROR, r == 0) << "Failed Allocate Coroutine Stack";
   CHECK(r == 1);
 
-  memset(this, 0, sizeof(coro_context));
+  memset((coro_context*)this, 0, sizeof(coro_context));
   {
     base::SpinLockGuard guard(g_coro_lock);
     coro_create(this, coro_main, this, stack_.sptr, stack_.ssze);

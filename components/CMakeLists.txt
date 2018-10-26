@@ -25,6 +25,7 @@ SET(COMPONENT_SOURCES
   ./inverted_indexer/expression.cc
   ./inverted_indexer/bitmap_merger.cc
 	./inverted_indexer/posting_field/field.cc
+	./inverted_indexer/posting_field/range_field.cc
 	./inverted_indexer/posting_field/general_str_field.cc
   ./inverted_indexer/posting_field/bitmap_posting_list.cc
 	./inverted_indexer/posting_field/posting_list_manager.cc
