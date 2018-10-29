@@ -75,3 +75,10 @@ TARGET_LINK_LIBRARIES(coro_unittest
   ${LTBASEEXECUTE_LINKLIBS}
 )
 
+ADD_EXECUTABLE(utils_unittest
+  utils/unittest_main.cc
+  utils/utils_unittest.cc
+)
+TARGET_LINK_LIBRARIES(utils_unittest
+  ${LTBASEEXECUTE_LINKLIBS}
+)

@@ -3,6 +3,8 @@ lib/
 
 *.o
 *.user
+.idea
+cmake-build-*
 
 compile_commands.json
 
