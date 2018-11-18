@@ -103,7 +103,7 @@ public:
   template <typename T>
   static std::string Join(const std::vector<T> &v, const std::string &token) {
     std::ostringstream result;
-    for (const auto &i = v.begin(); i != v.end(); i++) {
+    for (auto i = v.begin(); i != v.end(); i++) {
       if (i != v.begin()) {
         result << token;
       }
@@ -169,13 +169,11 @@ inline bool StrUtils::Parse(const std::string &str) {
   std::string s = str;
   ToLower(s);
 
-  if (s == "1",
-      s == "on" ||
-      s == "yes" ||
-      s == "true") {
+  if (s == "1" || s == "on" ||
+      s == "yes" || s == "true" || s == "ok") {
     return true;
   }
-  return Parse<bool>(str);
+  return false;
 }
 
 }  // namespace base
